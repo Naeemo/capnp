@@ -44,10 +44,13 @@ console.log(data.getText(0));  // "你好，Cap'n Proto！"
 从 Cap'n Proto 模式生成 TypeScript 类型：
 
 ```bash
-npx @naeemo/capnp-codegen schema.capnp -o types.ts
+npx tsx src/cli/codegen.ts schema.capnp -o types.ts
 ```
 
-> **注意**：代码生成器目前正在开发中。现在可以直接使用上面的底层 API。
+生成的代码包括：
+- TypeScript 接口
+- Reader 类（getter）
+- Builder 类（setter + 工厂方法）
 
 ## 性能
 

@@ -44,10 +44,33 @@ console.log(data.getText(0));  // "Hello, Cap'n Proto!"
 Generate TypeScript types from your Cap'n Proto schema:
 
 ```bash
-npx @naeemo/capnp-codegen schema.capnp -o types.ts
+npx tsx src/cli/codegen.ts schema.capnp -o types.ts
 ```
 
-> **Note**: Code generation is currently a work in progress. For now, you can use the low-level API directly as shown above.
+Generated code includes:
+- TypeScript interfaces
+- Reader classes (getters)
+- Builder classes (setters + factory method)
+
+Example:
+```typescript
+// Generated from schema
+export interface Person {
+  id: bigint;
+  name: string;
+}
+
+export class PersonReader {
+  get id(): bigint { ... }
+  get name(): string { ... }
+}
+
+export class PersonBuilder {
+  static create(message: MessageBuilder): PersonBuilder { ... }
+  setId(value: bigint): void { ... }
+  setName(value: string): void { ... }
+}
+```
 
 ## Performance
 
