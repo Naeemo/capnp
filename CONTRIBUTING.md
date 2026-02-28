@@ -1,6 +1,6 @@
 # Contributing to Cap'n Proto TypeScript
 
-Thank you for your interest in contributing! This project is developed by **Naeemo** and **Kimi**.
+Thank you for your interest in contributing! This project is developed by **Naeemo** and [Moonshot AI](https://github.com/MoonshotAI).
 
 ## How to Contribute
 

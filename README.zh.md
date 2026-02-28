@@ -73,7 +73,7 @@ npx @naeemo/capnp-codegen schema.capnp -o types.ts
 
 ## 致谢
 
-由 **Naeemo** 和 **Kimi** 共同开发。
+由 **Naeemo** 和 [Moonshot AI](https://github.com/MoonshotAI) 共同开发。
 
 ## 许可证
 

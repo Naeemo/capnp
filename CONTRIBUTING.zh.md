@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢你的贡献兴趣！本项目由 **Naeemo** 和 **Kimi** 共同开发。
+感谢你的贡献兴趣！本项目由 **Naeemo** 和 [Moonshot AI](https://github.com/MoonshotAI) 共同开发。
 
 ## 如何贡献
 

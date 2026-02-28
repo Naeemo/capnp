@@ -73,7 +73,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for gu
 
 ## Credits
 
-Developed by **Naeemo** and **Kimi**.
+Developed by **Naeemo** and [Moonshot AI](https://github.com/MoonshotAI).
 
 ## License
 
