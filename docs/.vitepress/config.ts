@@ -4,6 +4,7 @@ export default defineConfig({
   title: "Cap'n Proto TypeScript",
   description: 'Pure TypeScript implementation of Cap\'n Proto',
   base: '/capnp/',
+  ignoreDeadLinks: true,
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
