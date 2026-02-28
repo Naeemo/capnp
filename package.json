@@ -1,5 +1,5 @@
 {
-  "name": "@capnp-ts/core",
+  "name": "@naeemo/capnp",
   "version": "0.1.0",
   "description": "Pure TypeScript Cap'n Proto implementation",
   "type": "module",
@@ -14,7 +14,10 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
   ],
   "bin": {
     "capnp-ts-codegen": "./dist/codegen/cli.js"
@@ -27,7 +30,8 @@
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "capnp",
@@ -35,8 +39,20 @@
     "serialization",
     "typescript"
   ],
-  "author": "",
+  "author": "Naeemo <naeemo@qq.com>",
+  "contributors": [
+    "Naeemo <naeemo@qq.com>",
+    "Kimi"
+  ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Naeemo/capnp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Naeemo/capnp/issues"
+  },
+  "homepage": "https://github.com/Naeemo/capnp#readme",
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.13.5",

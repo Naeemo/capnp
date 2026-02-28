@@ -15,7 +15,7 @@
 ## 安装
 
 ```bash
-npm install @capnp-ts/core
+npm install @naeemo/capnp
 ```
 
 ## 快速开始
@@ -23,7 +23,7 @@ npm install @capnp-ts/core
 ### 基础用法
 
 ```typescript
-import { MessageBuilder, MessageReader } from '@capnp-ts/core';
+import { MessageBuilder, MessageReader } from '@naeemo/capnp';
 
 // 构建消息
 const builder = new MessageBuilder();

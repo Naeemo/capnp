@@ -15,7 +15,7 @@ A pure TypeScript implementation of Cap'n Proto, featuring zero-copy deserializa
 ## Installation
 
 ```bash
-npm install @capnp-ts/core
+npm install @naeemo/capnp
 ```
 
 ## Quick Start
@@ -23,7 +23,7 @@ npm install @capnp-ts/core
 ### Basic Usage
 
 ```typescript
-import { MessageBuilder, MessageReader } from '@capnp-ts/core';
+import { MessageBuilder, MessageReader } from '@naeemo/capnp';
 
 // Build a message
 const builder = new MessageBuilder();
