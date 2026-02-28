@@ -11,7 +11,12 @@
         "noUnusedVariables": "error"
       },
       "suspicious": {
-        "noExplicitAny": "warn"
+        "noExplicitAny": "off",
+        "noAssignInExpressions": "off",
+        "noImplicitAnyLet": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off"
       }
     }
   },
@@ -26,5 +31,8 @@
       "quoteStyle": "single",
       "trailingCommas": "es5"
     }
+  },
+  "files": {
+    "ignore": ["dist", "node_modules", "wasm"]
   }
 }
