@@ -44,8 +44,10 @@ console.log(data.getText(0));  // "Hello, Cap'n Proto!"
 Generate TypeScript types from your Cap'n Proto schema:
 
 ```bash
-npx @capnp-ts/codegen schema.capnp -o types.ts
+npx @naeemo/capnp-codegen schema.capnp -o types.ts
 ```
+
+> **Note**: Code generation is currently a work in progress. For now, you can use the low-level API directly as shown above.
 
 ## Performance
 
