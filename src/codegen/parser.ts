@@ -57,7 +57,7 @@ export function parseSchema(source: string): Schema {
     const valueRegex = /(\w+)\s*@(\d+)/g;
     let valueMatch;
     while ((valueMatch = valueRegex.exec(body)) !== null) {
-      values.push({ name: valueMatch[1], value: parseInt(valueMatch[2]) });
+      values.push({ name: valueMatch[1], value: Number.parseInt(valueMatch[2]) });
     }
 
     enums.push({ name, values });
@@ -79,7 +79,7 @@ export function parseSchema(source: string): Schema {
     let fieldMatch;
     while ((fieldMatch = fieldRegex.exec(body)) !== null) {
       const fieldName = fieldMatch[1];
-      const index = parseInt(fieldMatch[2]);
+      const index = Number.parseInt(fieldMatch[2]);
       const type = fieldMatch[3];
 
       const isPointer = ['Text', 'Data', 'List'].includes(type) || type.includes('(');
@@ -111,17 +111,23 @@ export function parseSchema(source: string): Schema {
 
 function getTypeSize(type: string): number {
   switch (type) {
-    case 'Bool': return 1;
+    case 'Bool':
+      return 1;
     case 'Int8':
-    case 'UInt8': return 1;
+    case 'UInt8':
+      return 1;
     case 'Int16':
-    case 'UInt16': return 2;
+    case 'UInt16':
+      return 2;
     case 'Int32':
     case 'UInt32':
-    case 'Float32': return 4;
+    case 'Float32':
+      return 4;
     case 'Int64':
     case 'UInt64':
-    case 'Float64': return 8;
-    default: return 8;
+    case 'Float64':
+      return 8;
+    default:
+      return 8;
   }
 }

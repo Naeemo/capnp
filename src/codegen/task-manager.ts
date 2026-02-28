@@ -3,9 +3,9 @@
  * 支持断点续传和自动重试
  */
 
-import { execSync } from 'child_process';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { execSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 interface TaskStatus {
   taskId: string;
@@ -84,13 +84,15 @@ export class TaskManager {
 
         if (task.attempts < maxRetries) {
           console.log(`[TaskManager] Retrying in ${retryDelay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
         }
       }
     }
 
     this.saveTasks();
-    throw new Error(`Task ${taskId} failed after ${maxRetries} attempts. Last error: ${task.lastError}`);
+    throw new Error(
+      `Task ${taskId} failed after ${maxRetries} attempts. Last error: ${task.lastError}`
+    );
   }
 
   resetTask(taskId: string): void {

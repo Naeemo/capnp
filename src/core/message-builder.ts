@@ -3,13 +3,13 @@
  * 纯 TypeScript 实现
  */
 
-import { Segment, WORD_SIZE } from './segment.js';
-import { encodeStructPointer, encodeListPointer, PointerTag, ElementSize } from './pointer.js';
 import { ListBuilder } from './list.js';
+import { ElementSize, PointerTag, encodeListPointer, encodeStructPointer } from './pointer.js';
+import { Segment, WORD_SIZE } from './segment.js';
 
 export class MessageBuilder {
   private segment: Segment;
-  private rootSet: boolean = false;
+  private rootSet = false;
 
   constructor() {
     // 预留消息头空间（假设单段）
@@ -25,17 +25,17 @@ export class MessageBuilder {
     if (this.rootSet) {
       throw new Error('Root already initialized');
     }
-    
+
     // 分配根结构空间
     const size = dataWords + pointerCount;
     const structOffset = this.segment.allocate(size);
-    
+
     // 在位置 0 写入根指针
     const rootPtr = encodeStructPointer(structOffset - 1, dataWords, pointerCount);
     this.segment.setWord(0, rootPtr);
-    
+
     this.rootSet = true;
-    
+
     return new StructBuilder(this, 0, structOffset, dataWords, pointerCount);
   }
 
@@ -50,8 +50,8 @@ export class MessageBuilder {
     // 第一个字：段数量-1（低32位）和第一段大小（高32位）
     const header = new ArrayBuffer(8);
     const headerView = new DataView(header);
-    headerView.setUint32(0, 0, true);           // 段数量-1 = 0（单段）
-    headerView.setUint32(4, wordCount, true);   // 第一段大小
+    headerView.setUint32(0, 0, true); // 段数量-1 = 0（单段）
+    headerView.setUint32(4, wordCount, true); // 第一段大小
 
     // 合并头和数据
     const result = new Uint8Array(8 + segmentData.byteLength);
@@ -90,11 +90,9 @@ export class StructBuilder {
     const segment = this.message.getSegment();
     const view = segment.dataView;
     const offset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     const current = view.getUint8(offset);
-    const newValue = value 
-      ? (current | (1 << bitInByte))
-      : (current & ~(1 << bitInByte));
+    const newValue = value ? current | (1 << bitInByte) : current & ~(1 << bitInByte);
     view.setUint8(offset, newValue);
   }
 
@@ -128,7 +126,7 @@ export class StructBuilder {
   setInt64(byteOffset: number, value: bigint): void {
     const segment = this.message.getSegment();
     const offset = this.wordOffset * WORD_SIZE + byteOffset;
-    segment.dataView.setUint32(offset, Number(value & BigInt(0xFFFFFFFF)), true);
+    segment.dataView.setUint32(offset, Number(value & BigInt(0xffffffff)), true);
     segment.dataView.setInt32(offset + 4, Number(value >> BigInt(32)), true);
   }
 
@@ -162,7 +160,7 @@ export class StructBuilder {
   setUint64(byteOffset: number, value: bigint): void {
     const segment = this.message.getSegment();
     const offset = this.wordOffset * WORD_SIZE + byteOffset;
-    segment.dataView.setUint32(offset, Number(value & BigInt(0xFFFFFFFF)), true);
+    segment.dataView.setUint32(offset, Number(value & BigInt(0xffffffff)), true);
     segment.dataView.setUint32(offset + 4, Number(value >> BigInt(32)), true);
   }
 
@@ -196,15 +194,15 @@ export class StructBuilder {
   setText(pointerIndex: number, value: string): void {
     const ptrOffset = this.wordOffset + this.dataWords + pointerIndex;
     const segment = this.message.getSegment();
-    
+
     // 编码文本
-    const bytes = new TextEncoder().encode(value + '\0');
+    const bytes = new TextEncoder().encode(`${value}\0`);
     const wordCount = Math.ceil(bytes.length / WORD_SIZE);
     const listOffset = segment.allocate(wordCount);
-    
+
     // 写入文本数据
     new Uint8Array(segment.dataView.buffer, listOffset * WORD_SIZE, bytes.length).set(bytes);
-    
+
     // 写入指针
     const ptr = encodeListPointer(listOffset - ptrOffset - 1, ElementSize.BYTE, bytes.length);
     segment.setWord(ptrOffset, ptr);
@@ -216,25 +214,30 @@ export class StructBuilder {
   initStruct(pointerIndex: number, dataWords: number, pointerCount: number): StructBuilder {
     const ptrOffset = this.wordOffset + this.dataWords + pointerIndex;
     const segment = this.message.getSegment();
-    
+
     // 分配结构空间
     const size = dataWords + pointerCount;
     const structOffset = segment.allocate(size);
-    
+
     // 写入指针
     const ptr = encodeStructPointer(structOffset - ptrOffset - 1, dataWords, pointerCount);
     segment.setWord(ptrOffset, ptr);
-    
+
     return new StructBuilder(this.message, 0, structOffset, dataWords, pointerCount);
   }
 
   /**
    * 初始化列表
    */
-  initList<T>(pointerIndex: number, elementSize: ElementSize, elementCount: number, structSize?: { dataWords: number; pointerCount: number }): ListBuilder<T> {
+  initList<T>(
+    pointerIndex: number,
+    elementSize: ElementSize,
+    elementCount: number,
+    structSize?: { dataWords: number; pointerCount: number }
+  ): ListBuilder<T> {
     const ptrOffset = this.wordOffset + this.dataWords + pointerIndex;
     const segment = this.message.getSegment();
-    
+
     // 计算列表大小
     let elementWords = 1;
     if (elementSize === ElementSize.BYTE) elementWords = 1;
@@ -244,14 +247,14 @@ export class StructBuilder {
     else if (elementSize === ElementSize.COMPOSITE && structSize) {
       elementWords = structSize.dataWords + structSize.pointerCount;
     }
-    
+
     const totalWords = elementWords * elementCount;
     const listOffset = segment.allocate(totalWords);
-    
+
     // 写入指针
     const ptr = encodeListPointer(listOffset - ptrOffset - 1, elementSize, elementCount);
     segment.setWord(ptrOffset, ptr);
-    
+
     return new ListBuilder<T>(this.message, elementSize, elementCount, structSize, listOffset);
   }
 }

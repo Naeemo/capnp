@@ -4,10 +4,10 @@
  * Cap'n Proto TypeScript Code Generator CLI v2
  */
 
-import { readFileSync, writeFileSync } from 'fs';
-import { parseArgs } from 'util';
-import { parseSchemaV2 } from './parser-v2.js';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { parseArgs } from 'node:util';
 import { generateCode } from './generator-v2.js';
+import { parseSchemaV2 } from './parser-v2.js';
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
@@ -55,13 +55,13 @@ const outputFile = values.output;
 async function main() {
   console.error(`Reading ${inputFile}...`);
   const source = readFileSync(inputFile, 'utf-8');
-  
+
   console.error('Parsing schema...');
   const schema = parseSchemaV2(source);
-  
+
   console.error('Generating TypeScript code...');
   const code = generateCode(schema);
-  
+
   if (outputFile) {
     writeFileSync(outputFile, code);
     console.error(`Output written to ${outputFile}`);
@@ -70,7 +70,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

@@ -2,15 +2,15 @@
 
 /**
  * Cap'n Proto CLI
- * 
+ *
  * Usage:
  *   capnp gen schema.capnp -o types.ts
  */
 
-import { readFileSync, writeFileSync } from 'fs';
-import { parseArgs } from 'util';
-import { parseSchemaV2 } from './codegen/parser-v2.js';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { parseArgs } from 'node:util';
 import { generateCode } from './codegen/generator-v2.js';
+import { parseSchemaV2 } from './codegen/parser-v2.js';
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
@@ -61,7 +61,7 @@ async function main() {
   const source = readFileSync(inputFile, 'utf-8');
   const schema = parseSchemaV2(source);
   const code = generateCode(schema);
-  
+
   if (outputFile) {
     writeFileSync(outputFile, code);
     console.error(`Generated: ${outputFile}`);
@@ -70,7 +70,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { MessageReader, MessageBuilder, ElementSize } from '../index.js';
-import { createUnionReader, createUnionBuilder } from '../core/union.js';
+import { describe, expect, it } from 'vitest';
+import { createUnionBuilder, createUnionReader } from '../core/union.js';
+import { ElementSize, MessageBuilder, MessageReader } from '../index.js';
 
 describe('Union Support', () => {
   it('should handle simple union', () => {
@@ -14,7 +14,7 @@ describe('Union Support', () => {
     // Layout: tag at byte 0, data starts at byte 8
 
     const builder = new MessageBuilder();
-    const root = builder.initRoot(2, 1);  // 2 data words, 1 pointer
+    const root = builder.initRoot(2, 1); // 2 data words, 1 pointer
 
     // Set int variant
     const unionBuilder = createUnionBuilder(root, 0);

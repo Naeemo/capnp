@@ -3,8 +3,8 @@
  * 纯 TypeScript 实现
  */
 
-import { StructReader, MessageReader } from './message-reader.js';
-import { StructBuilder, MessageBuilder } from './message-builder.js';
+import { MessageBuilder, type StructBuilder } from './message-builder.js';
+import { MessageReader, type StructReader } from './message-reader.js';
 import { ElementSize } from './pointer.js';
 
 /**
@@ -13,8 +13,8 @@ import { ElementSize } from './pointer.js';
 export class UnionReader {
   constructor(
     private struct: StructReader,
-    private tagOffset: number,  // tag 的字节偏移
-    private variants: Map<number, string>  // tag 值 -> variant 名称
+    private tagOffset: number, // tag 的字节偏移
+    private variants: Map<number, string> // tag 值 -> variant 名称
   ) {}
 
   /**
@@ -79,15 +79,16 @@ export function createUnionReader(
   tagOffset: number,
   variants: Record<number, string>
 ): UnionReader {
-  return new UnionReader(struct, tagOffset, new Map(Object.entries(variants).map(([k, v]) => [Number(k), v])));
+  return new UnionReader(
+    struct,
+    tagOffset,
+    new Map(Object.entries(variants).map(([k, v]) => [Number(k), v]))
+  );
 }
 
 /**
  * 创建 UnionBuilder 的工厂函数
  */
-export function createUnionBuilder(
-  struct: StructBuilder,
-  tagOffset: number
-): UnionBuilder {
+export function createUnionBuilder(struct: StructBuilder, tagOffset: number): UnionBuilder {
   return new UnionBuilder(struct, tagOffset);
 }

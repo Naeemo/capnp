@@ -1,21 +1,27 @@
-import { describe, it, expect } from 'vitest';
-import { MessageReader, MessageBuilder, ElementSize, createUnionReader, createUnionBuilder } from '../index.js';
+import { describe, expect, it } from 'vitest';
+import {
+  ElementSize,
+  MessageBuilder,
+  MessageReader,
+  createUnionBuilder,
+  createUnionReader,
+} from '../index.js';
 
 describe('Pure TS Implementation', () => {
   it('should build and read a simple struct', () => {
     const builder = new MessageBuilder();
     const root = builder.initRoot(2, 1);
     root.setInt32(0, 42);
-    root.setFloat64(8, 3.14159);
-    root.setText(0, 'Hello Cap\'n Proto');
+    root.setFloat64(8, Math.PI);
+    root.setText(0, "Hello Cap'n Proto");
 
     const buffer = builder.toArrayBuffer();
     const reader = new MessageReader(buffer);
     const readRoot = reader.getRoot(2, 1);
 
     expect(readRoot.getInt32(0)).toBe(42);
-    expect(readRoot.getFloat64(8)).toBeCloseTo(3.14159, 5);
-    expect(readRoot.getText(0)).toBe('Hello Cap\'n Proto');
+    expect(readRoot.getFloat64(8)).toBeCloseTo(Math.PI, 5);
+    expect(readRoot.getText(0)).toBe("Hello Cap'n Proto");
   });
 
   it('should handle uint64', () => {
@@ -39,7 +45,7 @@ describe('Pure TS Implementation', () => {
     const readRoot = reader.getRoot(1, 1);
 
     expect(readRoot.getInt32(0)).toBe(100);
-    expect(readRoot.getStruct(0, 1, 0)!.getInt32(0)).toBe(200);
+    expect(readRoot.getStruct(0, 1, 0)?.getInt32(0)).toBe(200);
   });
 
   it('should handle boolean fields', () => {
@@ -65,7 +71,9 @@ describe('Pure TS Implementation', () => {
     list.setPrimitive(4, 50);
 
     const buffer = builder.toArrayBuffer();
-    const readList = new MessageReader(buffer).getRoot(0, 1).getList<number>(0, ElementSize.FOUR_BYTES)!;
+    const readList = new MessageReader(buffer)
+      .getRoot(0, 1)
+      .getList<number>(0, ElementSize.FOUR_BYTES)!;
 
     expect(readList.length).toBe(5);
     expect(readList.getPrimitive(0)).toBe(10);

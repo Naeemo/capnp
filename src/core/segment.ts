@@ -8,9 +8,9 @@ export const WORD_SIZE = 8;
 export class Segment {
   private buffer: ArrayBuffer;
   private view: DataView;
-  private _size: number;  // 当前已使用字节数
+  private _size: number; // 当前已使用字节数
 
-  constructor(initialCapacity: number = 1024) {
+  constructor(initialCapacity = 1024) {
     this.buffer = new ArrayBuffer(initialCapacity);
     this.view = new DataView(this.buffer);
     this._size = 0;
@@ -32,13 +32,13 @@ export class Segment {
    */
   private ensureCapacity(minBytes: number): void {
     if (this.buffer.byteLength >= minBytes) return;
-    
+
     // 双倍扩展
     let newCapacity = this.buffer.byteLength * 2;
     while (newCapacity < minBytes) {
       newCapacity *= 2;
     }
-    
+
     const newBuffer = new ArrayBuffer(newCapacity);
     new Uint8Array(newBuffer).set(new Uint8Array(this.buffer, 0, this._size));
     this.buffer = newBuffer;
@@ -71,7 +71,7 @@ export class Segment {
    */
   setWord(wordOffset: number, value: bigint): void {
     const byteOffset = wordOffset * WORD_SIZE;
-    this.view.setUint32(byteOffset, Number(value & BigInt(0xFFFFFFFF)), true);
+    this.view.setUint32(byteOffset, Number(value & BigInt(0xffffffff)), true);
     this.view.setUint32(byteOffset + 4, Number(value >> BigInt(32)), true);
   }
 

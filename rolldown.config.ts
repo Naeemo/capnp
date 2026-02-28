@@ -33,12 +33,14 @@ export default defineConfig([
       format: 'esm',
       sourcemap: true,
     },
-    plugins: [{
-      name: 'shebang',
-      renderChunk(code) {
-        return '#!/usr/bin/env node\n' + code;
-      }
-    }],
+    plugins: [
+      {
+        name: 'shebang',
+        renderChunk(code) {
+          return `#!/usr/bin/env node\n${code}`;
+        },
+      },
+    ],
     platform: 'node',
     external: ['node:fs', 'node:path'],
   },

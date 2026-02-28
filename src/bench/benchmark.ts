@@ -2,7 +2,7 @@
  * 性能基准测试
  */
 
-import { MessageReader, MessageBuilder } from '../index.js';
+import { MessageBuilder, MessageReader } from '../index.js';
 
 // 高精度计时（微秒）
 function nowUs(): number {
@@ -10,20 +10,20 @@ function nowUs(): number {
 }
 
 // 运行多次取平均
-function benchmark(name: string, fn: () => void, iterations: number = 10000): void {
+function benchmark(name: string, fn: () => void, iterations = 10000): void {
   // 预热
   for (let i = 0; i < 100; i++) fn();
-  
+
   const start = nowUs();
   for (let i = 0; i < iterations; i++) {
     fn();
   }
   const end = nowUs();
-  
+
   const totalUs = end - start;
   const avgUs = totalUs / iterations;
   const opsPerSecond = 1000000 / avgUs;
-  
+
   console.log(`${name}:`);
   console.log(`  总时间: ${(totalUs / 1000).toFixed(2)} ms (${iterations} 次)`);
   console.log(`  平均: ${avgUs.toFixed(3)} μs/次`);
@@ -53,7 +53,7 @@ function textSerialize(): ArrayBuffer {
   const builder = new MessageBuilder();
   const root = builder.initRoot(1, 1);
   root.setInt32(0, 42);
-  root.setText(0, 'Hello, Cap\'n Proto!');
+  root.setText(0, "Hello, Cap'n Proto!");
   return builder.toArrayBuffer();
 }
 
@@ -139,7 +139,7 @@ function largeListDeserialize(buffer: ArrayBuffer): void {
 }
 
 // 运行所有测试
-console.log('=== Cap\'n Proto TypeScript 性能测试 ===\n');
+console.log("=== Cap'n Proto TypeScript 性能测试 ===\n");
 
 benchmark('简单结构序列化', simpleStructSerialize, 50000);
 

@@ -3,17 +3,17 @@
  * 纯 TypeScript
  */
 
-import { Segment, WORD_SIZE } from './segment.js';
-import { decodePointer, PointerTag, ListPointer, ElementSize } from './pointer.js';
-import { StructReader, MessageReader } from './message-reader.js';
-import { StructBuilder, MessageBuilder } from './message-builder.js';
+import { type MessageBuilder, StructBuilder } from './message-builder.js';
+import { type MessageReader, StructReader } from './message-reader.js';
+import { ElementSize, type ListPointer, PointerTag, decodePointer } from './pointer.js';
+import { type Segment, WORD_SIZE } from './segment.js';
 
 /**
  * ListReader - 读取列表
  */
 export class ListReader<T> {
   private segment: Segment;
-  private startOffset: number;  // 字偏移
+  private startOffset: number; // 字偏移
 
   constructor(
     private message: MessageReader,
@@ -49,23 +49,23 @@ export class ListReader<T> {
         const byte = this.segment.dataView.getUint8(this.startOffset * WORD_SIZE + byteOffset);
         return (byte & (1 << bitInByte)) !== 0 ? 1 : 0;
       }
-      
+
       case ElementSize.BYTE:
         return this.segment.dataView.getUint8(this.startOffset * WORD_SIZE + index);
-      
+
       case ElementSize.TWO_BYTES:
         return this.segment.dataView.getUint16(this.startOffset * WORD_SIZE + index * 2, true);
-      
+
       case ElementSize.FOUR_BYTES:
         return this.segment.dataView.getUint32(this.startOffset * WORD_SIZE + index * 4, true);
-      
+
       case ElementSize.EIGHT_BYTES: {
         const offset = this.startOffset * WORD_SIZE + index * 8;
         const low = BigInt(this.segment.dataView.getUint32(offset, true));
         const high = BigInt(this.segment.dataView.getUint32(offset + 4, true));
         return (high << BigInt(32)) | low;
       }
-      
+
       default:
         throw new Error(`Unsupported element size: ${this.elementSize}`);
     }
@@ -78,11 +78,11 @@ export class ListReader<T> {
     if (!this.structSize) {
       throw new Error('Not a struct list');
     }
-    
+
     const { dataWords, pointerCount } = this.structSize;
     const size = dataWords + pointerCount;
     const offset = this.startOffset + index * size;
-    
+
     return new StructReader(this.message, 0, offset, dataWords, pointerCount);
   }
 
@@ -99,7 +99,7 @@ export class ListReader<T> {
 /**
  * ListBuilder - 构建列表
  */
-export class ListBuilder<T> {
+export class ListBuilder<_T> {
   private segment: Segment;
   private startOffset: number;
 
@@ -135,9 +135,7 @@ export class ListBuilder<T> {
         const bitInByte = index % 8;
         const offset = this.startOffset * WORD_SIZE + byteOffset;
         const current = this.segment.dataView.getUint8(offset);
-        const newValue = value
-          ? (current | (1 << bitInByte))
-          : (current & ~(1 << bitInByte));
+        const newValue = value ? current | (1 << bitInByte) : current & ~(1 << bitInByte);
         this.segment.dataView.setUint8(offset, newValue);
         break;
       }
@@ -147,17 +145,26 @@ export class ListBuilder<T> {
         break;
 
       case ElementSize.TWO_BYTES:
-        this.segment.dataView.setUint16(this.startOffset * WORD_SIZE + index * 2, Number(value), true);
+        this.segment.dataView.setUint16(
+          this.startOffset * WORD_SIZE + index * 2,
+          Number(value),
+          true
+        );
         break;
 
       case ElementSize.FOUR_BYTES:
-        this.segment.dataView.setUint32(this.startOffset * WORD_SIZE + index * 4, Number(value), true);
+        this.segment.dataView.setUint32(
+          this.startOffset * WORD_SIZE + index * 4,
+          Number(value),
+          true
+        );
         break;
 
       case ElementSize.EIGHT_BYTES: {
         const offset = this.startOffset * WORD_SIZE + index * 8;
-        this.segment.dataView.setUint32(offset, Number(value & BigInt(0xFFFFFFFF)), true);
-        this.segment.dataView.setUint32(offset + 4, Number((value as bigint) >> BigInt(32)), true);
+        const bigValue = value as bigint;
+        this.segment.dataView.setUint32(offset, Number(bigValue & BigInt(0xffffffff)), true);
+        this.segment.dataView.setUint32(offset + 4, Number(bigValue >> BigInt(32)), true);
         break;
       }
 
@@ -173,11 +180,11 @@ export class ListBuilder<T> {
     if (!this.structSize) {
       throw new Error('Not a struct list');
     }
-    
+
     const { dataWords, pointerCount } = this.structSize;
     const size = dataWords + pointerCount;
     const offset = this.startOffset + index * size;
-    
+
     return new StructBuilder(this.message, 0, offset, dataWords, pointerCount);
   }
 }

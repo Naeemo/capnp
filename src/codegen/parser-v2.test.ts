@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { parseSchemaV2 } from './parser-v2.js';
 
 describe('Parser v2', () => {
@@ -11,7 +11,7 @@ describe('Parser v2', () => {
     `;
 
     const ast = parseSchemaV2(schema);
-    
+
     expect(ast.structs).toHaveLength(1);
     expect(ast.structs[0].name).toBe('Person');
     expect(ast.structs[0].fields).toHaveLength(2);
@@ -28,7 +28,7 @@ describe('Parser v2', () => {
     `;
 
     const ast = parseSchemaV2(schema);
-    
+
     expect(ast.enums).toHaveLength(1);
     expect(ast.enums[0].name).toBe('Status');
     expect(ast.enums[0].values).toHaveLength(2);
@@ -42,7 +42,7 @@ describe('Parser v2', () => {
     `;
 
     const ast = parseSchemaV2(schema);
-    
+
     expect(ast.structs[0].fields[0].type).toEqual({
       kind: 'list',
       elementType: 'UInt32',

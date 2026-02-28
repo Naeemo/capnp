@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { parseSchema } from './parser.js';
+import { describe, expect, it } from 'vitest';
 import { generateTypeScript } from './generator.js';
+import { parseSchema } from './parser.js';
 
 describe('Code Generator', () => {
   it('should parse simple schema', () => {

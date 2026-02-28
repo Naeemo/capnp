@@ -1,6 +1,6 @@
 {
   "name": "@naeemo/capnp",
-  "version": "0.1.0",
+  "version": "0.7.1",
   "description": "Pure TypeScript Cap'n Proto implementation",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -13,12 +13,7 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "README.zh.md",
-    "LICENSE"
-  ],
+  "files": ["dist", "README.md", "README.zh.md", "LICENSE"],
   "bin": {
     "capnp": "./dist/cli.js"
   },
@@ -33,17 +28,9 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run lint && npm run typecheck && npm run build && npm test"
   },
-  "keywords": [
-    "capnp",
-    "capnproto",
-    "serialization",
-    "typescript"
-  ],
+  "keywords": ["capnp", "capnproto", "serialization", "typescript"],
   "author": "Naeemo <naeemo@qq.com>",
-  "contributors": [
-    "Naeemo <naeemo@qq.com>",
-    "Kimi"
-  ],
+  "contributors": ["Naeemo <naeemo@qq.com>", "Kimi"],
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -17,16 +17,16 @@ export interface Field {
   offset: number;
   isOptional: boolean;
   defaultValue?: unknown;
-  
+
   // For list types
   elementType?: string;
-  
+
   // For struct types
   structType?: string;
-  
+
   // For enum types
   enumType?: string;
-  
+
   // For union fields
   discriminantValue?: number;
 }
