@@ -26,7 +26,10 @@
     "lint:fix": "biome check . --write",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run lint && npm run typecheck && npm run build && npm test"
+    "prepublishOnly": "npm run lint && npm run typecheck && npm run build && npm test",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "keywords": ["capnp", "capnproto", "serialization", "typescript"],
   "author": "Naeemo <naeemo@qq.com>",
@@ -46,6 +49,7 @@
     "rolldown": "^1.0.0-beta.3",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
+    "vitepress": "^1.0.0-rc.44",
     "vitest": "^3.0.7"
   },
   "engines": {
