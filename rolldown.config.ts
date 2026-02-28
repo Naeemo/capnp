@@ -14,7 +14,7 @@ export default defineConfig([
       sourcemap: true,
     },
     platform: 'node',
-    external: ['node:fs', 'node:path', 'node:url', 'node:child_process', '../../wasm/dist/capnp_ts_wasm.js'],
+    external: ['node:fs', 'node:path', 'node:url'],
   },
   // CJS build
   {
@@ -26,31 +26,7 @@ export default defineConfig([
       sourcemap: true,
     },
     platform: 'node',
-    external: ['node:fs', 'node:path', 'node:url', 'node:child_process', '../../wasm/dist/capnp_ts_wasm.js'],
-  },
-  // Browser entry
-  {
-    input: 'src/browser.ts',
-    output: {
-      dir: 'dist',
-      format: 'esm',
-      entryFileNames: 'index.browser.js',
-      sourcemap: true,
-    },
-    platform: 'browser',
-    external: ['../../wasm/dist/capnp_ts_wasm.js'],
-  },
-  // WASM bridge
-  {
-    input: 'src/wasm/index.ts',
-    output: {
-      dir: 'dist/wasm',
-      format: 'esm',
-      entryFileNames: 'index.js',
-      sourcemap: true,
-    },
-    platform: 'neutral',
-    external: ['../../wasm/dist/capnp_ts_wasm.js'],
+    external: ['node:fs', 'node:path', 'node:url'],
   },
   // CLI
   {
