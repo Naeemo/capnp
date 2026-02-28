@@ -20,7 +20,7 @@
     "LICENSE"
   ],
   "bin": {
-    "capnp-ts-codegen": "./dist/codegen/cli.js"
+    "capnp": "./dist/cli.js"
   },
   "scripts": {
     "build": "rolldown -c rolldown.config.ts",

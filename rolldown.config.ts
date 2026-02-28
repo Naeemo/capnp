@@ -1,10 +1,7 @@
 import { defineConfig } from 'rolldown';
-import { readFileSync } from 'node:fs';
-
-const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
 export default defineConfig([
-  // Main entry - Node.js/Bun/Deno
+  // Main entry
   {
     input: 'src/index.ts',
     output: {
@@ -30,15 +27,19 @@ export default defineConfig([
   },
   // CLI
   {
-    input: 'src/cli/codegen.ts',
+    input: 'src/cli.ts',
     output: {
-      dir: 'dist/cli',
+      file: 'dist/cli.js',
       format: 'esm',
-      entryFileNames: 'codegen.js',
       sourcemap: true,
-      banner: '#!/usr/bin/env node',
     },
+    plugins: [{
+      name: 'shebang',
+      renderChunk(code) {
+        return '#!/usr/bin/env node\n' + code;
+      }
+    }],
     platform: 'node',
-    external: ['node:fs', 'node:path', 'node:child_process'],
+    external: ['node:fs', 'node:path'],
   },
 ]);
