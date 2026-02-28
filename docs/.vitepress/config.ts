@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: "Cap'n Proto TypeScript",
-  description: 'Pure TypeScript implementation of Cap\'n Proto',
+  title: "@naeemo/capnp",
+  description: 'A pure TypeScript implementation of Cap\'n Proto',
   base: '/capnp/',
   ignoreDeadLinks: true,
   themeConfig: {

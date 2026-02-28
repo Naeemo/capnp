@@ -1,6 +1,6 @@
-# Cap'n Proto TypeScript
+# @naeemo/capnp
 
-Pure TypeScript implementation of Cap'n Proto, featuring zero-copy deserialization and full interoperability with the official C++ implementation.
+A pure TypeScript implementation of Cap'n Proto, featuring zero-copy deserialization and full interoperability with the official C++ implementation.
 
 ## Features
 
