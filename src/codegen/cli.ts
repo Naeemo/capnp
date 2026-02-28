@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * Cap'n Proto TypeScript Code Generator CLI
+ * Cap'n Proto TypeScript Code Generator CLI v2
+ * 
+ * 使用方法:
+ *   capnp-ts-codegen schema.capnp -o output.ts
+ *   capnp-ts-codegen schema.capnp > output.ts
+ * 
+ * 注意: 代码生成器目前处于实验阶段，建议直接使用底层 API
  */
 
 import { readFileSync, writeFileSync } from 'fs';
 import { parseArgs } from 'util';
-import { SchemaParser } from './parser.js';
-import { CodeGenerator } from './generator.js';
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
@@ -20,7 +24,7 @@ const { values, positionals } = parseArgs({
 
 if (values.help || positionals.length === 0) {
   console.log(`
-Cap'n Proto TypeScript Code Generator
+Cap'n Proto TypeScript Code Generator v2 (Experimental)
 
 Usage: capnp-ts-codegen <schema.capnp> [options]
 
@@ -31,6 +35,11 @@ Options:
 Examples:
   capnp-ts-codegen schema.capnp -o schema.ts
   capnp-ts-codegen schema.capnp > schema.ts
+
+Status: Code generation is experimental. For production use, 
+please use the low-level API directly as shown in the README.
+
+See: https://github.com/Naeemo/capnp#quick-start
 `);
   process.exit(0);
 }
@@ -41,25 +50,22 @@ const outputFile = values.output;
 async function main() {
   console.error(`Reading ${inputFile}...`);
   
-  // TODO: 真正解析 .capnp 文件
-  // 目前需要调用 capnp compile 生成中间格式
-  // 或者用 WASM 绑定 SchemaParser
+  // TODO: Implement full code generation
+  // For now, output a placeholder with instructions
   
-  // 临时：用硬编码示例
-  const parser = new SchemaParser();
-  parser.addStruct({
-    name: 'Person',
-    dataWords: 2,
-    pointerCount: 2,
-    fields: [
-      { name: 'id', index: 0, type: 'UInt32', offset: 0, isPointer: false },
-      { name: 'name', index: 1, type: 'Text', offset: 0, isPointer: true },
-    ],
-  });
+  const code = `// Code generation is currently experimental.
+// Please use the low-level API directly.
+// See: https://github.com/Naeemo/capnp#quick-start
 
-  const generator = new CodeGenerator();
-  const code = generator.generate(parser.getStructs(), parser.getEnums());
+import { MessageBuilder, MessageReader } from '@naeemo/capnp';
 
+// Example usage:
+// const builder = new MessageBuilder();
+// const root = builder.initRoot(2, 1);
+// root.setInt32(0, 42);
+// root.setText(0, 'hello');
+`;
+  
   if (outputFile) {
     writeFileSync(outputFile, code);
     console.error(`Output written to ${outputFile}`);
