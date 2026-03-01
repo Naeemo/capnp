@@ -154,7 +154,7 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
     
     // 每个 variant 的 getter
     for (const field of group.fields) {
-      const getter = generateUnionFieldGetter(field, group.discriminantOffset, field.discriminantValue);
+      const getter = generateUnionFieldGetter(field, unionName, field.discriminantValue);
       lines.push(`  ${getter}`);
       lines.push('');
     }
@@ -178,8 +178,9 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
   
   // Union setters
   for (const [groupIndex, group] of unionGroups.entries()) {
+    const unionName = group.fields.length > 0 ? `${capitalize(group.fields[0].name)}Union` : `Union${groupIndex}`;
     for (const field of group.fields) {
-      const setter = generateUnionFieldSetter(field, group.discriminantOffset, field.discriminantValue);
+      const setter = generateUnionFieldSetter(field, unionName, field.discriminantValue);
       lines.push(`  ${setter}`);
       lines.push('');
     }
@@ -198,15 +199,21 @@ function analyzeFields(node: NodeReader): { unionGroups: UnionGroup[], regularFi
   const unionGroups: Map<number, UnionGroup> = new Map();
   const regularFields: FieldReader[] = [];
   
+  // 如果 struct 没有 discriminant，所有字段都是普通字段
+  if (node.structDiscriminantCount === 0) {
+    return { unionGroups: [], regularFields: fields };
+  }
+  
   for (const field of fields) {
     // discriminantValue == 65535 (0xFFFF) 表示不在 Union 中
-    if (field.discriminantValue === 65535) {
+    // 注意：某些 capnp 版本可能使用 0 作为默认值
+    if (field.discriminantValue === 65535 || field.discriminantValue === 0) {
       regularFields.push(field);
     } else {
       // 需要获取 discriminantOffset，这里假设从 schema 中可以获取
       // 对于 Cap'n Proto，discriminant 偏移通常是 struct 定义的
       // 这里简化处理，假设所有 Union 字段在同一个 discriminant 位置
-      const discriminantOffset = 0; // 实际应该从 schema 获取
+      const discriminantOffset = node.structDiscriminantOffset;
       
       if (!unionGroups.has(discriminantOffset)) {
         unionGroups.set(discriminantOffset, { discriminantOffset, fields: [] });
@@ -232,12 +239,12 @@ function generateUnionVariantType(group: UnionGroup, allNodes: NodeReader[]): st
 /**
  * 生成 Union 字段的 getter
  */
-function generateUnionFieldGetter(field: FieldReader, discriminantOffset: number, discriminantValue: number): string {
+function generateUnionFieldGetter(field: FieldReader, unionName: string, discriminantValue: number): string {
   const name = field.name;
   const type = field.slotType;
   
   if (!type || !field.isSlot) {
-    return `get${capitalize(name)}(): unknown | undefined { return this.getUnion${discriminantOffset}Tag() === ${discriminantValue} ? undefined : undefined; }`;
+    return `get${capitalize(name)}(): unknown | undefined { return this.get${unionName}Tag() === ${discriminantValue} ? undefined : undefined; }`;
   }
   
   const returnType = getTypeScriptTypeForSetter(type);
@@ -291,7 +298,7 @@ function generateUnionFieldGetter(field: FieldReader, discriminantOffset: number
   }
   
   return `get${capitalize(name)}(): ${returnType} | undefined {
-    if (this.getUnion${discriminantOffset}Tag() !== ${discriminantValue}) return undefined;
+    if (this.get${unionName}Tag() !== ${discriminantValue}) return undefined;
     ${body}
   }`;
 }
@@ -299,10 +306,14 @@ function generateUnionFieldGetter(field: FieldReader, discriminantOffset: number
 /**
  * 生成 Union 字段的 setter
  */
-function generateUnionFieldSetter(field: FieldReader, discriminantOffset: number, discriminantValue: number): string {
+function generateUnionFieldSetter(field: FieldReader, unionName: string, discriminantValue: number): string {
   const name = field.name;
   const type = field.slotType;
   const paramType = getTypeScriptTypeForSetter(type);
+  
+  // 获取 discriminantOffset - 需要从 field 或 node 获取
+  // 暂时硬编码为 0，实际应该从 schema 读取
+  const discriminantOffset = 0;
   
   if (!type || !field.isSlot) {
     return `set${capitalize(name)}(value: ${paramType}): void {
