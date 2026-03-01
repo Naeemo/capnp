@@ -185,7 +185,7 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
     const variantsStr = JSON.stringify(variants).replace(/"/g, "'");
     
     lines.push(`  get${unionName}Tag(): number {`);
-    lines.push(`    return this.reader.getUint16(${group.discriminantOffset});`);
+    lines.push(`    return this.reader.getUint16(${group.discriminantOffset * 2});`);
     lines.push(`  }`);
     lines.push('');
     
