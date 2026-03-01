@@ -15,7 +15,8 @@
   },
   "files": ["dist", "README.md", "README.zh.md", "LICENSE"],
   "bin": {
-    "capnp": "./dist/cli.js"
+    "capnp": "./dist/cli.js",
+    "capnp-ts-codegen": "./dist/codegen/cli-v3.js"
   },
   "scripts": {
     "build": "rolldown -c rolldown.config.ts",
