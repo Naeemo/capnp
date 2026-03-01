@@ -6,6 +6,7 @@
 import { ListReader } from './list.js';
 import {
   ElementSize,
+  type FarPointer,
   type ListPointer,
   PointerTag,
   type StructPointer,
@@ -82,14 +83,45 @@ export class MessageReader {
     const segment = this.segments[0];
     const ptr = decodePointer(segment.getWord(0));
 
-    if (ptr.tag !== PointerTag.STRUCT) {
-      throw new Error('Root pointer is not a struct');
+    if (ptr.tag === PointerTag.STRUCT) {
+      const structPtr = ptr as StructPointer;
+      const dataOffset = 1 + structPtr.offset; // 跳过指针本身
+      return new StructReader(this, 0, dataOffset, structPtr.dataWords, structPtr.pointerCount);
     }
 
-    const structPtr = ptr as StructPointer;
-    const dataOffset = 1 + structPtr.offset; // 跳过指针本身
+    if (ptr.tag === PointerTag.FAR) {
+      // Far pointer: 指向另一个 segment 中的 landing pad
+      const farPtr = ptr as FarPointer;
+      const targetSegment = this.getSegment(farPtr.targetSegment);
+      if (!targetSegment) {
+        throw new Error(`Far pointer references non-existent segment ${farPtr.targetSegment}`);
+      }
 
-    return new StructReader(this, 0, dataOffset, structPtr.dataWords, structPtr.pointerCount);
+      if (farPtr.doubleFar) {
+        // Double-far: landing pad 本身也是一个 far 指针
+        // landing pad 位置: targetOffset 指向的位置
+        const landingPadPtr = decodePointer(targetSegment.getWord(farPtr.targetOffset));
+        if (landingPadPtr.tag !== PointerTag.FAR) {
+          throw new Error('Double-far landing pad is not a far pointer');
+        }
+        const innerFarPtr = landingPadPtr as FarPointer;
+        const finalSegment = this.getSegment(innerFarPtr.targetSegment);
+        if (!finalSegment) {
+          throw new Error(`Double-far references non-existent segment ${innerFarPtr.targetSegment}`);
+        }
+        // 实际的 struct 指针在 innerFarPtr.targetOffset
+        const structPtr = decodePointer(finalSegment.getWord(innerFarPtr.targetOffset)) as StructPointer;
+        const dataOffset = innerFarPtr.targetOffset + 1 + structPtr.offset;
+        return new StructReader(this, innerFarPtr.targetSegment, dataOffset, structPtr.dataWords, structPtr.pointerCount);
+      } else {
+        // Single-far: landing pad 是实际的 struct 指针
+        const structPtr = decodePointer(targetSegment.getWord(farPtr.targetOffset)) as StructPointer;
+        const dataOffset = farPtr.targetOffset + 1 + structPtr.offset;
+        return new StructReader(this, farPtr.targetSegment, dataOffset, structPtr.dataWords, structPtr.pointerCount);
+      }
+    }
+
+    throw new Error(`Root pointer is not a struct or far pointer: ${ptr.tag}`);
   }
 
   /**
@@ -97,6 +129,56 @@ export class MessageReader {
    */
   getSegment(index: number): Segment | undefined {
     return this.segments[index];
+  }
+
+  /**
+   * 解析指针，处理 far pointer 间接寻址
+   * 返回 { segmentIndex, wordOffset, pointer }，其中 pointer 是实际的 struct/list 指针
+   */
+  resolvePointer(
+    segmentIndex: number,
+    wordOffset: number
+  ): { segmentIndex: number; wordOffset: number; pointer: StructPointer | ListPointer } | null {
+    const segment = this.getSegment(segmentIndex);
+    if (!segment) return null;
+
+    const ptrValue = segment.getWord(wordOffset);
+    if (ptrValue === 0n) return null;
+
+    const ptr = decodePointer(ptrValue);
+
+    if (ptr.tag === PointerTag.STRUCT || ptr.tag === PointerTag.LIST) {
+      // 直接指针，计算目标偏移
+      const targetOffset = wordOffset + 1 + ptr.offset;
+      return { segmentIndex, wordOffset: targetOffset, pointer: ptr as StructPointer | ListPointer };
+    }
+
+    if (ptr.tag === PointerTag.FAR) {
+      const farPtr = ptr as FarPointer;
+      const targetSegment = this.getSegment(farPtr.targetSegment);
+      if (!targetSegment) return null;
+
+      if (farPtr.doubleFar) {
+        // Double-far: landing pad 指向另一个 far 指针
+        const landingPadPtr = decodePointer(targetSegment.getWord(farPtr.targetOffset));
+        if (landingPadPtr.tag !== PointerTag.FAR) return null;
+        const innerFarPtr = landingPadPtr as FarPointer;
+        const finalSegment = this.getSegment(innerFarPtr.targetSegment);
+        if (!finalSegment) return null;
+        const finalPtr = decodePointer(finalSegment.getWord(innerFarPtr.targetOffset));
+        if (finalPtr.tag !== PointerTag.STRUCT && finalPtr.tag !== PointerTag.LIST) return null;
+        const targetOffset = innerFarPtr.targetOffset + 1 + finalPtr.offset;
+        return { segmentIndex: innerFarPtr.targetSegment, wordOffset: targetOffset, pointer: finalPtr as StructPointer | ListPointer };
+      } else {
+        // Single-far: landing pad 是实际的指针
+        const landingPadPtr = decodePointer(targetSegment.getWord(farPtr.targetOffset));
+        if (landingPadPtr.tag !== PointerTag.STRUCT && landingPadPtr.tag !== PointerTag.LIST) return null;
+        const targetOffset = farPtr.targetOffset + 1 + landingPadPtr.offset;
+        return { segmentIndex: farPtr.targetSegment, wordOffset: targetOffset, pointer: landingPadPtr as StructPointer | ListPointer };
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -221,17 +303,15 @@ export class StructReader {
    */
   getText(pointerIndex: number): string {
     const ptrOffset = this.wordOffset + this.dataWords + pointerIndex;
-    const segment = this.message.getSegment(this.segmentIndex)!;
-    const ptrValue = segment.getWord(ptrOffset);
+    const resolved = this.message.resolvePointer(this.segmentIndex, ptrOffset);
 
-    // Check for null pointer (all zeros)
-    if (ptrValue === 0n) return '';
+    if (!resolved) return '';
 
-    const ptr = decodePointer(ptrValue);
-    if (ptr.tag !== PointerTag.LIST) return '';
+    const { segmentIndex, wordOffset, pointer } = resolved;
+    if (pointer.tag !== PointerTag.LIST) return '';
 
-    const listPtr = ptr as ListPointer;
-    const targetOffset = ptrOffset + 1 + listPtr.offset;
+    const listPtr = pointer as ListPointer;
+    const segment = this.message.getSegment(segmentIndex)!;
 
     // Text is stored as List(UInt8) with NUL terminator
     // elementCount includes the NUL terminator
@@ -241,7 +321,7 @@ export class StructReader {
     // 读取文本字节
     const bytes = new Uint8Array(
       segment.dataView.buffer,
-      targetOffset * WORD_SIZE,
+      wordOffset * WORD_SIZE,
       byteLength
     );
     return new TextDecoder().decode(bytes);
@@ -256,22 +336,19 @@ export class StructReader {
     _pointerCount: number
   ): StructReader | undefined {
     const ptrOffset = this.wordOffset + this.dataWords + pointerIndex;
-    const segment = this.message.getSegment(this.segmentIndex)!;
-    const ptrValue = segment.getWord(ptrOffset);
+    const resolved = this.message.resolvePointer(this.segmentIndex, ptrOffset);
 
-    // Check for null pointer (all zeros)
-    if (ptrValue === 0n) return undefined;
+    if (!resolved) return undefined;
 
-    const ptr = decodePointer(ptrValue);
-    if (ptr.tag !== PointerTag.STRUCT) return undefined;
+    const { segmentIndex, wordOffset, pointer } = resolved;
+    if (pointer.tag !== PointerTag.STRUCT) return undefined;
 
-    const structPtr = ptr as StructPointer;
-    const targetOffset = ptrOffset + 1 + structPtr.offset;
+    const structPtr = pointer as StructPointer;
 
     return new StructReader(
       this.message,
-      this.segmentIndex,
-      targetOffset,
+      segmentIndex,
+      wordOffset,
       structPtr.dataWords,
       structPtr.pointerCount
     );
@@ -286,19 +363,18 @@ export class StructReader {
     structSize?: { dataWords: number; pointerCount: number }
   ): ListReader<T> | undefined {
     const ptrOffset = this.wordOffset + this.dataWords + pointerIndex;
-    const segment = this.message.getSegment(this.segmentIndex)!;
-    const ptrValue = segment.getWord(ptrOffset);
+    const resolved = this.message.resolvePointer(this.segmentIndex, ptrOffset);
 
-    // Check for null pointer (all zeros)
-    if (ptrValue === 0n) return undefined;
+    if (!resolved) return undefined;
 
-    const ptr = decodePointer(ptrValue);
-    if (ptr.tag !== PointerTag.LIST) return undefined;
+    const { segmentIndex, wordOffset, pointer } = resolved;
+    if (pointer.tag !== PointerTag.LIST) return undefined;
 
-    const listPtr = ptr as ListPointer;
-    let targetOffset = ptrOffset + 1 + listPtr.offset;
+    const listPtr = pointer as ListPointer;
+    let targetOffset = wordOffset;
     let elementCount = listPtr.elementCount;
     let actualStructSize = structSize;
+    const segment = this.message.getSegment(segmentIndex)!;
 
     // For INLINE_COMPOSITE lists, read the tag word
     if (listPtr.elementSize === ElementSize.COMPOSITE) {
@@ -313,7 +389,7 @@ export class StructReader {
 
     return new ListReader<T>(
       this.message,
-      this.segmentIndex,
+      segmentIndex,
       listPtr.elementSize,
       elementCount,
       actualStructSize,

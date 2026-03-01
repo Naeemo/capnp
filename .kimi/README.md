@@ -18,11 +18,17 @@
 ### 进行中 / 待完成
 - [x] Group 支持 ✅
 - [x] 默认值（XOR 编码）✅
-- [ ] 多 Segment / Far Pointer
+- [x] 多 Segment / Far Pointer ✅（支持 single-far 和 double-far 间接寻址）
 - [ ] 完善 Union discriminant offset 从 schema 读取
 - [ ] RPC 层（长期）
 
 ### 最新进展 (2026-03-02)
+- ✅ **多 Segment / Far Pointer 支持**
+  - MessageReader 支持解析 multi-segment 消息
+  - 实现 `resolvePointer()` 方法处理 far pointer 间接寻址
+  - 支持 single-far 和 double-far 两种模式
+  - StructReader.getText/getStruct/getList 全部支持跨 segment 访问
+  - ListReader 支持多 segment
 - ✅ V3 CLI 工具完成 (`src/codegen/cli-v3.ts`)
   - 自动调用 `capnp compile -o-` 编译 schema
   - 支持 `-o` 单文件输出、`-d` 多文件输出到目录

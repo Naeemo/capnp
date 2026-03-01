@@ -267,26 +267,62 @@ describe('Error Handling - Multi-segment Errors', () => {
 
   it('should handle far pointer with double-far indirection', () => {
     // This tests the double-far pointer scenario
-    // 2 segments: header(16) + sizes(4) + padding(4) + seg0(32) + seg1(32) = 88 bytes
-    const buffer = new ArrayBuffer(88);
+    // 3 segments needed for double-far:
+    // - segment 0: contains the double-far pointer
+    // - segment 1: contains the landing pad (inner far pointer)
+    // - segment 2: contains the actual struct
+    // Layout calculation:
+    // - Header: 8 bytes (word 0)
+    // - Segment sizes: 3 * 4 = 12 bytes (bytes 8-19)
+    // - Padding: 4 bytes (bytes 20-23) to align to 8
+    // - Segment 0: offset 24, 2 words = 16 bytes (bytes 24-39)
+    // - Segment 1: offset 40, 2 words = 16 bytes (bytes 40-55)
+    // - Segment 2: offset 56, 2 words = 16 bytes (bytes 56-71)
+    // Total: 72 bytes
+    const buffer = new ArrayBuffer(72);
     const view = new DataView(buffer);
 
-    // Header: 2 segments
-    view.setUint32(0, 1, true);
-    view.setUint32(4, 4, true); // segment 0 size = 4 words
-    view.setUint32(8, 4, true); // segment 1 size = 4 words
-    // padding: bytes 12-15
+    // Header: 3 segments
+    view.setUint32(0, 2, true); // segmentCount - 1 = 2
+    view.setUint32(4, 2, true); // segment 0 size = 2 words
+    view.setUint32(8, 2, true); // segment 1 size = 2 words
+    view.setUint32(12, 2, true); // segment 2 size = 2 words
+    // padding: bytes 16-23 (8 bytes to align to 8)
+    // Actually: 8 + 12 = 20, padded to 24. So padding is bytes 20-23.
+    // Wait, the MessageReader uses: offset = (offset + 7) & ~7
+    // After reading 3 sizes: offset = 8 + 8 = 16 (not 20!)
+    // Let me re-check the MessageReader logic...
+    // MessageReader reads firstWordLow/firstWordHigh (8 bytes), then remaining sizes
+    // For 3 segments: it reads 2 more sizes (8 bytes), so offset = 8 + 8 = 16
+    // Then aligns: (16 + 7) & ~7 = 16
+    // So segment 0 starts at offset 16!
 
     // Segment 0 starts at offset 16
-    // Double-far pointer at offset 16
-    // bit 2 = 1 (double-far), bits 0-1 = 2 (far tag)
-    const doubleFarPointer = (1n << 2n) | 2n; // doubleFar=1, offset=0, type=2
+    // Double-far pointer at offset 16 (start of segment 0)
+    // Format: offset (29 bits) | doubleFar (1 bit) | reserved (32 bits) | segmentId (32 bits) | tag (2 bits)
+    // doubleFar=1, segmentId=1, offset=0 (in segment 1)
+    const doubleFarPointer = (1n << 32n) | (1n << 2n) | 2n;
     view.setBigUint64(16, doubleFarPointer, true);
 
+    // Landing pad at segment 1, offset 0 (offset 32 in buffer: 16 + 2*8 = 32)
+    // Inner far pointer: segmentId=2, offset=0
+    const innerFarPointer = (2n << 32n) | 2n;
+    view.setBigUint64(32, innerFarPointer, true);
+
+    // Actual struct at segment 2, offset 0 (offset 48 in buffer: 32 + 2*8 = 48)
+    // Struct pointer: offset=0, dataWords=1, pointerCount=0
+    // Struct pointer format: offset (30 bits) | dataWords (16 bits) | pointerCount (16 bits) | tag (2 bits)
+    const structPointer = (1n << 32n); // dataWords=1, offset=0, tag=0 (STRUCT)
+    view.setBigUint64(48, structPointer, true);
+
+    // Data at segment 2, offset 1 (offset 56 in buffer: 48 + 8 = 56)
+    view.setInt32(56, 42, true);
+
     const reader = new MessageReader(buffer);
-    // Double-far handling may throw if not fully implemented - that's acceptable
-    expect(() => {
-      const _root = reader.getRoot(1, 0);
-    }).toThrow();
+    expect(reader.segmentCount).toBe(3);
+
+    // Should successfully read the root through double-far indirection
+    const root = reader.getRoot(1, 0);
+    expect(root.getInt32(0)).toBe(42);
   });
 });

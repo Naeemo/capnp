@@ -14,6 +14,7 @@ import { type Segment, WORD_SIZE } from './segment.js';
 export class ListReader<T> {
   private segment: Segment;
   private startOffset: number; // 字偏移
+  private segmentIndex: number;
 
   constructor(
     private message: MessageReader,
@@ -23,6 +24,7 @@ export class ListReader<T> {
     private structSize: { dataWords: number; pointerCount: number } | undefined,
     wordOffset: number
   ) {
+    this.segmentIndex = segmentIndex;
     this.segment = message.getSegment(segmentIndex)!;
     this.startOffset = wordOffset;
   }
@@ -83,7 +85,7 @@ export class ListReader<T> {
     const size = dataWords + pointerCount;
     const offset = this.startOffset + index * size;
 
-    return new StructReader(this.message, 0, offset, dataWords, pointerCount);
+    return new StructReader(this.message, this.segmentIndex, offset, dataWords, pointerCount);
   }
 
   /**
