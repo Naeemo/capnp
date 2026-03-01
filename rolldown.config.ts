@@ -44,4 +44,23 @@ export default defineConfig([
     platform: 'node',
     external: ['node:fs', 'node:path'],
   },
+  // V3 Codegen CLI
+  {
+    input: 'src/codegen/cli-v3.ts',
+    output: {
+      file: 'dist/codegen/cli-v3.js',
+      format: 'esm',
+      sourcemap: true,
+    },
+    plugins: [
+      {
+        name: 'shebang',
+        renderChunk(code) {
+          return `#!/usr/bin/env node\n${code}`;
+        },
+      },
+    ],
+    platform: 'node',
+    external: ['node:fs', 'node:path', 'node:child_process'],
+  },
 ]);

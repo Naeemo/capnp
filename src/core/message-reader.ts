@@ -107,18 +107,33 @@ export class MessageReader {
         const innerFarPtr = landingPadPtr as FarPointer;
         const finalSegment = this.getSegment(innerFarPtr.targetSegment);
         if (!finalSegment) {
-          throw new Error(`Double-far references non-existent segment ${innerFarPtr.targetSegment}`);
+          throw new Error(
+            `Double-far references non-existent segment ${innerFarPtr.targetSegment}`
+          );
         }
         // 实际的 struct 指针在 innerFarPtr.targetOffset
-        const structPtr = decodePointer(finalSegment.getWord(innerFarPtr.targetOffset)) as StructPointer;
+        const structPtr = decodePointer(
+          finalSegment.getWord(innerFarPtr.targetOffset)
+        ) as StructPointer;
         const dataOffset = innerFarPtr.targetOffset + 1 + structPtr.offset;
-        return new StructReader(this, innerFarPtr.targetSegment, dataOffset, structPtr.dataWords, structPtr.pointerCount);
-      } else {
-        // Single-far: landing pad 是实际的 struct 指针
-        const structPtr = decodePointer(targetSegment.getWord(farPtr.targetOffset)) as StructPointer;
-        const dataOffset = farPtr.targetOffset + 1 + structPtr.offset;
-        return new StructReader(this, farPtr.targetSegment, dataOffset, structPtr.dataWords, structPtr.pointerCount);
+        return new StructReader(
+          this,
+          innerFarPtr.targetSegment,
+          dataOffset,
+          structPtr.dataWords,
+          structPtr.pointerCount
+        );
       }
+      // Single-far: landing pad 是实际的 struct 指针
+      const structPtr = decodePointer(targetSegment.getWord(farPtr.targetOffset)) as StructPointer;
+      const dataOffset = farPtr.targetOffset + 1 + structPtr.offset;
+      return new StructReader(
+        this,
+        farPtr.targetSegment,
+        dataOffset,
+        structPtr.dataWords,
+        structPtr.pointerCount
+      );
     }
 
     throw new Error(`Root pointer is not a struct or far pointer: ${ptr.tag}`);
@@ -150,7 +165,11 @@ export class MessageReader {
     if (ptr.tag === PointerTag.STRUCT || ptr.tag === PointerTag.LIST) {
       // 直接指针，计算目标偏移
       const targetOffset = wordOffset + 1 + ptr.offset;
-      return { segmentIndex, wordOffset: targetOffset, pointer: ptr as StructPointer | ListPointer };
+      return {
+        segmentIndex,
+        wordOffset: targetOffset,
+        pointer: ptr as StructPointer | ListPointer,
+      };
     }
 
     if (ptr.tag === PointerTag.FAR) {
@@ -168,14 +187,22 @@ export class MessageReader {
         const finalPtr = decodePointer(finalSegment.getWord(innerFarPtr.targetOffset));
         if (finalPtr.tag !== PointerTag.STRUCT && finalPtr.tag !== PointerTag.LIST) return null;
         const targetOffset = innerFarPtr.targetOffset + 1 + finalPtr.offset;
-        return { segmentIndex: innerFarPtr.targetSegment, wordOffset: targetOffset, pointer: finalPtr as StructPointer | ListPointer };
-      } else {
-        // Single-far: landing pad 是实际的指针
-        const landingPadPtr = decodePointer(targetSegment.getWord(farPtr.targetOffset));
-        if (landingPadPtr.tag !== PointerTag.STRUCT && landingPadPtr.tag !== PointerTag.LIST) return null;
-        const targetOffset = farPtr.targetOffset + 1 + landingPadPtr.offset;
-        return { segmentIndex: farPtr.targetSegment, wordOffset: targetOffset, pointer: landingPadPtr as StructPointer | ListPointer };
+        return {
+          segmentIndex: innerFarPtr.targetSegment,
+          wordOffset: targetOffset,
+          pointer: finalPtr as StructPointer | ListPointer,
+        };
       }
+      // Single-far: landing pad 是实际的指针
+      const landingPadPtr = decodePointer(targetSegment.getWord(farPtr.targetOffset));
+      if (landingPadPtr.tag !== PointerTag.STRUCT && landingPadPtr.tag !== PointerTag.LIST)
+        return null;
+      const targetOffset = farPtr.targetOffset + 1 + landingPadPtr.offset;
+      return {
+        segmentIndex: farPtr.targetSegment,
+        wordOffset: targetOffset,
+        pointer: landingPadPtr as StructPointer | ListPointer,
+      };
     }
 
     return null;
@@ -319,11 +346,7 @@ export class StructReader {
     if (byteLength === 0) return '';
 
     // 读取文本字节
-    const bytes = new Uint8Array(
-      segment.dataView.buffer,
-      wordOffset * WORD_SIZE,
-      byteLength
-    );
+    const bytes = new Uint8Array(segment.dataView.buffer, wordOffset * WORD_SIZE, byteLength);
     return new TextDecoder().decode(bytes);
   }
 

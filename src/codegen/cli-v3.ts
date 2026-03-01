@@ -1,20 +1,18 @@
-#!/usr/bin/env node
-
 /**
  * Cap'n Proto TypeScript Code Generator CLI v3
- * 
+ *
  * 使用官方 capnp 编译器生成的 binary schema 来生成 TypeScript 代码
  * 这是推荐的生产环境方案
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { parseArgs } from 'node:util';
 import { execSync } from 'node:child_process';
-import { tmpdir } from 'node:os';
-import { join, basename, dirname } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, dirname, join } from 'node:path';
+import { parseArgs } from 'node:util';
 import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
-import { generateFromRequest, type GeneratorOptions } from './generator-v3.js';
+import { type GeneratorOptions, generateFromRequest } from './generator-v3.js';
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
@@ -60,12 +58,13 @@ Features:
   - Text, Data
   - Nested struct references
   - Union (discriminant handling)
+  - Group
+  - Default values (XOR encoding)
+  - Multi-segment messages
 
 Not yet supported:
-  - Group
   - Interface
   - Const
-  - Default values
   - RPC
 `);
   process.exit(0);
@@ -91,7 +90,7 @@ function checkCapnpTool(): boolean {
 
 async function main() {
   if (!checkCapnpTool()) {
-    console.error('Error: capnp tool not found. Please install Cap\'n Proto.');
+    console.error("Error: capnp tool not found. Please install Cap'n Proto.");
     console.error('  macOS: brew install capnp');
     console.error('  Ubuntu/Debian: apt-get install capnproto');
     console.error('  Other: https://capnproto.org/install.html');
@@ -103,10 +102,10 @@ async function main() {
 
   try {
     console.error(`Compiling ${inputFile}...`);
-    
+
     // 获取输入文件所在目录作为 include path
     const inputDir = dirname(inputFile);
-    
+
     // 编译为 binary schema
     execSync(`capnp compile -o- "${inputFile}" > "${binFile}"`, {
       cwd: inputDir,

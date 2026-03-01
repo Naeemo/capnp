@@ -19,6 +19,7 @@ export enum ElementSize {
   EIGHT_BYTES = 5,
   POINTER = 6,
   COMPOSITE = 7,
+  INLINE_COMPOSITE = 7, // Alias for COMPOSITE
 }
 
 export interface StructPointer {

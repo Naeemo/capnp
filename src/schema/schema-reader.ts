@@ -7,7 +7,7 @@
  * 结构信息来自: capnp compile -ocapnp schema.capnp
  */
 
-import { MessageReader, StructReader } from '../core/index.js';
+import { MessageReader, type StructReader } from '../core/index.js';
 import { ElementSize } from '../core/pointer.js';
 
 // ============================================================================
@@ -100,7 +100,10 @@ export class NodeReader {
   get structFields(): FieldReader[] {
     // fields @13 :List(Field); 是 ptr[3]
     // Field: 24 bytes = 3 words data, 4 pointers
-    const listReader = this.reader.getList(3, ElementSize.INLINE_COMPOSITE, { dataWords: 3, pointerCount: 4 });
+    const listReader = this.reader.getList(3, ElementSize.INLINE_COMPOSITE, {
+      dataWords: 3,
+      pointerCount: 4,
+    });
     if (!listReader) return [];
 
     const fields: FieldReader[] = [];
@@ -118,7 +121,10 @@ export class NodeReader {
 
   get enumEnumerants(): EnumerantReader[] {
     // enumerants @14 :List(Enumerant); 在 enum group 内，ptr[3]
-    const listReader = this.reader.getList(3, ElementSize.INLINE_COMPOSITE, { dataWords: 1, pointerCount: 2 });
+    const listReader = this.reader.getList(3, ElementSize.INLINE_COMPOSITE, {
+      dataWords: 1,
+      pointerCount: 2,
+    });
     if (!listReader) return [];
 
     const enumerants: EnumerantReader[] = [];
@@ -129,7 +135,7 @@ export class NodeReader {
         // Stop if we encounter an enumerant with empty name
         if (!enumerant.name) break;
         enumerants.push(enumerant);
-      } catch (e) {
+      } catch (_e) {
         // Stop on any error (likely past the actual enumerants)
         break;
       }
@@ -141,7 +147,10 @@ export class NodeReader {
 
   get nestedNodes(): NestedNodeReader[] {
     // nestedNodes @4 :List(NestedNode); 是 ptr[1]
-    const listReader = this.reader.getList(1, ElementSize.INLINE_COMPOSITE, { dataWords: 1, pointerCount: 1 });
+    const listReader = this.reader.getList(1, ElementSize.INLINE_COMPOSITE, {
+      dataWords: 1,
+      pointerCount: 1,
+    });
     if (!listReader) return [];
 
     const nodes: NestedNodeReader[] = [];
@@ -227,7 +236,9 @@ export class TypeReader {
 
   get isPrimitive(): boolean {
     const k = this.kind;
-    return k !== 'list' && k !== 'enum' && k !== 'struct' && k !== 'interface' && k !== 'anyPointer';
+    return (
+      k !== 'list' && k !== 'enum' && k !== 'struct' && k !== 'interface' && k !== 'anyPointer'
+    );
   }
 
   // --- List ---
@@ -252,12 +263,25 @@ export class TypeReader {
 }
 
 export type TypeKind =
-  | 'void' | 'bool'
-  | 'int8' | 'int16' | 'int32' | 'int64'
-  | 'uint8' | 'uint16' | 'uint32' | 'uint64'
-  | 'float32' | 'float64'
-  | 'text' | 'data'
-  | 'list' | 'enum' | 'struct' | 'interface' | 'anyPointer'
+  | 'void'
+  | 'bool'
+  | 'int8'
+  | 'int16'
+  | 'int32'
+  | 'int64'
+  | 'uint8'
+  | 'uint16'
+  | 'uint32'
+  | 'uint64'
+  | 'float32'
+  | 'float64'
+  | 'text'
+  | 'data'
+  | 'list'
+  | 'enum'
+  | 'struct'
+  | 'interface'
+  | 'anyPointer'
   | 'unknown';
 
 const TYPE_KIND_MAP: Record<number, TypeKind> = {
@@ -294,25 +318,63 @@ export class ValueReader {
     return this.reader.getUint16(0);
   }
 
-  get isVoid(): boolean { return this.unionTag === 0; }
-  get isBool(): boolean { return this.unionTag === 1; }
-  get isInt8(): boolean { return this.unionTag === 2; }
-  get isInt16(): boolean { return this.unionTag === 3; }
-  get isInt32(): boolean { return this.unionTag === 4; }
-  get isInt64(): boolean { return this.unionTag === 5; }
-  get isUint8(): boolean { return this.unionTag === 6; }
-  get isUint16(): boolean { return this.unionTag === 7; }
-  get isUint32(): boolean { return this.unionTag === 8; }
-  get isUint64(): boolean { return this.unionTag === 9; }
-  get isFloat32(): boolean { return this.unionTag === 10; }
-  get isFloat64(): boolean { return this.unionTag === 11; }
-  get isText(): boolean { return this.unionTag === 12; }
-  get isData(): boolean { return this.unionTag === 13; }
-  get isList(): boolean { return this.unionTag === 14; }
-  get isEnum(): boolean { return this.unionTag === 15; }
-  get isStruct(): boolean { return this.unionTag === 16; }
-  get isInterface(): boolean { return this.unionTag === 17; }
-  get isAnyPointer(): boolean { return this.unionTag === 18; }
+  get isVoid(): boolean {
+    return this.unionTag === 0;
+  }
+  get isBool(): boolean {
+    return this.unionTag === 1;
+  }
+  get isInt8(): boolean {
+    return this.unionTag === 2;
+  }
+  get isInt16(): boolean {
+    return this.unionTag === 3;
+  }
+  get isInt32(): boolean {
+    return this.unionTag === 4;
+  }
+  get isInt64(): boolean {
+    return this.unionTag === 5;
+  }
+  get isUint8(): boolean {
+    return this.unionTag === 6;
+  }
+  get isUint16(): boolean {
+    return this.unionTag === 7;
+  }
+  get isUint32(): boolean {
+    return this.unionTag === 8;
+  }
+  get isUint64(): boolean {
+    return this.unionTag === 9;
+  }
+  get isFloat32(): boolean {
+    return this.unionTag === 10;
+  }
+  get isFloat64(): boolean {
+    return this.unionTag === 11;
+  }
+  get isText(): boolean {
+    return this.unionTag === 12;
+  }
+  get isData(): boolean {
+    return this.unionTag === 13;
+  }
+  get isList(): boolean {
+    return this.unionTag === 14;
+  }
+  get isEnum(): boolean {
+    return this.unionTag === 15;
+  }
+  get isStruct(): boolean {
+    return this.unionTag === 16;
+  }
+  get isInterface(): boolean {
+    return this.unionTag === 17;
+  }
+  get isAnyPointer(): boolean {
+    return this.unionTag === 18;
+  }
 
   // --- 原始值读取 ---
 
@@ -451,7 +513,10 @@ export class CodeGeneratorRequestReader {
     // CodeGeneratorRequest: 0 data words, 4 pointers
     const root = this.message.getRoot(0, 4);
     // nodes @0 :List(Node);
-    const listReader = root.getList(0, ElementSize.INLINE_COMPOSITE, { dataWords: 6, pointerCount: 6 });
+    const listReader = root.getList(0, ElementSize.INLINE_COMPOSITE, {
+      dataWords: 6,
+      pointerCount: 6,
+    });
     if (!listReader) return [];
 
     const nodes: NodeReader[] = [];
@@ -465,7 +530,10 @@ export class CodeGeneratorRequestReader {
   get requestedFiles(): RequestedFileReader[] {
     const root = this.message.getRoot(0, 4);
     // requestedFiles @1 :List(RequestedFile);
-    const listReader = root.getList(1, ElementSize.INLINE_COMPOSITE, { dataWords: 1, pointerCount: 2 });
+    const listReader = root.getList(1, ElementSize.INLINE_COMPOSITE, {
+      dataWords: 1,
+      pointerCount: 2,
+    });
     if (!listReader) return [];
 
     const files: RequestedFileReader[] = [];
@@ -476,7 +544,7 @@ export class CodeGeneratorRequestReader {
         // Stop if we encounter a file with empty filename
         if (!file.filename && files.length > 0) break;
         files.push(file);
-      } catch (e) {
+      } catch (_e) {
         // Stop on any error (likely past the actual files)
         break;
       }

@@ -312,7 +312,7 @@ describe('Error Handling - Multi-segment Errors', () => {
     // Actual struct at segment 2, offset 0 (offset 48 in buffer: 32 + 2*8 = 48)
     // Struct pointer: offset=0, dataWords=1, pointerCount=0
     // Struct pointer format: offset (30 bits) | dataWords (16 bits) | pointerCount (16 bits) | tag (2 bits)
-    const structPointer = (1n << 32n); // dataWords=1, offset=0, tag=0 (STRUCT)
+    const structPointer = 1n << 32n; // dataWords=1, offset=0, tag=0 (STRUCT)
     view.setBigUint64(48, structPointer, true);
 
     // Data at segment 2, offset 1 (offset 56 in buffer: 48 + 8 = 56)
