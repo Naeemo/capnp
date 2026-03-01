@@ -5,7 +5,7 @@
 
 import { ListReader } from './list.js';
 import {
-  type ElementSize,
+  ElementSize,
   type ListPointer,
   PointerTag,
   type StructPointer,
@@ -233,11 +233,16 @@ export class StructReader {
     const listPtr = ptr as ListPointer;
     const targetOffset = ptrOffset + 1 + listPtr.offset;
 
+    // Text is stored as List(UInt8) with NUL terminator
+    // elementCount includes the NUL terminator
+    const byteLength = listPtr.elementCount > 0 ? listPtr.elementCount - 1 : 0;
+    if (byteLength === 0) return '';
+
     // 读取文本字节
     const bytes = new Uint8Array(
       segment.dataView.buffer,
       targetOffset * WORD_SIZE,
-      listPtr.elementCount - 1
+      byteLength
     );
     return new TextDecoder().decode(bytes);
   }
@@ -291,14 +296,27 @@ export class StructReader {
     if (ptr.tag !== PointerTag.LIST) return undefined;
 
     const listPtr = ptr as ListPointer;
-    const targetOffset = ptrOffset + 1 + listPtr.offset;
+    let targetOffset = ptrOffset + 1 + listPtr.offset;
+    let elementCount = listPtr.elementCount;
+    let actualStructSize = structSize;
+
+    // For INLINE_COMPOSITE lists, read the tag word
+    if (listPtr.elementSize === ElementSize.COMPOSITE) {
+      const tagWord = segment.getWord(targetOffset);
+      // Tag word: elementCount (32 bits) | dataWords (16 bits) | pointerCount (16 bits)
+      elementCount = Number(tagWord & BigInt(0xffffffff));
+      const dataWords = Number((tagWord >> BigInt(32)) & BigInt(0xffff));
+      const pointerCount = Number((tagWord >> BigInt(48)) & BigInt(0xffff));
+      actualStructSize = { dataWords, pointerCount };
+      targetOffset += 1; // Skip tag word
+    }
 
     return new ListReader<T>(
       this.message,
       this.segmentIndex,
       listPtr.elementSize,
-      listPtr.elementCount,
-      structSize,
+      elementCount,
+      actualStructSize,
       targetOffset
     );
   }

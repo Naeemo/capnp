@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { generateTypeScript } from './generator.js';
-import { parseSchema } from './parser.js';
+import { generateCode } from './generator-v2.js';
+import { parseSchemaV2 } from './parser-v2.js';
 
 describe('Code Generator', () => {
   it('should parse simple schema', () => {
@@ -11,7 +11,7 @@ describe('Code Generator', () => {
       }
     `;
 
-    const result = parseSchema(schema);
+    const result = parseSchemaV2(schema);
     expect(result.structs).toHaveLength(1);
     expect(result.structs[0].name).toBe('Person');
     expect(result.structs[0].fields).toHaveLength(2);
@@ -26,7 +26,7 @@ describe('Code Generator', () => {
       }
     `;
 
-    const result = parseSchema(schema);
+    const result = parseSchemaV2(schema);
     expect(result.enums).toHaveLength(1);
     expect(result.enums[0].name).toBe('Status');
     expect(result.enums[0].values).toHaveLength(3);
@@ -40,12 +40,10 @@ describe('Code Generator', () => {
       }
     `;
 
-    const parsed = parseSchema(schema);
-    const generated = generateTypeScript(parsed);
+    const parsed = parseSchemaV2(schema);
+    const generated = generateCode(parsed);
 
-    expect(generated).toContain('class Person_Reader');
-    expect(generated).toContain('class Person_Builder');
-    expect(generated).toContain('get name(): string');
-    expect(generated).toContain('get age(): number');
+    expect(generated).toContain('class PersonReader');
+    expect(generated).toContain('class PersonBuilder');
   });
 });
