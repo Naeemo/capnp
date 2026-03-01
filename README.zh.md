@@ -41,10 +41,17 @@ console.log(data.getText(0));  // "你好，Cap'n Proto！"
 
 ### 代码生成
 
-从 Cap'n Proto 模式生成 TypeScript 类型：
+使用 V3 CLI 从 Cap'n Proto schema 生成 TypeScript 类型（需要安装 `capnp` 工具）：
 
 ```bash
-npx tsx src/cli/codegen.ts schema.capnp -o types.ts
+# 生成单文件
+npx capnp-ts-codegen schema.capnp -o types.ts
+
+# 生成多文件到目录
+npx capnp-ts-codegen schema.capnp -d ./generated
+
+# 自定义运行时导入路径
+npx capnp-ts-codegen schema.capnp -o types.ts -r ../my-runtime
 ```
 
 生成的代码包括：

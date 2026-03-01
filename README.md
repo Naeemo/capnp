@@ -41,10 +41,17 @@ console.log(data.getText(0));  // "Hello, Cap'n Proto!"
 
 ### Code Generation
 
-Generate TypeScript types from your Cap'n Proto schema:
+Generate TypeScript types from your Cap'n Proto schema using the V3 CLI (requires `capnp` tool installed):
 
 ```bash
-npx tsx src/cli/codegen.ts schema.capnp -o types.ts
+# Generate single file
+npx capnp-ts-codegen schema.capnp -o types.ts
+
+# Generate multiple files to directory
+npx capnp-ts-codegen schema.capnp -d ./generated
+
+# With custom runtime import path
+npx capnp-ts-codegen schema.capnp -o types.ts -r ../my-runtime
 ```
 
 Generated code includes:
