@@ -11,19 +11,22 @@
 - [x] 测试框架：Vitest
 - [x] 文档：VitePress 站点
 - [x] **Binary Schema 解析器**：可以读取官方 `capnp compile -o-` 生成的编译后 schema
+- [x] **V3 代码生成器**：使用 binary schema 生成 TypeScript（Interface + Reader + Builder）
 
 ### 进行中 / 待完成
 - [ ] Union 完整支持（tag 处理）- 基础支持已就绪
 - [ ] Group 支持
 - [ ] 默认值（XOR 编码）
 - [ ] 多 Segment / Far Pointer
-- [ ] 重构代码生成器使用 binary schema（替代正则 parser）
+- [ ] 重构 CLI 使用 V3 生成器（替代 parser-v2/generator-v2）
 - [ ] RPC 层（长期）
 
 ### 最新进展
-- 清理了测试中的 debug console.log，保持测试输出整洁
-- Binary Schema 解析器稳定运行，支持 struct/enum 读取
-- 所有测试通过（134 tests）
+- V3 代码生成器 (`generator-v3.ts`) 完成基础功能
+  - 从 binary schema 生成 TypeScript 代码
+  - 支持 Interface、Reader 类、Builder 类
+  - 支持 struct 和 enum
+- 所有 135 个测试通过
 
 ## 技术决策
 
@@ -48,9 +51,12 @@ src/
     pointer.ts
     segment.ts
     union.ts
+  schema/         # Binary schema 解析
+    schema-reader.ts    # 读取 capnp compile -o- 输出
   codegen/        # 代码生成
-    parser-v2.ts      # 当前在用（正则）
-    generator-v2.ts   # 当前在用
+    parser-v2.ts        # 当前在用（正则）- 待废弃
+    generator-v2.ts     # 当前在用 - 待废弃
+    generator-v3.ts     # 新版，使用 binary schema
     struct-gen.ts
     enum-gen.ts
     type-utils.ts
@@ -61,19 +67,20 @@ src/
 
 ## 开发路线图
 
-### Phase 1: 基础补全
-1. 接入官方 schema 编译器（binary schema 解析）
-2. Union 完整支持
-3. Group 支持
+### Phase 1: 基础补全 (进行中)
+1. ✅ 接入官方 schema 编译器（binary schema 解析）
+2. ✅ V3 代码生成器基础
+3. [ ] Union 完整支持
+4. [ ] Group 支持
 
 ### Phase 2: 兼容性
-4. 默认值（XOR 编码）
-5. 多 Segment / Far Pointer
-6. 互操作测试完善
+5. [ ] 默认值（XOR 编码）
+6. [ ] 多 Segment / Far Pointer
+7. [ ] 互操作测试完善
 
 ### Phase 3: 进阶
-7. 性能优化
-8. RPC 层
+8. [ ] 性能优化
+9. [ ] RPC 层
 
 ## 关键参考
 
