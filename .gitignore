@@ -42,3 +42,4 @@ wasm-v2/build/
 *.wasm
 *.o
 *.a
+test-schema.capnp\ntest-schema.capnp.bin
