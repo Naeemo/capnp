@@ -341,8 +341,16 @@ export class CodeGeneratorRequestReader {
 
     const files: RequestedFileReader[] = [];
     for (let i = 0; i < listReader.length; i++) {
-      const fileReader = listReader.getStruct(i);
-      files.push(new RequestedFileReader(fileReader));
+      try {
+        const fileReader = listReader.getStruct(i);
+        const file = new RequestedFileReader(fileReader);
+        // Stop if we encounter a file with empty filename
+        if (!file.filename && files.length > 0) break;
+        files.push(file);
+      } catch (e) {
+        // Stop on any error (likely past the actual files)
+        break;
+      }
     }
     return files;
   }
