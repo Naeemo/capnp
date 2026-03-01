@@ -96,8 +96,8 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
   const lines: string[] = [];
   const structName = getShortName(node.displayName);
   
-  // 分析字段：分离 Union 字段和普通字段
-  const { unionGroups, regularFields } = analyzeFields(node);
+  // 分析字段：分离 Union 字段、普通字段和 Group 字段
+  const { unionGroups, regularFields, groupFields } = analyzeFields(node, allNodes);
   
   // 生成接口定义
   lines.push(`export interface ${structName} {`);
@@ -107,6 +107,16 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
     if (!field.isSlot) continue;
     const tsType = getTypeScriptType(field.slotType, allNodes);
     lines.push(`  ${field.name}: ${tsType};`);
+  }
+  
+  // Group 字段 - 内联 Group 的字段
+  for (const { field: groupField, groupNode } of groupFields) {
+    const groupName = groupField.name;
+    for (const field of groupNode.structFields) {
+      if (!field.isSlot) continue;
+      const tsType = getTypeScriptType(field.slotType, allNodes);
+      lines.push(`  ${groupName}${capitalize(field.name)}: ${tsType};`);
+    }
   }
   
   // Union 字段 - 生成 discriminant 和 variant 类型
@@ -129,6 +139,17 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
     const getter = generateFieldGetter(field);
     lines.push(`  ${getter}`);
     lines.push('');
+  }
+  
+  // Group 字段 getters - 内联 Group 的字段
+  for (const { field: groupField, groupNode } of groupFields) {
+    const groupName = groupField.name;
+    for (const field of groupNode.structFields) {
+      if (!field.isSlot) continue;
+      const getter = generateGroupFieldGetter(field, groupName);
+      lines.push(`  ${getter}`);
+      lines.push('');
+    }
   }
   
   // Union 方法
@@ -176,6 +197,17 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
     lines.push('');
   }
   
+  // Group 字段 setters
+  for (const { field: groupField, groupNode } of groupFields) {
+    const groupName = groupField.name;
+    for (const field of groupNode.structFields) {
+      if (!field.isSlot) continue;
+      const setter = generateGroupFieldSetter(field, groupName);
+      lines.push(`  ${setter}`);
+      lines.push('');
+    }
+  }
+  
   // Union setters
   for (const [groupIndex, group] of unionGroups.entries()) {
     const unionName = group.fields.length > 0 ? `${capitalize(group.fields[0].name)}Union` : `Union${groupIndex}`;
@@ -192,37 +224,47 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
 }
 
 /**
- * 分析字段，分离 Union 字段和普通字段
+ * 分析字段，分离 Union 字段和普通字段，展开 Group 字段
  */
-function analyzeFields(node: NodeReader): { unionGroups: UnionGroup[], regularFields: FieldReader[] } {
+function analyzeFields(node: NodeReader, allNodes: NodeReader[]): { 
+  unionGroups: UnionGroup[], 
+  regularFields: FieldReader[],
+  groupFields: { field: FieldReader, groupNode: NodeReader }[] 
+} {
   const fields = node.structFields;
   const unionGroups: Map<number, UnionGroup> = new Map();
   const regularFields: FieldReader[] = [];
-  
-  // 如果 struct 没有 discriminant，所有字段都是普通字段
-  if (node.structDiscriminantCount === 0) {
-    return { unionGroups: [], regularFields: fields };
-  }
+  const groupFields: { field: FieldReader, groupNode: NodeReader }[] = [];
   
   for (const field of fields) {
-    // discriminantValue == 65535 (0xFFFF) 表示不在 Union 中
-    // 注意：某些 capnp 版本可能使用 0 作为默认值
-    if (field.discriminantValue === 65535 || field.discriminantValue === 0) {
-      regularFields.push(field);
-    } else {
-      // 需要获取 discriminantOffset，这里假设从 schema 中可以获取
-      // 对于 Cap'n Proto，discriminant 偏移通常是 struct 定义的
-      // 这里简化处理，假设所有 Union 字段在同一个 discriminant 位置
+    // 处理 Group 字段
+    if (field.isGroup) {
+      const groupNode = allNodes.find(n => n.id === field.groupTypeId);
+      if (groupNode?.isStruct) {
+        groupFields.push({ field, groupNode });
+      }
+      continue;
+    }
+    
+    // 处理 Union 字段
+    if (node.structDiscriminantCount > 0 && field.discriminantValue !== 65535 && field.discriminantValue !== 0) {
       const discriminantOffset = node.structDiscriminantOffset;
       
       if (!unionGroups.has(discriminantOffset)) {
         unionGroups.set(discriminantOffset, { discriminantOffset, fields: [] });
       }
       unionGroups.get(discriminantOffset)!.fields.push(field);
+    } else {
+      // 普通字段
+      regularFields.push(field);
     }
   }
   
-  return { unionGroups: Array.from(unionGroups.values()), regularFields };
+  return { 
+    unionGroups: Array.from(unionGroups.values()), 
+    regularFields,
+    groupFields 
+  };
 }
 
 /**
@@ -301,6 +343,98 @@ function generateUnionFieldGetter(field: FieldReader, unionName: string, discrim
     if (this.get${unionName}Tag() !== ${discriminantValue}) return undefined;
     ${body}
   }`;
+}
+
+/**
+ * 生成 Group 字段的 getter
+ * Group 字段在父 struct 的 data/pointer section 中，但命名空间是 Group 的名字
+ */
+function generateGroupFieldGetter(field: FieldReader, groupName: string): string {
+  const name = field.name;
+  const type = field.slotType;
+  
+  if (!type) {
+    return `get${capitalize(groupName)}${capitalize(name)}(): unknown { return undefined; }`;
+  }
+  
+  switch (type.kind) {
+    case 'void':
+      return `get${capitalize(groupName)}${capitalize(name)}(): void { return undefined; }`;
+    case 'bool':
+      return `get${capitalize(groupName)}${capitalize(name)}(): boolean { return this.reader.getBool(${field.slotOffset * 8}); }`;
+    case 'int8':
+      return `get${capitalize(groupName)}${capitalize(name)}(): number { return this.reader.getInt8(${field.slotOffset}); }`;
+    case 'int16':
+      return `get${capitalize(groupName)}${capitalize(name)}(): number { return this.reader.getInt16(${field.slotOffset * 2}); }`;
+    case 'int32':
+      return `get${capitalize(groupName)}${capitalize(name)}(): number { return this.reader.getInt32(${field.slotOffset * 4}); }`;
+    case 'int64':
+      return `get${capitalize(groupName)}${capitalize(name)}(): bigint { return this.reader.getInt64(${field.slotOffset * 8}); }`;
+    case 'uint8':
+      return `get${capitalize(groupName)}${capitalize(name)}(): number { return this.reader.getUint8(${field.slotOffset}); }`;
+    case 'uint16':
+      return `get${capitalize(groupName)}${capitalize(name)}(): number { return this.reader.getUint16(${field.slotOffset * 2}); }`;
+    case 'uint32':
+      return `get${capitalize(groupName)}${capitalize(name)}(): number { return this.reader.getUint32(${field.slotOffset * 4}); }`;
+    case 'uint64':
+      return `get${capitalize(groupName)}${capitalize(name)}(): bigint { return this.reader.getUint64(${field.slotOffset * 8}); }`;
+    case 'float32':
+      return `get${capitalize(groupName)}${capitalize(name)}(): number { return this.reader.getFloat32(${field.slotOffset * 4}); }`;
+    case 'float64':
+      return `get${capitalize(groupName)}${capitalize(name)}(): number { return this.reader.getFloat64(${field.slotOffset * 8}); }`;
+    case 'text':
+      return `get${capitalize(groupName)}${capitalize(name)}(): string { return this.reader.getText(${field.slotOffset}); }`;
+    case 'data':
+      return `get${capitalize(groupName)}${capitalize(name)}(): Uint8Array { return this.reader.getData(${field.slotOffset}); }`;
+    default:
+      return `get${capitalize(groupName)}${capitalize(name)}(): unknown { return undefined; }`;
+  }
+}
+
+/**
+ * 生成 Group 字段的 setter
+ */
+function generateGroupFieldSetter(field: FieldReader, groupName: string): string {
+  const name = field.name;
+  const type = field.slotType;
+  const paramType = getTypeScriptTypeForSetter(type);
+  
+  if (!type || !field.isSlot) {
+    return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { /* TODO */ }`;
+  }
+  
+  switch (type.kind) {
+    case 'void':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { }`;
+    case 'bool':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setBool(${field.slotOffset * 8}, value); }`;
+    case 'int8':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setInt8(${field.slotOffset}, value); }`;
+    case 'int16':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setInt16(${field.slotOffset * 2}, value); }`;
+    case 'int32':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setInt32(${field.slotOffset * 4}, value); }`;
+    case 'int64':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setInt64(${field.slotOffset * 8}, value); }`;
+    case 'uint8':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setUint8(${field.slotOffset}, value); }`;
+    case 'uint16':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setUint16(${field.slotOffset * 2}, value); }`;
+    case 'uint32':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setUint32(${field.slotOffset * 4}, value); }`;
+    case 'uint64':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setUint64(${field.slotOffset * 8}, value); }`;
+    case 'float32':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setFloat32(${field.slotOffset * 4}, value); }`;
+    case 'float64':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setFloat64(${field.slotOffset * 8}, value); }`;
+    case 'text':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setText(${field.slotOffset}, value); }`;
+    case 'data':
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { this.builder.setData(${field.slotOffset}, value); }`;
+    default:
+      return `set${capitalize(groupName)}${capitalize(name)}(value: ${paramType}): void { /* TODO */ }`;
+  }
 }
 
 /**
