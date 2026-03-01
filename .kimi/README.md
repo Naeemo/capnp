@@ -21,9 +21,9 @@
 - [ ] RPC 层（长期）
 
 ### 最新进展
-- 创建了 `src/schema/schema-reader.ts` 用于读取编译后的 binary schema
-- 修复了 `INLINE_COMPOSITE` list 的 tag word 解析
-- 所有测试通过（137 tests）
+- 清理了测试中的 debug console.log，保持测试输出整洁
+- Binary Schema 解析器稳定运行，支持 struct/enum 读取
+- 所有测试通过（134 tests）
 
 ## 技术决策
 
