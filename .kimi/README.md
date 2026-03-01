@@ -16,7 +16,7 @@
 - [x] **Union 代码生成**：V3 生成器支持 Union 字段（discriminant + variant）
 
 ### 进行中 / 待完成
-- [ ] Group 支持
+- [x] Group 支持 ✅
 - [ ] 默认值（XOR 编码）
 - [ ] 多 Segment / Far Pointer
 - [ ] 完善 Union discriminant offset 从 schema 读取
@@ -33,6 +33,10 @@
   - 生成 `getUnionTag()` / `getUnionVariant()` 方法
   - 每个 variant 生成独立的 getter/setter
   - 生成类型安全的 Union variant 类型
+- ✅ **V3 生成器 Group 支持**
+  - 自动识别 Group 字段（isGroup === true）
+  - Group 字段内联到父 struct 中
+  - 生成带前缀的 getter/setter（如 `getAddressStreet()`）
 - 所有 135 个测试通过
 
 ## 技术决策
@@ -81,7 +85,8 @@ src/
 2. ✅ V3 代码生成器基础
 3. ✅ V3 CLI 工具
 4. ✅ Union 代码生成支持
-5. [ ] Group 支持
+5. ✅ Group 支持
+6. [ ] 默认值（XOR 编码）
 
 ### Phase 2: 兼容性
 6. [ ] 默认值（XOR 编码）
