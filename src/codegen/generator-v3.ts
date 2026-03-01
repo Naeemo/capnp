@@ -73,6 +73,29 @@ function generateFile(
   lines.push(`import { MessageReader, MessageBuilder, StructReader, StructBuilder, createUnionReader, createUnionBuilder } from "${options.runtimeImportPath}";`);
   lines.push('');
   
+  // 添加 XOR 辅助函数（用于 float 默认值）
+  lines.push('// XOR helpers for default value encoding');
+  lines.push('function xorFloat32(a: number, b: number): number {');
+  lines.push('  const view = new DataView(new ArrayBuffer(4));');
+  lines.push('  view.setFloat32(0, a, true);');
+  lines.push('  const aBits = view.getUint32(0, true);');
+  lines.push('  view.setFloat32(0, b, true);');
+  lines.push('  const bBits = view.getUint32(0, true);');
+  lines.push('  view.setUint32(0, aBits ^ bBits, true);');
+  lines.push('  return view.getFloat32(0, true);');
+  lines.push('}');
+  lines.push('');
+  lines.push('function xorFloat64(a: number, b: number): number {');
+  lines.push('  const view = new DataView(new ArrayBuffer(8));');
+  lines.push('  view.setFloat64(0, a, true);');
+  lines.push('  const aBits = view.getBigUint64(0, true);');
+  lines.push('  view.setFloat64(0, b, true);');
+  lines.push('  const bBits = view.getBigUint64(0, true);');
+  lines.push('  view.setBigUint64(0, aBits ^ bBits, true);');
+  lines.push('  return view.getFloat64(0, true);');
+  lines.push('}');
+  lines.push('');
+  
   // 找到属于这个文件的所有节点
   const fileNodes = allNodes.filter(n => n.scopeId === fileId);
   
@@ -510,14 +533,160 @@ function generateUnionFieldSetter(field: FieldReader, unionName: string, discrim
 }
 
 /**
+ * 从 ValueReader 提取默认值，用于代码生成
+ */
+function extractDefaultValue(field: FieldReader): string | undefined {
+  const defaultValue = field.defaultValue;
+  if (!defaultValue) return undefined;
+  
+  const type = field.slotType;
+  if (!type) return undefined;
+  
+  switch (type.kind) {
+    case 'bool':
+      if (defaultValue.isBool) return defaultValue.boolValue ? 'true' : 'false';
+      return undefined;
+    case 'int8':
+      if (defaultValue.isInt8) return `${defaultValue.int8Value}`;
+      return undefined;
+    case 'int16':
+      if (defaultValue.isInt16) return `${defaultValue.int16Value}`;
+      return undefined;
+    case 'int32':
+      if (defaultValue.isInt32) return `${defaultValue.int32Value}`;
+      return undefined;
+    case 'int64':
+      if (defaultValue.isInt64) return `${defaultValue.int64Value}n`;
+      return undefined;
+    case 'uint8':
+      if (defaultValue.isUint8) return `${defaultValue.uint8Value}`;
+      return undefined;
+    case 'uint16':
+      if (defaultValue.isUint16) return `${defaultValue.uint16Value}`;
+      return undefined;
+    case 'uint32':
+      if (defaultValue.isUint32) return `${defaultValue.uint32Value}`;
+      return undefined;
+    case 'uint64':
+      if (defaultValue.isUint64) return `${defaultValue.uint64Value}n`;
+      return undefined;
+    case 'float32':
+      if (defaultValue.isFloat32) {
+        const val = defaultValue.float32Value;
+        if (Number.isNaN(val)) return 'NaN';
+        if (val === Infinity) return 'Infinity';
+        if (val === -Infinity) return '-Infinity';
+        return `${val}`;
+      }
+      return undefined;
+    case 'float64':
+      if (defaultValue.isFloat64) {
+        const val = defaultValue.float64Value;
+        if (Number.isNaN(val)) return 'NaN';
+        if (val === Infinity) return 'Infinity';
+        if (val === -Infinity) return '-Infinity';
+        return `${val}`;
+      }
+      return undefined;
+    case 'enum':
+      if (defaultValue.isEnum) return `${defaultValue.enumValue}`;
+      return undefined;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * 生成 XOR 解码表达式（用于 getter）
+ * stored ^ default = actual
+ */
+function generateXorDecode(expr: string, defaultValue: string, typeKind: TypeKind): string {
+  switch (typeKind) {
+    case 'bool':
+      // bool: stored !== default
+      return `${expr} !== ${defaultValue}`;
+    case 'int8':
+    case 'int16':
+    case 'int32':
+      // 有符号整数：先转无符号 XOR，再转回有符号
+      return `(${expr} ^ ${defaultValue}) | 0`;
+    case 'uint8':
+    case 'uint16':
+    case 'uint32':
+      // 无符号整数：直接 XOR
+      return `${expr} ^ ${defaultValue}`;
+    case 'int64':
+    case 'uint64':
+      // bigint：直接 XOR
+      return `${expr} ^ ${defaultValue}`;
+    case 'float32':
+      // float32: 需要位操作转换
+      return `xorFloat32(${expr}, ${defaultValue})`;
+    case 'float64':
+      // float64: 需要位操作转换
+      return `xorFloat64(${expr}, ${defaultValue})`;
+    case 'enum':
+      // enum 作为 uint16 处理
+      return `${expr} ^ ${defaultValue}`;
+    default:
+      return expr;
+  }
+}
+
+/**
+ * 生成 XOR 编码表达式（用于 setter）
+ * actual ^ default = stored
+ */
+function generateXorEncode(valueExpr: string, defaultValue: string, typeKind: TypeKind): string {
+  switch (typeKind) {
+    case 'bool':
+      // bool: value !== default
+      return `${valueExpr} !== ${defaultValue}`;
+    case 'int8':
+    case 'int16':
+    case 'int32':
+      // 有符号整数：先转无符号 XOR
+      return `(${valueExpr} >>> 0) ^ ${defaultValue}`;
+    case 'uint8':
+    case 'uint16':
+    case 'uint32':
+      // 无符号整数：直接 XOR
+      return `${valueExpr} ^ ${defaultValue}`;
+    case 'int64':
+    case 'uint64':
+      // bigint：直接 XOR
+      return `${valueExpr} ^ ${defaultValue}`;
+    case 'float32':
+      // float32: 需要位操作转换
+      return `xorFloat32(${valueExpr}, ${defaultValue})`;
+    case 'float64':
+      // float64: 需要位操作转换
+      return `xorFloat64(${valueExpr}, ${defaultValue})`;
+    case 'enum':
+      // enum 作为 uint16 处理
+      return `${valueExpr} ^ ${defaultValue}`;
+    default:
+      return valueExpr;
+  }
+}
+
+/**
  * 生成字段 getter
  */
 function generateFieldGetter(field: FieldReader): string {
   const name = field.name;
   const type = field.slotType;
+  const defaultValue = extractDefaultValue(field);
   
   if (!type) {
     return `get ${name}(): unknown { return undefined; }`;
+  }
+  
+  // 如果有默认值，使用 XOR 解码
+  if (defaultValue !== undefined && type.kind !== 'text' && type.kind !== 'data') {
+    const readExpr = `this.reader.get${capitalize(type.kind)}(${getByteOffset(field, type.kind)})`;
+    const decodedExpr = generateXorDecode(readExpr, defaultValue, type.kind);
+    return `get ${name}(): ${getTypeScriptTypeForSetter(type)} { return ${decodedExpr}; }`;
   }
   
   switch (type.kind) {
@@ -555,15 +724,50 @@ function generateFieldGetter(field: FieldReader): string {
 }
 
 /**
+ * 获取字节偏移量
+ */
+function getByteOffset(field: FieldReader, typeKind: TypeKind): number {
+  switch (typeKind) {
+    case 'bool':
+      return field.slotOffset * 8; // bit offset
+    case 'int8':
+    case 'uint8':
+      return field.slotOffset;
+    case 'int16':
+    case 'uint16':
+    case 'enum':
+      return field.slotOffset * 2;
+    case 'int32':
+    case 'uint32':
+    case 'float32':
+      return field.slotOffset * 4;
+    case 'int64':
+    case 'uint64':
+    case 'float64':
+      return field.slotOffset * 8;
+    default:
+      return field.slotOffset;
+  }
+}
+
+/**
  * 生成字段 setter
  */
 function generateFieldSetter(field: FieldReader): string {
   const name = field.name;
   const type = field.slotType;
   const paramType = getTypeScriptTypeForSetter(type);
+  const defaultValue = extractDefaultValue(field);
   
   if (!type) {
     return `set${capitalize(name)}(value: unknown): void { /* TODO */ }`;
+  }
+  
+  // 如果有默认值，使用 XOR 编码
+  if (defaultValue !== undefined && type.kind !== 'text' && type.kind !== 'data') {
+    const encodedExpr = generateXorEncode('value', defaultValue, type.kind);
+    const setterMethod = `set${capitalize(type.kind)}`;
+    return `set${capitalize(name)}(value: ${paramType}): void { this.builder.${setterMethod}(${getByteOffset(field, type.kind)}, ${encodedExpr}); }`;
   }
   
   switch (type.kind) {

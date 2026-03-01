@@ -17,7 +17,7 @@
 
 ### 进行中 / 待完成
 - [x] Group 支持 ✅
-- [ ] 默认值（XOR 编码）
+- [x] 默认值（XOR 编码）✅
 - [ ] 多 Segment / Far Pointer
 - [ ] 完善 Union discriminant offset 从 schema 读取
 - [ ] RPC 层（长期）
@@ -37,7 +37,12 @@
   - 自动识别 Group 字段（isGroup === true）
   - Group 字段内联到父 struct 中
   - 生成带前缀的 getter/setter（如 `getAddressStreet()`）
-- 所有 135 个测试通过
+- ✅ **V3 生成器默认值支持（XOR 编码）**
+  - 从 binary schema 读取字段默认值
+  - 生成 XOR 编码/解码逻辑
+  - 支持所有数值类型（int/uint/float/bool/enum）
+  - 自动生成 float XOR 辅助函数
+- 所有 143 个测试通过
 
 ## 技术决策
 
@@ -86,10 +91,9 @@ src/
 3. ✅ V3 CLI 工具
 4. ✅ Union 代码生成支持
 5. ✅ Group 支持
-6. [ ] 默认值（XOR 编码）
+6. ✅ 默认值（XOR 编码）
 
 ### Phase 2: 兼容性
-6. [ ] 默认值（XOR 编码）
 7. [ ] 多 Segment / Far Pointer
 8. [ ] 互操作测试完善
 

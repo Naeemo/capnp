@@ -203,6 +203,14 @@ export class FieldReader {
     // typeId @7 :UInt64; 在 group group 内，bits [128, 192) = bytes [16, 24)
     return this.reader.getUint64(16);
   }
+
+  // --- Default Value ---
+
+  get defaultValue(): ValueReader | null {
+    // defaultValue @6 :Value; 是 ptr[3]
+    const valueReader = this.reader.getStruct(3, 2, 1); // Value: 16 bytes = 2 words, 1 pointer
+    return valueReader ? new ValueReader(valueReader) : null;
+  }
 }
 
 // ============================================================================
@@ -273,6 +281,127 @@ const TYPE_KIND_MAP: Record<number, TypeKind> = {
   17: 'interface',
   18: 'anyPointer',
 };
+
+// ============================================================================
+// Value - 默认值
+// ============================================================================
+
+export class ValueReader {
+  constructor(private reader: StructReader) {}
+
+  /** union tag 在 bits [0, 16) = bytes [0, 2) */
+  private get unionTag(): number {
+    return this.reader.getUint16(0);
+  }
+
+  get isVoid(): boolean { return this.unionTag === 0; }
+  get isBool(): boolean { return this.unionTag === 1; }
+  get isInt8(): boolean { return this.unionTag === 2; }
+  get isInt16(): boolean { return this.unionTag === 3; }
+  get isInt32(): boolean { return this.unionTag === 4; }
+  get isInt64(): boolean { return this.unionTag === 5; }
+  get isUint8(): boolean { return this.unionTag === 6; }
+  get isUint16(): boolean { return this.unionTag === 7; }
+  get isUint32(): boolean { return this.unionTag === 8; }
+  get isUint64(): boolean { return this.unionTag === 9; }
+  get isFloat32(): boolean { return this.unionTag === 10; }
+  get isFloat64(): boolean { return this.unionTag === 11; }
+  get isText(): boolean { return this.unionTag === 12; }
+  get isData(): boolean { return this.unionTag === 13; }
+  get isList(): boolean { return this.unionTag === 14; }
+  get isEnum(): boolean { return this.unionTag === 15; }
+  get isStruct(): boolean { return this.unionTag === 16; }
+  get isInterface(): boolean { return this.unionTag === 17; }
+  get isAnyPointer(): boolean { return this.unionTag === 18; }
+
+  // --- 原始值读取 ---
+
+  get boolValue(): boolean {
+    // boolValue @1 :Bool; 在 bit 16
+    return this.reader.getBool(16);
+  }
+
+  get int8Value(): number {
+    // int8Value @2 :Int8; 在 byte 2
+    return this.reader.getInt8(2);
+  }
+
+  get int16Value(): number {
+    // int16Value @3 :Int16; 在 bytes [2, 4)
+    return this.reader.getInt16(2);
+  }
+
+  get int32Value(): number {
+    // int32Value @4 :Int32; 在 bytes [4, 8)
+    return this.reader.getInt32(4);
+  }
+
+  get int64Value(): bigint {
+    // int64Value @5 :Int64; 在 bytes [8, 16)
+    return this.reader.getInt64(8);
+  }
+
+  get uint8Value(): number {
+    // uint8Value @6 :UInt8; 在 byte 2
+    return this.reader.getUint8(2);
+  }
+
+  get uint16Value(): number {
+    // uint16Value @7 :UInt16; 在 bytes [2, 4)
+    return this.reader.getUint16(2);
+  }
+
+  get uint32Value(): number {
+    // uint32Value @8 :UInt32; 在 bytes [4, 8)
+    return this.reader.getUint32(4);
+  }
+
+  get uint64Value(): bigint {
+    // uint64Value @9 :UInt64; 在 bytes [8, 16)
+    return this.reader.getUint64(8);
+  }
+
+  get float32Value(): number {
+    // float32Value @10 :Float32; 在 bytes [4, 8)
+    return this.reader.getFloat32(4);
+  }
+
+  get float64Value(): number {
+    // float64Value @11 :Float64; 在 bytes [8, 16)
+    return this.reader.getFloat64(8);
+  }
+
+  get enumValue(): number {
+    // enumValue @15 :UInt16; 在 bytes [2, 4)
+    return this.reader.getUint16(2);
+  }
+
+  // --- 便捷方法：获取特定类型的默认值 ---
+
+  getAsNumber(): number | undefined {
+    if (this.isInt8) return this.int8Value;
+    if (this.isInt16) return this.int16Value;
+    if (this.isInt32) return this.int32Value;
+    if (this.isUint8) return this.uint8Value;
+    if (this.isUint16) return this.uint16Value;
+    if (this.isUint32) return this.uint32Value;
+    if (this.isFloat32) return this.float32Value;
+    if (this.isFloat64) return this.float64Value;
+    if (this.isEnum) return this.enumValue;
+    return undefined;
+  }
+
+  getAsBigint(): bigint | undefined {
+    if (this.isInt64) return this.int64Value;
+    if (this.isUint64) return this.uint64Value;
+    return undefined;
+  }
+
+  getAsBoolean(): boolean | undefined {
+    if (this.isBool) return this.boolValue;
+    return undefined;
+  }
+}
 
 // ============================================================================
 // Enumerant
