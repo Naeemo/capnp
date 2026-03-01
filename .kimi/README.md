@@ -105,7 +105,7 @@ src/
 6. ✅ 默认值（XOR 编码）
 
 ### Phase 2: 兼容性
-7. [ ] 多 Segment / Far Pointer
+7. ✅ 多 Segment / Far Pointer
 8. [ ] 互操作测试完善
 
 ### Phase 3: 进阶
