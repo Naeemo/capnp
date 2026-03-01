@@ -13,6 +13,9 @@ import type {
   Id 
 } from '../schema/schema-reader.js';
 
+// 导入运行时类型用于代码生成
+import type { StructReader, StructBuilder } from '../core/index.js';
+
 export interface GeneratorOptions {
   /** 运行时库导入路径 */
   runtimeImportPath?: string;
@@ -108,6 +111,22 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
   }
   
   lines.push('}');
+  lines.push('');
+  
+  // 生成 Builder 类
+  lines.push(`export class ${structName}Builder {`);
+  lines.push(`  constructor(private builder: StructBuilder) {}`);
+  lines.push('');
+  
+  for (const field of node.structFields) {
+    if (!field.isSlot) continue; // Skip group fields for now
+    
+    const setter = generateFieldSetter(field);
+    lines.push(`  ${setter}`);
+    lines.push('');
+  }
+  
+  lines.push('}');
   
   return lines.join('\n');
 }
@@ -155,6 +174,87 @@ function generateFieldGetter(field: FieldReader): string {
     default:
       return `get ${name}(): unknown { return undefined; }`;
   }
+}
+
+/**
+ * 生成字段 setter
+ */
+function generateFieldSetter(field: FieldReader): string {
+  const name = field.name;
+  const type = field.slotType;
+  const paramType = getTypeScriptTypeForSetter(type);
+  
+  if (!type) {
+    return `set${capitalize(name)}(value: unknown): void { /* TODO */ }`;
+  }
+  
+  switch (type.kind) {
+    case 'void':
+      return `set${capitalize(name)}(value: void): void { /* void */ }`;
+    case 'bool':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setBool(${field.slotOffset * 8}, value); }`;
+    case 'int8':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setInt8(${field.slotOffset}, value); }`;
+    case 'int16':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setInt16(${field.slotOffset * 2}, value); }`;
+    case 'int32':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setInt32(${field.slotOffset * 4}, value); }`;
+    case 'int64':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setInt64(${field.slotOffset * 8}, value); }`;
+    case 'uint8':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setUint8(${field.slotOffset}, value); }`;
+    case 'uint16':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setUint16(${field.slotOffset * 2}, value); }`;
+    case 'uint32':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setUint32(${field.slotOffset * 4}, value); }`;
+    case 'uint64':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setUint64(${field.slotOffset * 8}, value); }`;
+    case 'float32':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setFloat32(${field.slotOffset * 4}, value); }`;
+    case 'float64':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setFloat64(${field.slotOffset * 8}, value); }`;
+    case 'text':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setText(${field.slotOffset}, value); }`;
+    case 'data':
+      return `set${capitalize(name)}(value: ${paramType}): void { this.builder.setData(${field.slotOffset}, value); }`;
+    default:
+      return `set${capitalize(name)}(value: ${paramType}): void { /* TODO */ }`;
+  }
+}
+
+/**
+ * 获取 TypeScript setter 参数类型
+ */
+function getTypeScriptTypeForSetter(type: TypeReader | null): string {
+  if (!type) return 'unknown';
+  
+  switch (type.kind) {
+    case 'void': return 'void';
+    case 'bool': return 'boolean';
+    case 'int8':
+    case 'int16':
+    case 'int32':
+    case 'uint8':
+    case 'uint16':
+    case 'uint32':
+    case 'float32':
+    case 'float64':
+      return 'number';
+    case 'int64':
+    case 'uint64':
+      return 'bigint';
+    case 'text': return 'string';
+    case 'data': return 'Uint8Array';
+    default:
+      return 'unknown';
+  }
+}
+
+/**
+ * 首字母大写
+ */
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 /**
