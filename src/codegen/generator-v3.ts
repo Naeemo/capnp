@@ -202,6 +202,13 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
       lines.push(`  ${getter}`);
       lines.push('');
     }
+    
+    // 每个 variant 的 setter
+    for (const field of group.fields) {
+      const setter = generateUnionFieldSetter(field, unionName, field.discriminantValue, group.discriminantOffset * 2);
+      lines.push(`  ${setter}`);
+      lines.push('');
+    }
   }
   
   lines.push('}');
@@ -463,14 +470,10 @@ function generateGroupFieldSetter(field: FieldReader, groupName: string): string
 /**
  * 生成 Union 字段的 setter
  */
-function generateUnionFieldSetter(field: FieldReader, unionName: string, discriminantValue: number): string {
+function generateUnionFieldSetter(field: FieldReader, unionName: string, discriminantValue: number, discriminantOffset: number): string {
   const name = field.name;
   const type = field.slotType;
   const paramType = getTypeScriptTypeForSetter(type);
-  
-  // 获取 discriminantOffset - 需要从 field 或 node 获取
-  // 暂时硬编码为 0，实际应该从 schema 读取
-  const discriminantOffset = 0;
   
   if (!type || !field.isSlot) {
     return `set${capitalize(name)}(value: ${paramType}): void {

@@ -20,7 +20,7 @@
 - [x] 默认值（XOR 编码）✅
 - [x] 多 Segment / Far Pointer ✅（支持 single-far 和 double-far 间接寻址）
 - [x] Union discriminant offset 从 schema 读取 ✅（已修复：discriminantOffset 需要乘以 2 转换为 byte offset）
-- [ ] Union setter 中的 discriminantOffset 硬编码问题（需要重构函数签名）
+- [x] Union setter 中的 discriminantOffset 硬编码问题 ✅（已修复：通过函数参数传递）
 - [ ] RPC 层（长期）
 
 ### 最新进展 (2026-03-02)
@@ -33,6 +33,7 @@
 - ✅ **Union discriminant offset 修复**
   - 修复了 discriminantOffset 单位问题（schema 中以 16-bit words 为单位，需要乘以 2 转换为 byte offset）
   - Union getter 现在正确使用 `discriminantOffset * 2`
+  - Union setter 现在通过参数传递正确的 discriminantOffset
 - ✅ V3 CLI 工具完成 (`src/codegen/cli-v3.ts`)
   - 自动调用 `capnp compile -o-` 编译 schema
   - 支持 `-o` 单文件输出、`-d` 多文件输出到目录
