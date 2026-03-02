@@ -1,3 +1,6 @@
+# Secrets
+.kimi/SECRETS.md
+
 # Dependencies
 node_modules/
 .pnpm-store/
