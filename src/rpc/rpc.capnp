@@ -88,6 +88,13 @@ struct Message {
 
     # Level 4 features (Join) ----------------------------------------
     join @12 :Join;
+
+    # Phase 7: Dynamic Schema features -------------------------------
+    schemaRequest @14 :SchemaRequest;
+    # Request schema information from the remote vat.
+
+    schemaResponse @15 :SchemaResponse;
+    # Response containing requested schema information.
   }
 }
 
@@ -545,3 +552,165 @@ struct ProvisionId {
 # - Both introductions use embargo=true
 # - This prevents deadlock where both wait for the other to complete
 # - The embargoes are lifted once the connections are established
+
+# ========================================================================================
+# Phase 7: Dynamic Schema Transfer Protocol
+# ========================================================================================
+#
+# This extension allows RPC clients to dynamically fetch schema information from servers.
+# This is particularly useful for:
+# - Dynamic languages that need runtime type information
+# - Schema browsers and debugging tools
+# - Generic proxies that need to understand message structures
+# - Version negotiation between different protocol versions
+
+struct SchemaRequest {
+  # Request to fetch schema information from the remote vat.
+
+  questionId @0 :QuestionId;
+  # A new question ID identifying this request.
+
+  targetSchema @1 :SchemaTarget;
+  # Specifies which schema(s) to fetch.
+}
+
+struct SchemaTarget {
+  # Specifies what schema information is being requested.
+
+  union {
+    allSchemas @0 :Void;
+    # Request all schemas known to the remote vat.
+
+    byTypeId @1 :UInt64;
+    # Request schema for a specific type by its ID.
+
+    byTypeName @2 :Text;
+    # Request schema for a specific type by its fully qualified name.
+    # Format: "package.module.TypeName" or "file.capnp:TypeName"
+
+    byFileId @3 :UInt64;
+    # Request all schemas from a specific file by its ID.
+
+    byFileName @4 :Text;
+    # Request all schemas from a specific file by its name/path.
+
+    bootstrapInterface @5 :Void;
+    # Request schema for the bootstrap interface only.
+  }
+}
+
+struct SchemaResponse {
+  # Response containing schema information.
+
+  answerId @0 :AnswerId;
+  # Equal to the QuestionId of the corresponding SchemaRequest.
+
+  union {
+    success @1 :SchemaPayload;
+    # Schema data successfully retrieved.
+
+    exception @2 :Exception;
+    # Schema request failed (e.g., type not found, access denied).
+  }
+}
+
+struct SchemaPayload {
+  # Contains serialized schema information.
+  # The schema is serialized using the standard Cap'n Proto schema format
+  # (as defined in schema.capnp from the official Cap'n Proto distribution).
+
+  schemaData @0 :Data;
+  # Serialized schema nodes in Cap'n Proto binary format.
+  # This is a serialized CodeGeneratorRequest or a subset thereof,
+  # containing the requested Node definitions.
+
+  format @1 :SchemaFormat;
+  # Format of the schema data.
+
+  sourceInfo @2 :Data;
+  # Optional: Source information (doc comments, source locations) if available.
+  # This is a serialized list of Node.SourceInfo.
+
+  dependencies @3 :List(SchemaDependency);
+  # List of imported schemas that may be needed to fully understand the returned schema.
+}
+
+enum SchemaFormat {
+  # Supported schema serialization formats.
+
+  binary @0;
+  # Standard Cap'n Proto binary format (schema.capnp structs).
+  # This is the preferred format for efficiency.
+
+  json @1;
+  # JSON representation of the schema.
+  # More human-readable but less efficient.
+
+  capnp @2;
+  # Cap'n Proto schema language text format.
+  # Human-readable schema definition source.
+}
+
+struct SchemaDependency {
+  # Information about a schema dependency (import).
+
+  fileId @0 :UInt64;
+  # ID of the imported file.
+
+  fileName @1 :Text;
+  # Name/path of the imported file.
+
+  schemaHash @2 :Data;
+  # Optional hash of the schema content for caching/versioning.
+}
+
+struct SchemaCapability {
+  # A capability that provides schema information.
+  # This can be used to create dedicated schema provider interfaces.
+
+  struct GetSchemaParams {
+    target @0 :SchemaTarget;
+    format @1 :SchemaFormat = binary;
+  }
+
+  struct GetSchemaResults {
+    payload @0 :SchemaPayload;
+  }
+
+  getSchema @0 (params :GetSchemaParams) -> (results :GetSchemaResults);
+  # Fetch schema information.
+
+  listAvailableSchemas @1 () -> (results :ListSchemasResults);
+  # List all schemas available from this provider.
+
+  struct ListSchemasResults {
+    schemas @0 :List(AvailableSchema);
+  }
+
+  struct AvailableSchema {
+    typeId @0 :UInt64;
+    displayName @1 :Text;
+    fileId @2 :UInt64;
+    fileName @3 :Text;
+    isInterface @4 :Bool;
+    isStruct @5 :Bool;
+    isEnum @6 :Bool;
+  }
+}
+
+# ========================================================================================
+# Integration with RPC Message Types
+# ========================================================================================
+#
+# To use schema requests, add these variants to the main Message struct:
+#
+# struct Message {
+#   union {
+#     # ... existing message types ...
+#     schemaRequest @14 :SchemaRequest;
+#     schemaResponse @15 :SchemaResponse;
+#   }
+# }
+#
+# Note: These are assigned ordinals 14 and 15 to follow after join @12.
+# The Message struct in this file would need to be updated to include these.

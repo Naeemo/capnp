@@ -1,7 +1,14 @@
 /**
  * Cap'n Proto RPC Module
  *
- * Phase 6: Level 4 RPC - Reference Equality / Join (NEW)
+ * Phase 7: Dynamic Schema Transfer Protocol (NEW)
+ * - SchemaRequest/SchemaResponse messages for runtime schema fetching
+ * - Schema serialization and deserialization
+ * - Dynamic schema parsing from binary format
+ * - Schema registry for managing parsed schemas
+ * - Support for dynamic languages and schema browsers
+ *
+ * Phase 6: Level 4 RPC - Reference Equality / Join
  * - Join operations for verifying capability equality
  * - Object identity tracking and verification
  * - Escrow agent mode for consensus verification
@@ -243,3 +250,52 @@ export {
 
 // Re-export StreamPriority from stream module
 export { StreamPriority } from './stream.js';
+
+// Phase 7: Dynamic Schema Transfer Protocol (NEW)
+export type {
+  SchemaRequest,
+  SchemaResponse,
+  SchemaTarget,
+  SchemaResponseResult,
+  SchemaPayload,
+  SchemaFormat,
+  SchemaDependency,
+  AvailableSchema,
+  SchemaCapability,
+  GetSchemaParams,
+  GetSchemaResults,
+  ListSchemasResults,
+  SchemaNode,
+  SchemaNodeType,
+  SchemaField,
+  SchemaType,
+  SchemaTypeKind,
+  SchemaMethod,
+  SchemaAnnotation,
+  SchemaValue,
+  SchemaBrand,
+  SchemaBrandScope,
+  SchemaBrandBinding,
+  SchemaRegistry,
+  DynamicSchemaLoader,
+} from './schema-types.js';
+
+export {
+  SchemaFormat,
+} from './schema-types.js';
+
+export {
+  serializeSchemaRequest,
+  deserializeSchemaRequest,
+  serializeSchemaResponse,
+  deserializeSchemaResponse,
+  serializeGetSchemaParams,
+  serializeGetSchemaResults,
+  serializeListSchemasResults,
+  SCHEMA_MESSAGE_TYPES,
+} from './schema-serializer.js';
+
+export {
+  parseSchemaNodes,
+  createSchemaRegistry,
+} from './schema-parser.js';

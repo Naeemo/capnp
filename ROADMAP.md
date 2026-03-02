@@ -16,9 +16,10 @@
 | WebSocket 传输 | ✅ 完成 | - |
 | C++ 互操作 | ✅ 完成 | 与官方 C++ 实现兼容 |
 | **Streaming API** | **✅ 完成** | **Bulk/Realtime (官方路线图中)** |
+| **Dynamic Schema** | **🚧 进行中** | **Phase 7: Schema 传输协议** |
 
 ### 测试统计
-- **361 测试通过**
+- **361+ 测试通过**
 - **v0.4.0 已发布到 npm**
 
 ---
@@ -29,7 +30,7 @@
 
 | 功能 | 官方状态 | 我们的状态 | 优先级 | 说明 |
 |------|---------|-----------|--------|------|
-| **Dynamic Schema** | 计划中 | ❌ 未实现 | P1 | 运行时获取 schema，对动态语言很重要。允许 Python 等应用从 RPC 服务器直接获取 schema，无需本地副本 |
+| **Dynamic Schema** | 计划中 | 🚧 **进行中** | P1 | 运行时获取 schema，对动态语言很重要。允许 Python 等应用从 RPC 服务器直接获取 schema，无需本地副本 |
 | **UDP Transport** | 计划中 | ❌ 未实现 | P2 | 零往返三方握手，实时通信。支持真正的零拷贝和更低延迟 |
 | **加密传输** | 计划中 | ❌ 未实现 | P2 | Noise Protocol + libsodium。基于能力授权（非 PKI），支持零往返三方握手 |
 
@@ -52,20 +53,45 @@
 
 ---
 
-## 🎯 Phase 7: Dynamic Schema（建议 2-3 周）
+## 🎯 Phase 7: Dynamic Schema（建议 2-3周）
+
+**状态**: 🚧 第一步已完成（Schema 传输协议定义）
 
 **目标**: 实现运行时 schema 获取和解析
 
-**核心功能**:
-1. **Schema 传输协议**
-   - 扩展 RPC 协议支持 schema 请求/响应
-   - 序列化 schema 格式（基于 capnp 二进制）
+**已完成**:
+1. ✅ **Schema 传输协议**
+   - 在 `rpc.capnp` 中添加了 `SchemaRequest` 和 `SchemaResponse` 消息类型
+   - 定义了 `SchemaTarget` 联合类型（支持按 typeId、typeName、fileId、fileName 查询）
+   - 定义了 `SchemaPayload` 和 `SchemaFormat` 枚举（binary/json/capnp）
+   - 定义了 `SchemaCapability` 接口用于专用 schema 提供者
 
-2. **Dynamic Schema 解析**
-   - 运行时解析 schema 二进制
-   - 动态生成 reader/writer
+2. ✅ **TypeScript 类型定义**
+   - 创建了 `schema-types.ts` 包含完整的类型定义
+   - 包括 SchemaNode、SchemaField、SchemaType、SchemaMethod 等
+   - 定义了 SchemaRegistry 和 DynamicSchemaLoader 接口
 
-3. **工具支持**
+3. ✅ **序列化/反序列化**
+   - 创建了 `schema-serializer.ts` 处理消息编码/解码
+   - 支持 SchemaRequest、SchemaResponse、GetSchemaParams 等
+
+4. ✅ **Schema 解析器**
+   - 创建了 `schema-parser.ts` 用于运行时解析 schema 二进制
+   - 实现了 CodeGeneratorRequest 解析
+   - 提供了 createSchemaRegistry() 工厂函数
+
+**待完成**:
+1. 🔄 **Dynamic Schema 解析增强**
+   - 完善 schema 二进制解析器
+   - 支持所有 schema.capnp 节点类型
+   - 处理 generics 和 brands
+
+2. 🔄 **动态 Reader/Writer 生成**
+   - 基于解析的 schema 动态创建消息 reader
+   - 动态创建消息 writer
+   - 支持动态字段访问
+
+3. 🔄 **工具支持**
    - `capnp-ts-codegen --dynamic` 模式
    - 交互式 schema 浏览器
 
@@ -81,7 +107,7 @@ console.log(reader.getField('name'));
 
 ---
 
-## 🎯 Phase 8: UDP Transport（建议 3-4 周）
+## 🎯 Phase 8: UDP Transport（建议 3-4周）
 
 **目标**: 实现 UDP 传输层，支持零往返握手
 
@@ -100,7 +126,7 @@ console.log(reader.getField('name'));
 
 ---
 
-## 🎯 Phase 9: 加密传输（建议 3-4 周）
+## 🎯 Phase 9: 加密传输（建议 3-4周）
 
 **目标**: Noise Protocol 加密传输
 
