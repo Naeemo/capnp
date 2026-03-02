@@ -1,8 +1,11 @@
 # Cap'n Proto TypeScript
 
+[![npm version](https://img.shields.io/npm/v/@naeemo/capnp.svg)](https://www.npmjs.com/package/@naeemo/capnp)
+[![Documentation](https://img.shields.io/badge/docs-website-blue.svg)](https://naeemo.github.io/capnp/)
+
 A pure TypeScript implementation of Cap'n Proto, featuring zero-copy deserialization and full interoperability with the official C++ implementation.
 
-[中文文档](./README.zh.md)
+[📖 Documentation](https://naeemo.github.io/capnp/) | [中文文档](./README.zh.md)
 
 ## Features
 
@@ -92,6 +95,7 @@ See [PERFORMANCE.md](./PERFORMANCE.md) for detailed benchmarks.
 
 ## Documentation
 
+- [📖 Documentation Website](https://naeemo.github.io/capnp/)
 - [API Documentation](./docs/API.md)
 - [Performance Report](./PERFORMANCE.md)
 - [Test Coverage](./TEST_COVERAGE.md)

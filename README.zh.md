@@ -1,8 +1,11 @@
 # Cap'n Proto TypeScript
 
+[![npm version](https://img.shields.io/npm/v/@naeemo/capnp.svg)](https://www.npmjs.com/package/@naeemo/capnp)
+[![Documentation](https://img.shields.io/badge/docs-website-blue.svg)](https://naeemo.github.io/capnp/)
+
 纯 TypeScript 实现的 Cap'n Proto，支持零拷贝反序列化，与官方 C++ 实现完全兼容。
 
-[English Documentation](./README.md)
+[📖 文档网站](https://naeemo.github.io/capnp/) | [English Documentation](./README.md)
 
 ## 特性
 
@@ -72,6 +75,7 @@ npx capnp-ts-codegen schema.capnp -o types.ts -r ../my-runtime
 
 ## 文档
 
+- [📖 文档网站](https://naeemo.github.io/capnp/)
 - [API 文档](./docs/API.md)
 - [性能报告](./PERFORMANCE.md)
 - [测试覆盖](./TEST_COVERAGE.md)
