@@ -7,9 +7,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { StructBuilder, StructReader } from '../../core/index.js';
 import { CallContextImpl } from '../../rpc/call-context.js';
+import { AnswerTable, ExportTable, ImportTable, QuestionTable } from '../../rpc/four-tables.js';
 import { RpcConnection } from '../../rpc/rpc-connection.js';
 import { WebSocketTransport } from '../../rpc/websocket-transport.js';
-import { QuestionTable, AnswerTable, ImportTable, ExportTable } from '../../rpc/four-tables.js';
 
 // Simple test server implementation
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
