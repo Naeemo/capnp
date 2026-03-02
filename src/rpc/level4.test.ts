@@ -4,11 +4,11 @@
  * Tests for reference equality verification and Join operations.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { VatId } from './connection-manager.js';
 import { Level4Handlers } from './level4-handlers.js';
 import type { RpcConnection } from './rpc-connection.js';
 import type { Join, MessageTarget } from './rpc-types.js';
-import type { VatId } from './connection-manager.js';
 
 describe('Level4Handlers', () => {
   let mockConnection: RpcConnection;

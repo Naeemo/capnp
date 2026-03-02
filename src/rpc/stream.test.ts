@@ -4,15 +4,15 @@
  * Tests for the Stream abstraction and flow control
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  DEFAULT_FLOW_CONTROL,
   Stream,
+  type StreamChunk,
+  type StreamOptions,
   StreamPriority,
   createStream,
   isStream,
-  DEFAULT_FLOW_CONTROL,
-  type StreamOptions,
-  type StreamChunk,
 } from './stream.js';
 
 describe('Stream', () => {
@@ -205,10 +205,7 @@ describe('Stream', () => {
   describe('Event Handlers', () => {
     it('should call onOpen handler', async () => {
       const onOpen = vi.fn();
-      const handlerStream = new Stream(
-        { streamId: 3, direction: 'outbound' },
-        { onOpen }
-      );
+      const handlerStream = new Stream({ streamId: 3, direction: 'outbound' }, { onOpen });
 
       await handlerStream.open();
       expect(onOpen).toHaveBeenCalled();
@@ -216,10 +213,7 @@ describe('Stream', () => {
 
     it('should call onClose handler', async () => {
       const onClose = vi.fn();
-      const handlerStream = new Stream(
-        { streamId: 4, direction: 'outbound' },
-        { onClose }
-      );
+      const handlerStream = new Stream({ streamId: 4, direction: 'outbound' }, { onClose });
 
       await handlerStream.open();
       await handlerStream.close();
@@ -229,10 +223,7 @@ describe('Stream', () => {
 
     it('should call onError handler', async () => {
       const onError = vi.fn();
-      const handlerStream = new Stream(
-        { streamId: 5, direction: 'outbound' },
-        { onError }
-      );
+      const handlerStream = new Stream({ streamId: 5, direction: 'outbound' }, { onError });
 
       await handlerStream.open();
       handlerStream.abort(new Error('Test error'));

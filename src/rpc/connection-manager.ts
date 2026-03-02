@@ -10,8 +10,8 @@
  */
 
 import type { RpcConnection, RpcConnectionOptions } from './rpc-connection.js';
+import type { ProvisionId, RecipientId, ThirdPartyCapId } from './rpc-types.js';
 import type { RpcTransport } from './transport.js';
-import type { RecipientId, ThirdPartyCapId, ProvisionId } from './rpc-types.js';
 
 /** Unique identifier for a vat */
 export interface VatId {
@@ -100,7 +100,7 @@ export class ConnectionManager {
    */
   registerConnection(vatId: VatId, connection: RpcConnection): ConnectionInfo {
     const vatIdKey = this.vatIdToKey(vatId);
-    
+
     const info: ConnectionInfo = {
       connection,
       remoteVatId: vatId,
@@ -110,10 +110,10 @@ export class ConnectionManager {
     };
 
     this.connections.set(vatIdKey, info);
-    
+
     // Set up cleanup on connection close
     // Note: The connection's onClose handler should be set by the caller
-    
+
     return info;
   }
 
@@ -123,7 +123,7 @@ export class ConnectionManager {
    */
   async getConnection(vatId: VatId): Promise<RpcConnection | undefined> {
     const vatIdKey = this.vatIdToKey(vatId);
-    
+
     // Check for existing connection
     const existing = this.connections.get(vatIdKey);
     if (existing && existing.state === 'connected') {
@@ -150,7 +150,7 @@ export class ConnectionManager {
    */
   async establishConnection(vatId: VatId, address?: string): Promise<RpcConnection> {
     const vatIdKey = this.vatIdToKey(vatId);
-    
+
     // Check if already connecting
     if (this.connectionPromises.has(vatIdKey)) {
       return this.connectionPromises.get(vatIdKey)!;
@@ -170,17 +170,17 @@ export class ConnectionManager {
 
   private async doEstablishConnection(vatId: VatId, address?: string): Promise<RpcConnection> {
     const { RpcConnection } = await import('./rpc-connection.js');
-    
+
     // Create transport using the factory
     const transport = await this.options.connectionFactory(vatId, address);
-    
+
     // Create and start the connection
     const connection = new RpcConnection(transport, this.options.connectionOptions);
     await connection.start();
-    
+
     // Register the connection
     this.registerConnection(vatId, connection);
-    
+
     return connection;
   }
 
@@ -190,7 +190,7 @@ export class ConnectionManager {
   async closeConnection(vatId: VatId): Promise<void> {
     const vatIdKey = this.vatIdToKey(vatId);
     const info = this.connections.get(vatIdKey);
-    
+
     if (info) {
       info.state = 'closing';
       await info.connection.stop();
@@ -203,8 +203,8 @@ export class ConnectionManager {
    */
   async closeAll(): Promise<void> {
     const closePromises: Promise<void>[] = [];
-    
-    for (const [vatIdKey, info] of this.connections) {
+
+    for (const [_vatIdKey, info] of this.connections) {
       info.state = 'closing';
       closePromises.push(
         info.connection.stop().catch(() => {
@@ -212,7 +212,7 @@ export class ConnectionManager {
         })
       );
     }
-    
+
     await Promise.all(closePromises);
     this.connections.clear();
     this.pendingProvisions.clear();
@@ -234,7 +234,7 @@ export class ConnectionManager {
     embargoed: boolean
   ): PendingProvision {
     const provisionKey = this.provisionIdToKey(provisionId);
-    
+
     const provision: PendingProvision = {
       provisionId,
       recipientId,
@@ -270,30 +270,30 @@ export class ConnectionManager {
   findProvisionsForRecipient(recipientId: VatId): PendingProvision[] {
     const recipientKey = this.vatIdToKey(recipientId);
     const result: PendingProvision[] = [];
-    
+
     for (const provision of this.pendingProvisions.values()) {
       if (this.vatIdToKey(provision.recipientId) === recipientKey) {
         result.push(provision);
       }
     }
-    
+
     return result;
   }
 
   /**
    * Clean up expired provisions.
    */
-  cleanupExpiredProvisions(maxAgeMs: number = 300000): number {
+  cleanupExpiredProvisions(maxAgeMs = 300000): number {
     const now = Date.now();
     let removed = 0;
-    
+
     for (const [key, provision] of this.pendingProvisions) {
       if (now - provision.createdAt.getTime() > maxAgeMs) {
         this.pendingProvisions.delete(key);
         removed++;
       }
     }
-    
+
     return removed;
   }
 
@@ -306,10 +306,13 @@ export class ConnectionManager {
    * This is the core of Level 3 RPC - automatically establishing connections
    * to third parties when capabilities are passed between vats.
    */
-  async resolveThirdPartyCap(thirdPartyCapId: ThirdPartyCapId): Promise<{
-    connection: RpcConnection;
-    provisionId: ProvisionId;
-  } | undefined> {
+  async resolveThirdPartyCap(thirdPartyCapId: ThirdPartyCapId): Promise<
+    | {
+        connection: RpcConnection;
+        provisionId: ProvisionId;
+      }
+    | undefined
+  > {
     // Parse the ThirdPartyCapId to extract vat ID and provision ID
     const parsed = this.parseThirdPartyCapId(thirdPartyCapId);
     if (!parsed) {
@@ -334,14 +337,16 @@ export class ConnectionManager {
    * - First N bytes: vat ID
    * - Remaining bytes: provision ID
    */
-  private parseThirdPartyCapId(thirdPartyCapId: ThirdPartyCapId): {
-    vatId: VatId;
-    provisionId: ProvisionId;
-  } | undefined {
+  private parseThirdPartyCapId(thirdPartyCapId: ThirdPartyCapId):
+    | {
+        vatId: VatId;
+        provisionId: ProvisionId;
+      }
+    | undefined {
     // Default implementation: first 32 bytes are vat ID, rest is provision ID
     // This can be overridden by the application
     const data = thirdPartyCapId.id;
-    
+
     if (data.length < 32) {
       return undefined;
     }
@@ -407,13 +412,13 @@ export class ConnectionManager {
   private vatIdToKey(vatId: VatId): string {
     // Convert Uint8Array to hex string for use as Map key
     return Array.from(vatId.id)
-      .map(b => b.toString(16).padStart(2, '0'))
+      .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
   }
 
   private provisionIdToKey(provisionId: ProvisionId): string {
     return Array.from(provisionId.id)
-      .map(b => b.toString(16).padStart(2, '0'))
+      .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
   }
 }
@@ -421,15 +426,12 @@ export class ConnectionManager {
 /**
  * Create a ThirdPartyCapId from vat ID and provision ID.
  */
-export function createThirdPartyCapId(
-  vatId: VatId,
-  provisionId: ProvisionId
-): ThirdPartyCapId {
+export function createThirdPartyCapId(vatId: VatId, provisionId: ProvisionId): ThirdPartyCapId {
   // Concatenate vat ID and provision ID
   const combined = new Uint8Array(vatId.id.length + provisionId.id.length);
   combined.set(vatId.id, 0);
   combined.set(provisionId.id, vatId.id.length);
-  
+
   return { id: combined };
 }
 
@@ -456,7 +458,7 @@ export function generateProvisionId(): ProvisionId {
     crypto.getRandomValues(id);
   } else {
     // Fallback for Node.js
-    const { randomBytes } = require('crypto');
+    const { randomBytes } = require('node:crypto');
     randomBytes(32).copy(id);
   }
   return { id };
@@ -471,7 +473,7 @@ export function generateVatId(): VatId {
     crypto.getRandomValues(id);
   } else {
     // Fallback for Node.js
-    const { randomBytes } = require('crypto');
+    const { randomBytes } = require('node:crypto');
     randomBytes(32).copy(id);
   }
   return { id };

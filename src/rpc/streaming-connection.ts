@@ -9,21 +9,21 @@
  * * Stream capability negotiation
  */
 
+import type { BulkTransferConfig, BulkTransferHandlers, BulkTransferMetadata } from './bulk.js';
+import type { RealtimeConfig, RealtimeStreamHandlers } from './realtime.js';
 import { RpcConnection, type RpcConnectionOptions } from './rpc-connection.js';
+import type { ExportId, ImportId, RpcMessage } from './rpc-types.js';
 import {
-  StreamManager,
-  StreamType,
+  type BulkTransfer,
   type CreateStreamOptions,
+  type RealtimeStream,
+  type Stream,
+  StreamManager,
   type StreamManagerConfig,
   type StreamManagerHandlers,
-  type Stream,
-  type BulkTransfer,
-  type RealtimeStream,
+  StreamType,
 } from './stream-manager.js';
-import type { BulkTransferConfig, BulkTransferMetadata, BulkTransferHandlers } from './bulk.js';
-import type { RealtimeConfig, RealtimeStreamHandlers } from './realtime.js';
 import type { RpcTransport } from './transport.js';
-import type { RpcMessage, ImportId, ExportId } from './rpc-types.js';
 
 /** Streaming capability flags */
 export interface StreamingCapabilities {
@@ -249,7 +249,7 @@ export class StreamingRpcConnection extends RpcConnection {
    *
    * This enables streaming data to/from a capability.
    */
-  associateStreamWithCapability(streamId: number, importId: ImportId | ExportId): void {
+  associateStreamWithCapability(streamId: number, _importId: ImportId | ExportId): void {
     const stream = this.streamManager.getStream(streamId);
     if (!stream) {
       throw new Error(`Stream ${streamId} not found`);

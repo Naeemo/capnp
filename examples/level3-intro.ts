@@ -6,13 +6,13 @@
  */
 
 import {
-  RpcConnection,
   ConnectionManager,
   Level3Handlers,
-  generateVatId,
+  RpcConnection,
+  WebSocketTransport,
   createThirdPartyCapId,
   generateProvisionId,
-  WebSocketTransport,
+  generateVatId,
 } from '../src/rpc/index.js';
 
 // ========================================================================================
@@ -28,17 +28,19 @@ async function threeWayIntroductionExample() {
   const carolVatId = generateVatId();
 
   console.log('Created Vat IDs:');
-  console.log('  Alice:', Buffer.from(aliceVatId.id).toString('hex').slice(0, 16) + '...');
-  console.log('  Bob:  ', Buffer.from(bobVatId.id).toString('hex').slice(0, 16) + '...');
-  console.log('  Carol:', Buffer.from(carolVatId.id).toString('hex').slice(0, 16) + '...');
+  console.log('  Alice:', `${Buffer.from(aliceVatId.id).toString('hex').slice(0, 16)}...`);
+  console.log('  Bob:  ', `${Buffer.from(bobVatId.id).toString('hex').slice(0, 16)}...`);
+  console.log('  Carol:', `${Buffer.from(carolVatId.id).toString('hex').slice(0, 16)}...`);
   console.log();
 
   // Step 2: Create ConnectionManager for Alice
   // In a real scenario, this would establish WebSocket connections
   const aliceConnectionManager = new ConnectionManager({
     selfVatId: aliceVatId,
-    connectionFactory: async (vatId, address) => {
-      console.log(`Alice: Establishing connection to ${Buffer.from(vatId.id).toString('hex').slice(0, 8)}...`);
+    connectionFactory: async (vatId, _address) => {
+      console.log(
+        `Alice: Establishing connection to ${Buffer.from(vatId.id).toString('hex').slice(0, 8)}...`
+      );
       // In real code: return new WebSocketTransport(new WebSocket(address));
       throw new Error('WebSocket not available in example');
     },
@@ -53,12 +55,12 @@ async function threeWayIntroductionExample() {
   const carolServiceExportId = 42; // Carol's service capability export ID
 
   console.log('1. Alice creates a pending provision for Bob:');
-  console.log('   Provision ID:', Buffer.from(provisionId.id).toString('hex').slice(0, 16) + '...');
+  console.log('   Provision ID:', `${Buffer.from(provisionId.id).toString('hex').slice(0, 16)}...`);
   console.log('   Target Export ID:', carolServiceExportId);
   console.log('   Recipient: Bob');
   console.log();
 
-  const pendingProvision = aliceConnectionManager.createPendingProvision(
+  const _pendingProvision = aliceConnectionManager.createPendingProvision(
     provisionId,
     bobVatId,
     carolServiceExportId,
@@ -70,7 +72,7 @@ async function threeWayIntroductionExample() {
   console.log('2. Alice creates a ThirdPartyCapId:');
   const thirdPartyCapId = createThirdPartyCapId(carolVatId, provisionId);
   console.log('   Size:', thirdPartyCapId.id.length, 'bytes (32 vatId + 32 provisionId)');
-  console.log('   Contains Carol\'s Vat ID and the Provision ID');
+  console.log("   Contains Carol's Vat ID and the Provision ID");
   console.log();
 
   // Step 5: Alice sends the capability reference to Bob
@@ -80,7 +82,7 @@ async function threeWayIntroductionExample() {
 
   // Step 6: Bob receives the capability and resolves it
   console.log('4. Bob receives the third-party capability:');
-  console.log('   - Extracts Carol\'s Vat ID from ThirdPartyCapId');
+  console.log("   - Extracts Carol's Vat ID from ThirdPartyCapId");
   console.log('   - Establishes connection to Carol (if not already connected)');
   console.log('   - Sends Accept message to Carol with the Provision ID');
   console.log();
@@ -147,8 +149,8 @@ async function embargoExample() {
   connectionManager.createPendingProvision(provisionToCarol, carolVatId, 2, 2, true); // embargoed
 
   console.log('Created two embargoed provisions:');
-  console.log('  1. For Bob to access Carol\'s service (embargoed)');
-  console.log('  2. For Carol to access Bob\'s service (embargoed)');
+  console.log("  1. For Bob to access Carol's service (embargoed)");
+  console.log("  2. For Carol to access Bob's service (embargoed)");
   console.log();
 
   console.log('When Bob and Carol try to accept:');

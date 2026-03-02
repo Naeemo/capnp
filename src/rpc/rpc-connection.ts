@@ -15,7 +15,10 @@
  * - Integrated with ConnectionManager for multi-vat scenarios
  */
 
+import type { ConnectionManager, VatId } from './connection-manager.js';
 import { AnswerTable, ExportTable, ImportTable, QuestionTable } from './four-tables.js';
+import type { Level3Handlers } from './level3-handlers.js';
+import type { Level4Handlers } from './level4-handlers.js';
 import {
   type PipelineClient,
   PipelineOpTracker,
@@ -46,9 +49,6 @@ import type {
   ThirdPartyCapId,
 } from './rpc-types.js';
 import type { RpcTransport } from './transport.js';
-import type { ConnectionManager, VatId } from './connection-manager.js';
-import type { Level3Handlers } from './level3-handlers.js';
-import type { Level4Handlers } from './level4-handlers.js';
 
 export interface RpcConnectionOptions {
   /** Bootstrap capability to expose to the peer */
@@ -543,10 +543,7 @@ export class RpcConnection {
       await this.level3Handlers.handleProvide(provide);
     } else {
       // Level 3 not enabled - send unimplemented
-      await this.sendReturnException(
-        provide.questionId,
-        'Level 3 RPC (Provide) not implemented'
-      );
+      await this.sendReturnException(provide.questionId, 'Level 3 RPC (Provide) not implemented');
     }
   }
 
@@ -556,16 +553,13 @@ export class RpcConnection {
       await this.level3Handlers.handleAccept(accept);
     } else {
       // Level 3 not enabled - send unimplemented
-      await this.sendReturnException(
-        accept.questionId,
-        'Level 3 RPC (Accept) not implemented'
-      );
+      await this.sendReturnException(accept.questionId, 'Level 3 RPC (Accept) not implemented');
     }
   }
 
   /** Handle third-party capability in return results (Level 3) */
   private async handleThirdPartyCapability(
-    questionId: QuestionId,
+    _questionId: QuestionId,
     thirdPartyCapId: ThirdPartyCapId
   ): Promise<void> {
     if (this.level3Handlers) {
@@ -667,7 +661,7 @@ export class RpcConnection {
    * Send a Join message to verify that two capabilities point to the same object.
    * Requires Level 4 handlers to be set.
    */
-  async join(target1: ImportId, target2: ImportId): Promise<unknown> {
+  async join(_target1: ImportId, _target2: ImportId): Promise<unknown> {
     if (!this.level4Handlers) {
       throw new Error('Level 4 handlers not set');
     }
@@ -683,10 +677,7 @@ export class RpcConnection {
       await this.level4Handlers.handleJoin(join);
     } else {
       // Level 4 not enabled - send unimplemented
-      await this.sendReturnException(
-        join.questionId,
-        'Level 4 RPC (Join) not implemented'
-      );
+      await this.sendReturnException(join.questionId, 'Level 4 RPC (Join) not implemented');
     }
   }
 
@@ -732,8 +723,8 @@ export class RpcConnection {
    * Requires Level 3 handlers to be set.
    */
   async provideToThirdParty(
-    target: { type: 'importedCap'; importId: ImportId },
-    recipient: VatId
+    _target: { type: 'importedCap'; importId: ImportId },
+    _recipient: VatId
   ): Promise<{ questionId: number; thirdPartyCapId: ThirdPartyCapId } | undefined> {
     if (!this.level3Handlers) {
       throw new Error('Level 3 handlers not set');

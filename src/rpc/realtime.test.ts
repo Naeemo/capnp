@@ -4,15 +4,15 @@
  * Tests for the Realtime API with prioritization and jitter buffer
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  RealtimeStream,
-  RealtimeStreamManager,
-  createRealtimeStreamManager,
   DEFAULT_REALTIME_CONFIG,
   DropPolicy,
-  type RealtimeMessage,
   type RealtimeConfig,
+  type RealtimeMessage,
+  RealtimeStream,
+  type RealtimeStreamManager,
+  createRealtimeStreamManager,
 } from './realtime.js';
 import { Stream, StreamPriority } from './stream.js';
 
@@ -70,11 +70,7 @@ describe('RealtimeStream', () => {
 
     it('should call onReady when started', () => {
       const onReady = vi.fn();
-      const handlerStream = new RealtimeStream(
-        baseStream,
-        {},
-        { onReady }
-      );
+      const handlerStream = new RealtimeStream(baseStream, {}, { onReady });
 
       handlerStream.start();
       expect(onReady).toHaveBeenCalled();
@@ -113,11 +109,9 @@ describe('RealtimeStream', () => {
     });
 
     it('should mark messages as critical', () => {
-      const result = realtimeStream.sendMessage(
-        new Uint8Array([1]),
-        StreamPriority.HIGH,
-        { critical: true }
-      );
+      const result = realtimeStream.sendMessage(new Uint8Array([1]), StreamPriority.HIGH, {
+        critical: true,
+      });
 
       expect(result).toBe(true);
     });
@@ -133,11 +127,7 @@ describe('RealtimeStream', () => {
         expect(msg.data).toEqual(new Uint8Array([1, 2, 3]));
       });
 
-      const handlerStream = new RealtimeStream(
-        baseStream,
-        {},
-        { onMessage }
-      );
+      const handlerStream = new RealtimeStream(baseStream, {}, { onMessage });
       handlerStream.start();
 
       // Simulate incoming data
@@ -150,9 +140,15 @@ describe('RealtimeStream', () => {
       };
 
       // Manually add to jitter buffer to trigger processing
-      (handlerStream as unknown as { jitterBuffer: Array<{ message: RealtimeMessage; receivedAt: number; playoutTime: number }> }).jitterBuffer = [
-        { message, receivedAt: Date.now(), playoutTime: Date.now() - 1 },
-      ];
+      (
+        handlerStream as unknown as {
+          jitterBuffer: Array<{
+            message: RealtimeMessage;
+            receivedAt: number;
+            playoutTime: number;
+          }>;
+        }
+      ).jitterBuffer = [{ message, receivedAt: Date.now(), playoutTime: Date.now() - 1 }];
 
       // Force process jitter buffer
       (handlerStream as unknown as { processJitterBuffer: () => void }).processJitterBuffer();
@@ -213,11 +209,9 @@ describe('RealtimeStream', () => {
       criticalStream.sendMessage(new Uint8Array([2]), StreamPriority.LOW, { critical: true });
 
       // This should not drop critical messages
-      const result = criticalStream.sendMessage(
-        new Uint8Array([3]),
-        StreamPriority.LOW,
-        { critical: true }
-      );
+      const result = criticalStream.sendMessage(new Uint8Array([3]), StreamPriority.LOW, {
+        critical: true,
+      });
 
       // Queue should handle the situation
       expect(result).toBeDefined();
@@ -297,10 +291,17 @@ describe('RealtimeStream', () => {
 
     it('should track jitter buffer size', () => {
       // Add messages to jitter buffer
-      const jitterBuffer = (realtimeStream as unknown as { jitterBuffer: Array<unknown> }).jitterBuffer;
+      const jitterBuffer = (realtimeStream as unknown as { jitterBuffer: Array<unknown> })
+        .jitterBuffer;
 
       jitterBuffer.push({
-        message: { id: '1', priority: 0, timestamp: Date.now(), data: new Uint8Array([1]), sequenceNumber: 0 },
+        message: {
+          id: '1',
+          priority: 0,
+          timestamp: Date.now(),
+          data: new Uint8Array([1]),
+          sequenceNumber: 0,
+        },
         receivedAt: Date.now(),
         playoutTime: Date.now() + 100,
       });
@@ -358,8 +359,8 @@ describe('RealtimeStreamManager', () => {
     });
 
     it('should create multiple streams', () => {
-      const stream1 = manager.createStream(baseStream);
-      const stream2 = manager.createStream(baseStream);
+      const _stream1 = manager.createStream(baseStream);
+      const _stream2 = manager.createStream(baseStream);
 
       expect(manager.getActiveStreams().length).toBe(2);
     });

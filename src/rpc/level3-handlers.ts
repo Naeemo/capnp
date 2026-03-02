@@ -11,6 +11,8 @@
  * connections.
  */
 
+import type { ConnectionManager, PendingProvision, VatId } from './connection-manager.js';
+import { createThirdPartyCapId, generateProvisionId } from './connection-manager.js';
 import type { RpcConnection } from './rpc-connection.js';
 import type {
   Accept,
@@ -24,12 +26,6 @@ import type {
   RpcMessage,
   ThirdPartyCapId,
 } from './rpc-types.js';
-import type {
-  ConnectionManager,
-  PendingProvision,
-  VatId,
-} from './connection-manager.js';
-import { createThirdPartyCapId, generateProvisionId } from './connection-manager.js';
 
 /** Options for Level3Handlers */
 export interface Level3HandlersOptions {
@@ -78,7 +74,7 @@ export class Level3Handlers {
    */
   async handleProvide(provide: Provide): Promise<void> {
     const { questionId, target, recipient } = provide;
-    const { connectionManager, selfVatId } = this.options;
+    const { connectionManager } = this.options;
 
     // Generate a unique provision ID
     const provisionId = generateProvisionId();
@@ -95,7 +91,7 @@ export class Level3Handlers {
     }
 
     // Create the pending provision
-    const provision: PendingProvision = connectionManager.createPendingProvision(
+    const _provision: PendingProvision = connectionManager.createPendingProvision(
       provisionId,
       this.recipientIdToVatId(recipient),
       targetExportId,
@@ -142,7 +138,7 @@ export class Level3Handlers {
     await connection.sendCall(provideMsg.provide as any);
 
     // Wait for the return to get the provision ID
-    const result = await connection.waitForAnswer(questionId);
+    const _result = await connection.waitForAnswer(questionId);
 
     // Extract provision ID from result
     // In a full implementation, we'd parse the result payload
@@ -230,7 +226,7 @@ export class Level3Handlers {
     await targetConnection.sendCall(acceptMsg.accept as any);
 
     // Wait for the return
-    const result = await targetConnection.waitForAnswer(questionId);
+    const _result = await targetConnection.waitForAnswer(questionId);
 
     // In a full implementation, we'd extract the import ID from the result
     // For now, return a placeholder
@@ -335,11 +331,11 @@ export class Level3Handlers {
   /**
    * Lift an embargo on a provide.
    */
-  private async liftProvideEmbargo(questionId: number): Promise<void> {
+  private async liftProvideEmbargo(_questionId: number): Promise<void> {
     // Find the pending provision and mark it as no longer embargoed
     const { connectionManager } = this.options;
 
-    for (const provision of connectionManager.getAllConnections()) {
+    for (const _provision of connectionManager.getAllConnections()) {
       // This is a simplified implementation
       // In a full implementation, we'd track provisions by question ID
     }
@@ -384,7 +380,7 @@ export class Level3Handlers {
    * the recipient to connect directly to the third party.
    */
   createThirdPartyCapDescriptor(
-    hostedConnection: RpcConnection,
+    _hostedConnection: RpcConnection,
     exportId: ExportId,
     recipientVatId: VatId
   ): CapDescriptor {
@@ -435,7 +431,7 @@ export class Level3Handlers {
     return false;
   }
 
-  private async sendReturnResults(questionId: number, results: unknown): Promise<void> {
+  private async sendReturnResults(questionId: number, _results: unknown): Promise<void> {
     const { connection } = this.options;
 
     // In a full implementation, we'd serialize the results
@@ -459,10 +455,7 @@ export class Level3Handlers {
     await connection.sendReturn(returnMsg.return);
   }
 
-  private async sendReturnCapability(
-    questionId: number,
-    cap: CapDescriptor
-  ): Promise<void> {
+  private async sendReturnCapability(questionId: number, cap: CapDescriptor): Promise<void> {
     const { connection } = this.options;
 
     const returnMsg: RpcMessage = {
@@ -485,10 +478,7 @@ export class Level3Handlers {
     await connection.sendReturn(returnMsg.return);
   }
 
-  private async sendReturnException(
-    questionId: number,
-    reason: string
-  ): Promise<void> {
+  private async sendReturnException(questionId: number, reason: string): Promise<void> {
     const { connection } = this.options;
 
     const returnMsg: RpcMessage = {

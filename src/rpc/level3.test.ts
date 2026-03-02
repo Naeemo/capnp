@@ -8,13 +8,18 @@
  * - Embargo handling for cycle breaking
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { RpcConnection } from './rpc-connection.js';
-import { ConnectionManager, generateVatId, createThirdPartyCapId, generateProvisionId } from './connection-manager.js';
-import { Level3Handlers } from './level3-handlers.js';
-import type { RpcTransport } from './transport.js';
-import type { RpcMessage, Provide, Accept } from './rpc-types.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  ConnectionManager,
+  createThirdPartyCapId,
+  generateProvisionId,
+  generateVatId,
+} from './connection-manager.js';
 import type { VatId } from './connection-manager.js';
+import { Level3Handlers } from './level3-handlers.js';
+import { RpcConnection } from './rpc-connection.js';
+import type { Accept, Provide, RpcMessage } from './rpc-types.js';
+import type { RpcTransport } from './transport.js';
 
 // Mock transport for testing
 class MockTransport implements RpcTransport {
@@ -55,7 +60,7 @@ describe('Level 3 RPC', () => {
       selfVatId = generateVatId();
       connectionManager = new ConnectionManager({
         selfVatId,
-        connectionFactory: async (vatId) => {
+        connectionFactory: async (_vatId) => {
           // Return a mock transport
           return new MockTransport() as unknown as RpcTransport;
         },
@@ -108,21 +113,9 @@ describe('Level 3 RPC', () => {
       const recipientId = generateVatId();
       const otherRecipientId = generateVatId();
 
-      connectionManager.createPendingProvision(
-        generateProvisionId(),
-        recipientId,
-        1,
-        1,
-        false
-      );
+      connectionManager.createPendingProvision(generateProvisionId(), recipientId, 1, 1, false);
 
-      connectionManager.createPendingProvision(
-        generateProvisionId(),
-        recipientId,
-        2,
-        2,
-        false
-      );
+      connectionManager.createPendingProvision(generateProvisionId(), recipientId, 2, 2, false);
 
       connectionManager.createPendingProvision(
         generateProvisionId(),
@@ -200,7 +193,7 @@ describe('Level 3 RPC', () => {
 
       // Should have sent a return message
       expect(transport.sentMessages.length).toBeGreaterThan(0);
-      const returnMsg = transport.sentMessages.find(m => m.type === 'return');
+      const returnMsg = transport.sentMessages.find((m) => m.type === 'return');
       expect(returnMsg).toBeDefined();
     });
 
@@ -217,7 +210,7 @@ describe('Level 3 RPC', () => {
       await level3Handlers.handleProvide(provide);
 
       // Should have sent an exception return
-      const returnMsg = transport.sentMessages.find(m => m.type === 'return');
+      const returnMsg = transport.sentMessages.find((m) => m.type === 'return');
       expect(returnMsg).toBeDefined();
       if (returnMsg?.type === 'return') {
         expect(returnMsg.return.result.type).toBe('exception');
@@ -243,7 +236,7 @@ describe('Level 3 RPC', () => {
       expect(connectionManager.getPendingProvision(provisionId)).toBeUndefined();
 
       // Should have sent a return with the capability
-      const returnMsg = transport.sentMessages.find(m => m.type === 'return');
+      const returnMsg = transport.sentMessages.find((m) => m.type === 'return');
       expect(returnMsg).toBeDefined();
     });
 
@@ -257,7 +250,7 @@ describe('Level 3 RPC', () => {
       await level3Handlers.handleAccept(accept);
 
       // Should have sent an exception return
-      const returnMsg = transport.sentMessages.find(m => m.type === 'return');
+      const returnMsg = transport.sentMessages.find((m) => m.type === 'return');
       expect(returnMsg).toBeDefined();
       if (returnMsg?.type === 'return') {
         expect(returnMsg.return.result.type).toBe('exception');
@@ -279,7 +272,7 @@ describe('Level 3 RPC', () => {
       await level3Handlers.handleAccept(accept);
 
       // Should have sent resultsSentElsewhere to indicate embargo
-      const returnMsg = transport.sentMessages.find(m => m.type === 'return');
+      const returnMsg = transport.sentMessages.find((m) => m.type === 'return');
       expect(returnMsg).toBeDefined();
       if (returnMsg?.type === 'return') {
         expect(returnMsg.return.result.type).toBe('resultsSentElsewhere');
@@ -295,7 +288,7 @@ describe('Level 3 RPC', () => {
       await level3Handlers.handleDisembargo(disembargo);
 
       // Should have echoed back as receiverLoopback
-      const disembargoMsg = transport.sentMessages.find(m => m.type === 'disembargo');
+      const disembargoMsg = transport.sentMessages.find((m) => m.type === 'disembargo');
       expect(disembargoMsg).toBeDefined();
       if (disembargoMsg?.type === 'disembargo') {
         expect(disembargoMsg.disembargo.context.type).toBe('receiverLoopback');
@@ -321,7 +314,7 @@ describe('Level 3 RPC', () => {
       // Create transports for each vat
       const aliceToCarolTransport = new MockTransport();
       const aliceToBobTransport = new MockTransport();
-      const bobToCarolTransport = new MockTransport();
+      const _bobToCarolTransport = new MockTransport();
 
       // Create connection manager for Alice
       const aliceConnectionManager = new ConnectionManager({
@@ -426,7 +419,7 @@ describe('Level 3 RPC', () => {
       await level3Handlers.handleAccept(accept2);
 
       // Both should return resultsSentElsewhere due to embargo
-      const returnMessages = transport.sentMessages.filter(m => m.type === 'return');
+      const returnMessages = transport.sentMessages.filter((m) => m.type === 'return');
       expect(returnMessages.length).toBe(2);
 
       for (const msg of returnMessages) {

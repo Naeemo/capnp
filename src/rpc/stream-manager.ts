@@ -10,10 +10,26 @@
  * - Stream multiplexing over a single connection
  */
 
-import { Stream, StreamPriority, type StreamOptions, type StreamState, type StreamDirection } from './stream.js';
-import { BulkTransfer, BulkTransferManager, type BulkTransferConfig, type BulkTransferMetadata } from './bulk.js';
-import { RealtimeStream, RealtimeStreamManager, type RealtimeConfig, type RealtimeStreamHandlers } from './realtime.js';
+import {
+  type BulkTransfer,
+  type BulkTransferConfig,
+  BulkTransferManager,
+  type BulkTransferMetadata,
+} from './bulk.js';
+import {
+  type RealtimeConfig,
+  type RealtimeStream,
+  type RealtimeStreamHandlers,
+  RealtimeStreamManager,
+} from './realtime.js';
 import type { RpcConnection } from './rpc-connection.js';
+import {
+  Stream,
+  type StreamDirection,
+  type StreamOptions,
+  StreamPriority,
+  type StreamState,
+} from './stream.js';
 import type { RpcTransport } from './transport.js';
 
 /** Stream type */
@@ -119,10 +135,7 @@ export class StreamManager {
   private idleTimeout?: ReturnType<typeof setTimeout>;
   private isRunning = false;
 
-  constructor(
-    config: Partial<StreamManagerConfig> = {},
-    handlers: StreamManagerHandlers = {}
-  ) {
+  constructor(config: Partial<StreamManagerConfig> = {}, handlers: StreamManagerHandlers = {}) {
     this.config = { ...DEFAULT_STREAM_MANAGER_CONFIG, ...config };
     this.handlers = handlers;
     this.bulkManager = new BulkTransferManager();
@@ -239,7 +252,7 @@ export class StreamManager {
     config?: Partial<BulkTransferConfig>,
     handlers?: import('./bulk.js').BulkTransferHandlers
   ): BulkTransfer {
-    const stream = this.createStream({
+    const _stream = this.createStream({
       type: StreamType.BULK,
       direction: direction === 'upload' ? 'outbound' : 'inbound',
       priority: StreamPriority.NORMAL,
@@ -320,7 +333,7 @@ export class StreamManager {
   async closeAllStreams(): Promise<void> {
     const closePromises: Promise<void>[] = [];
 
-    for (const [id, stream] of this.streams) {
+    for (const [_id, stream] of this.streams) {
       closePromises.push(
         stream.close().catch(() => {
           // Ignore errors during bulk close
@@ -414,7 +427,7 @@ export class StreamManager {
    * Pause all streams (backpressure)
    */
   pauseAll(): void {
-    for (const stream of this.streams.values()) {
+    for (const _stream of this.streams.values()) {
       // Streams don't have a direct pause method, but we can use backpressure
       // This is a simplified implementation
     }
@@ -424,7 +437,7 @@ export class StreamManager {
    * Resume all streams
    */
   resumeAll(): void {
-    for (const stream of this.streams.values()) {
+    for (const _stream of this.streams.values()) {
       // Resume from backpressure
     }
   }
@@ -478,5 +491,15 @@ export function createStreamManager(
 
 // Re-export types
 export { Stream, StreamPriority, StreamOptions, StreamState, StreamDirection } from './stream.js';
-export { BulkTransfer, BulkTransferManager, BulkTransferConfig, BulkTransferMetadata } from './bulk.js';
-export { RealtimeStream, RealtimeStreamManager, RealtimeConfig, RealtimeStreamHandlers } from './realtime.js';
+export {
+  BulkTransfer,
+  BulkTransferManager,
+  BulkTransferConfig,
+  BulkTransferMetadata,
+} from './bulk.js';
+export {
+  RealtimeStream,
+  RealtimeStreamManager,
+  RealtimeConfig,
+  RealtimeStreamHandlers,
+} from './realtime.js';

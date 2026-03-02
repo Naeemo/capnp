@@ -7,27 +7,21 @@
  * Reference: https://capnproto.org/rpc.html (Level 4: Reference equality / joining)
  */
 
-import type { RpcConnection } from './rpc-connection.js';
-import type {
-  Join,
-  JoinResult,
-  MessageTarget,
-  QuestionId,
-  RpcMessage,
-} from './rpc-types.js';
 import type { ConnectionManager, VatId } from './connection-manager.js';
 import type { Level3Handlers } from './level3-handlers.js';
 import {
+  type CachedJoinResult,
+  DEFAULT_ESCROW_CONFIG,
+  DEFAULT_JOIN_OPTIONS,
+  DEFAULT_JOIN_SECURITY_POLICY,
+  type EscrowConfig,
   type JoinOptions,
+  type JoinSecurityPolicy,
   type ObjectIdentity,
   type PendingJoin,
-  type CachedJoinResult,
-  type EscrowConfig,
-  type JoinSecurityPolicy,
-  DEFAULT_JOIN_OPTIONS,
-  DEFAULT_ESCROW_CONFIG,
-  DEFAULT_JOIN_SECURITY_POLICY,
 } from './level4-types.js';
+import type { RpcConnection } from './rpc-connection.js';
+import type { Join, JoinResult, MessageTarget, QuestionId, RpcMessage } from './rpc-types.js';
 
 /** Options for Level4Handlers */
 export interface Level4HandlersOptions {
@@ -291,11 +285,11 @@ export class Level4Handlers {
 
     if (target.type === 'promisedAnswer') {
       // Wait for the promise to resolve
-      const { questionId, transform } = target.promisedAnswer;
+      const { questionId } = target.promisedAnswer;
 
       // Wait for the answer
       try {
-        const answer = await this.options.connection.waitForAnswer(questionId);
+        const _answer = await this.options.connection.waitForAnswer(questionId);
         // Extract capability from answer and resolve identity
         // This is simplified - full implementation would handle transforms
         return null;
@@ -507,9 +501,7 @@ export class Level4Handlers {
       return true; // All vats allowed if no restrictions
     }
 
-    return this.securityPolicy.allowedVats.some((allowed) =>
-      this.arraysEqual(allowed, vatId)
-    );
+    return this.securityPolicy.allowedVats.some((allowed) => this.arraysEqual(allowed, vatId));
   }
 
   /**
@@ -518,10 +510,7 @@ export class Level4Handlers {
    * This creates a verifiable fingerprint of the object's identity
    * that can be used to detect spoofing attempts.
    */
-  async generateIdentityHash(
-    vatId: Uint8Array,
-    objectId: Uint8Array
-  ): Promise<Uint8Array> {
+  async generateIdentityHash(vatId: Uint8Array, objectId: Uint8Array): Promise<Uint8Array> {
     // Combine vat ID and object ID
     const combined = new Uint8Array(vatId.length + objectId.length);
     combined.set(vatId, 0);
@@ -534,7 +523,7 @@ export class Level4Handlers {
     }
 
     // Fallback: simple hash for Node.js
-    const { createHash } = require('crypto');
+    const { createHash } = require('node:crypto');
     const hash = createHash('sha256');
     hash.update(combined);
     return hash.digest();
@@ -666,7 +655,11 @@ export class Level4Handlers {
     return new TextEncoder().encode(JSON.stringify(obj));
   }
 
-  private logJoinOperation(target1: MessageTarget, target2: MessageTarget, result: JoinResult): void {
+  private logJoinOperation(
+    target1: MessageTarget,
+    target2: MessageTarget,
+    result: JoinResult
+  ): void {
     console.log('[Level4] Join operation:', {
       target1: this.hashTarget(target1),
       target2: this.hashTarget(target2),
@@ -686,4 +679,8 @@ export type {
   EscrowConfig,
   JoinSecurityPolicy,
 } from './level4-types.js';
-export { DEFAULT_JOIN_OPTIONS, DEFAULT_ESCROW_CONFIG, DEFAULT_JOIN_SECURITY_POLICY } from './level4-types.js';
+export {
+  DEFAULT_JOIN_OPTIONS,
+  DEFAULT_ESCROW_CONFIG,
+  DEFAULT_JOIN_SECURITY_POLICY,
+} from './level4-types.js';

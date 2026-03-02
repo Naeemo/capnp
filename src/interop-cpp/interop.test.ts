@@ -1,18 +1,18 @@
 /**
  * C++ Interop Tests
- * 
+ *
  * Tests capnp-ts RPC implementation against official C++ implementation.
  * Requires C++ server to be running.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { RpcConnection } from '../rpc/rpc-connection.js';
-import { WebSocketTransport } from '../rpc/websocket-transport.js';
 import type { RpcMessage } from '../rpc/rpc-types.js';
+import { WebSocketTransport } from '../rpc/websocket-transport.js';
 
 // Test configuration
 const TEST_SERVER_HOST = process.env.CAPNP_TEST_HOST || 'localhost';
-const TEST_SERVER_PORT = parseInt(process.env.CAPNP_TEST_PORT || '8080');
+const TEST_SERVER_PORT = Number.parseInt(process.env.CAPNP_TEST_PORT || '8080');
 const TEST_TIMEOUT = 30000;
 
 describe('C++ Interop Tests', () => {
@@ -23,14 +23,14 @@ describe('C++ Interop Tests', () => {
     // Connect to C++ server
     const wsUrl = `ws://${TEST_SERVER_HOST}:${TEST_SERVER_PORT}`;
     console.log(`Connecting to C++ server at ${wsUrl}`);
-    
+
     transport = await WebSocketTransport.connect(wsUrl, {
       connectTimeoutMs: 5000,
     });
-    
+
     connection = new RpcConnection(transport);
     await connection.start();
-    
+
     console.log('Connected to C++ server');
   }, TEST_TIMEOUT);
 
@@ -53,7 +53,7 @@ describe('C++ Interop Tests', () => {
     it('should send and receive Call/Return messages', async () => {
       // This test verifies that basic Call/Return message exchange works
       // We'll use the echo capability from the C++ server
-      
+
       // Create a simple call message
       const callMessage: RpcMessage = {
         type: 'call',
@@ -74,10 +74,10 @@ describe('C++ Interop Tests', () => {
       };
 
       await transport!.send(callMessage);
-      
+
       // Wait for response
       const response = await transport!.receive();
-      
+
       expect(response).toBeDefined();
       expect(response?.type).toBe('return');
     });
@@ -104,11 +104,11 @@ describe('C++ Interop Tests', () => {
       };
 
       await transport!.send(testMessage);
-      
+
       // The C++ server should respond with an error (unknown capability)
       // but the message should be parsed correctly
       const response = await transport!.receive();
-      
+
       expect(response).toBeDefined();
       // Response could be return or abort depending on server behavior
       expect(['return', 'abort', 'unimplemented']).toContain(response?.type);
@@ -129,16 +129,14 @@ describe('C++ Interop Tests', () => {
           onlyPromisePipeline: false,
           params: {
             content: new Uint8Array(),
-            capTable: [
-              { type: 'senderHosted', exportId: 1 },
-            ],
+            capTable: [{ type: 'senderHosted', exportId: 1 }],
           },
           sendResultsTo: { type: 'caller' },
         },
       };
 
       await transport!.send(messageWithCaps);
-      
+
       const response = await transport!.receive();
       expect(response).toBeDefined();
     });
@@ -156,7 +154,7 @@ describe('C++ Interop Tests', () => {
       };
 
       await transport!.send(invalidMessage);
-      
+
       // Server should either close connection or send a response
       const response = await transport!.receive();
       // Response could be null (connection closed) or a message

@@ -10,13 +10,13 @@
  */
 
 import {
-  RpcConnection,
-  WebSocketTransport,
   ConnectionManager,
   Level3Handlers,
   Level4Handlers,
-  generateVatId,
+  RpcConnection,
   type VatId,
+  WebSocketTransport,
+  generateVatId,
 } from '@naeemo/capnp';
 
 // =============================================================================
@@ -41,8 +41,8 @@ async function escrowExample() {
 
   // Step 1: Setup - Create vat IDs for all parties
   const aliceVatId = generateVatId(); // Escrow agent
-  const bobVatId = generateVatId(); // Seller
-  const carolVatId = generateVatId(); // Buyer
+  const _bobVatId = generateVatId(); // Seller
+  const _carolVatId = generateVatId(); // Buyer
 
   console.log('Created vat IDs for:');
   console.log('  - Alice (escrow agent)');
@@ -52,7 +52,7 @@ async function escrowExample() {
   // Step 2: Alice sets up her escrow service
   const aliceConnectionManager = new ConnectionManager({
     selfVatId: aliceVatId,
-    connectionFactory: async (vatId) => {
+    connectionFactory: async (_vatId) => {
       // In real implementation, establish WebSocket connection
       return new WebSocketTransport(new WebSocket('ws://localhost:8080'));
     },
@@ -161,7 +161,7 @@ async function consensusExample() {
       enabled: true,
       requiredParties: 3, // Require 3 out of 4 validators
       timeoutMs: 30000,
-      onConsensus: (identity, parties) => {
+      onConsensus: (_identity, parties) => {
         console.log(`✅ Consensus reached with ${parties.length} validators!`);
       },
       onConsensusFailure: (reason) => {
@@ -175,17 +175,16 @@ async function consensusExample() {
 
   for (let i = 0; i < validators.length; i++) {
     try {
-      const result = await level4Handlers.registerEscrowParty(
-        validators[i],
-        { type: 'importedCap', importId: i + 1 }
-      );
+      const result = await level4Handlers.registerEscrowParty(validators[i], {
+        type: 'importedCap',
+        importId: i + 1,
+      });
 
       if (result.consensus) {
         console.log(`\nConsensus reached at validator ${validators[i]}`);
         break;
-      } else {
-        console.log(`  ${validators[i]} registered (${i + 1}/${validators.length})`);
       }
+      console.log(`  ${validators[i]} registered (${i + 1}/${validators.length})`);
     } catch (error) {
       console.log(`  ${validators[i]} registration failed: ${error}`);
     }

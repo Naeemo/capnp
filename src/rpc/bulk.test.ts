@@ -4,14 +4,14 @@
  * Tests for the Bulk API with flow control and backpressure
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BulkTransfer,
-  BulkTransferManager,
-  createBulkTransferManager,
-  DEFAULT_BULK_CONFIG,
   type BulkTransferConfig,
+  type BulkTransferManager,
   type BulkTransferMetadata,
+  DEFAULT_BULK_CONFIG,
+  createBulkTransferManager,
 } from './bulk.js';
 import { Stream, StreamPriority } from './stream.js';
 
@@ -231,11 +231,7 @@ describe('BulkTransfer', () => {
       });
       await testStream.open();
 
-      const testTransfer = new BulkTransfer(
-        testStream,
-        'upload',
-        { id: 'ack-test' }
-      );
+      const testTransfer = new BulkTransfer(testStream, 'upload', { id: 'ack-test' });
 
       testTransfer.handleChunkAck({
         sequenceNumber: 0,
@@ -263,11 +259,7 @@ describe('BulkTransfer', () => {
       });
       await testStream.open();
 
-      const testTransfer = new BulkTransfer(
-        testStream,
-        'upload',
-        { id: 'no-source-test' }
-      );
+      const testTransfer = new BulkTransfer(testStream, 'upload', { id: 'no-source-test' });
 
       // No data source set - the transfer will error because performUpload
       // requires a data source

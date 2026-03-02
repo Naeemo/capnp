@@ -10,17 +10,17 @@
  * - Progress notifications
  */
 
-import {
-  Stream,
-  StreamPriority,
-  type StreamOptions,
-  type StreamChunk,
-  type StreamProgress,
-  type StreamEventHandlers,
-  type FlowControlConfig,
-  DEFAULT_FLOW_CONTROL,
-} from './stream.js';
 import type { RpcConnection } from './rpc-connection.js';
+import {
+  DEFAULT_FLOW_CONTROL,
+  type FlowControlConfig,
+  Stream,
+  type StreamChunk,
+  type StreamEventHandlers,
+  type StreamOptions,
+  StreamPriority,
+  type StreamProgress,
+} from './stream.js';
 
 /** Bulk transfer configuration */
 export interface BulkTransferConfig {
@@ -40,11 +40,11 @@ export interface BulkTransferConfig {
 
 /** Default bulk transfer configuration */
 export const DEFAULT_BULK_CONFIG: BulkTransferConfig = {
-  chunkSize: 16384,           // 16KB chunks
+  chunkSize: 16384, // 16KB chunks
   enableProgress: true,
-  progressInterval: 65536,    // 64KB
-  maxConcurrentChunks: 8,     // 8 concurrent chunks
-  chunkAckTimeoutMs: 30000,   // 30 seconds
+  progressInterval: 65536, // 64KB
+  maxConcurrentChunks: 8, // 8 concurrent chunks
+  chunkAckTimeoutMs: 30000, // 30 seconds
 };
 
 /** Bulk transfer state */
@@ -141,7 +141,10 @@ export class BulkTransfer {
   private endTime?: number;
 
   // Chunk tracking
-  private pendingChunks: Map<number, { chunk: StreamChunk; timeout: ReturnType<typeof setTimeout> }> = new Map();
+  private pendingChunks: Map<
+    number,
+    { chunk: StreamChunk; timeout: ReturnType<typeof setTimeout> }
+  > = new Map();
   private chunkAckCallbacks: Map<number, () => void> = new Map();
 
   // Flow control
@@ -163,7 +166,8 @@ export class BulkTransfer {
     this.metadata = metadata;
     this.config = { ...DEFAULT_BULK_CONFIG, ...config };
     this.handlers = handlers;
-    this.currentWindowSize = this.config.flowControl?.initialWindowSize ?? DEFAULT_FLOW_CONTROL.initialWindowSize;
+    this.currentWindowSize =
+      this.config.flowControl?.initialWindowSize ?? DEFAULT_FLOW_CONTROL.initialWindowSize;
 
     // Set up stream event handlers
     this.setupStreamHandlers();
@@ -337,7 +341,7 @@ export class BulkTransfer {
   // =============================================================================
 
   private setupStreamHandlers(): void {
-    const streamHandlers: StreamEventHandlers = {
+    const _streamHandlers: StreamEventHandlers = {
       onData: async (chunk) => {
         // Handle incoming data for downloads
         if (this.direction === 'download' && this.dataSink) {
@@ -434,7 +438,7 @@ export class BulkTransfer {
     });
   }
 
-  private async sendChunkAck(sequenceNumber: number, bytes: number): Promise<void> {
+  private async sendChunkAck(_sequenceNumber: number, _bytes: number): Promise<void> {
     // Send acknowledgment to peer
     // This would be implemented via the RPC connection
   }
@@ -558,7 +562,10 @@ export class BulkTransferManager {
    */
   getActiveTransfers(): BulkTransfer[] {
     return Array.from(this.transfers.values()).filter(
-      (t) => t.currentState === 'pending' || t.currentState === 'transferring' || t.currentState === 'paused'
+      (t) =>
+        t.currentState === 'pending' ||
+        t.currentState === 'transferring' ||
+        t.currentState === 'paused'
     );
   }
 

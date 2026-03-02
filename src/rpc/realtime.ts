@@ -11,11 +11,11 @@
  */
 
 import {
-  Stream,
-  StreamPriority,
-  type StreamOptions,
-  type StreamChunk,
   type FlowControlConfig,
+  type Stream,
+  type StreamChunk,
+  type StreamOptions,
+  StreamPriority,
 } from './stream.js';
 
 /** Message priority levels (extends StreamPriority) */
@@ -65,7 +65,7 @@ export const DEFAULT_REALTIME_CONFIG: RealtimeConfig = {
   maxQueueSize: 1000,
   dropPolicy: DropPolicy.DROP_STALE,
   adaptiveBitrate: true,
-  minBitrate: 16000,    // 16 KB/s
+  minBitrate: 16000, // 16 KB/s
   maxBitrate: 10485760, // 10 MB/s
   bandwidthWindowMs: 1000,
 };
@@ -233,7 +233,9 @@ class PriorityMessageQueue {
     for (const queue of this.queues.values()) {
       all.push(...queue);
     }
-    this.queues.forEach((queue) => (queue.length = 0));
+    for (const queue of this.queues.values()) {
+      queue.length = 0;
+    }
     this.totalSize = 0;
     return all;
   }
@@ -274,7 +276,7 @@ class PriorityMessageQueue {
         }
         return false;
 
-      case DropPolicy.DROP_STALE:
+      case DropPolicy.DROP_STALE: {
         // Remove stale messages first
         const stale = this.removeStale();
         if (stale.length > 0) {
@@ -290,6 +292,7 @@ class PriorityMessageQueue {
           }
         }
         return false;
+      }
 
       default:
         return false;
@@ -339,7 +342,11 @@ export class RealtimeStream {
   private jitterInterval?: ReturnType<typeof setInterval>;
   private bandwidthInterval?: ReturnType<typeof setInterval>;
 
-  constructor(stream: Stream, config: Partial<RealtimeConfig> = {}, handlers: RealtimeStreamHandlers = {}) {
+  constructor(
+    stream: Stream,
+    config: Partial<RealtimeConfig> = {},
+    handlers: RealtimeStreamHandlers = {}
+  ) {
     this.stream = stream;
     this.config = { ...DEFAULT_REALTIME_CONFIG, ...config };
     this.handlers = handlers;
@@ -357,7 +364,9 @@ export class RealtimeStream {
     );
 
     // Calculate jitter buffer target size based on jitter buffer time
-    this.jitterBufferTargetSize = Math.ceil(this.config.jitterBufferMs / this.config.targetLatencyMs);
+    this.jitterBufferTargetSize = Math.ceil(
+      this.config.jitterBufferMs / this.config.targetLatencyMs
+    );
 
     this.setupStreamHandlers();
   }
@@ -505,10 +514,13 @@ export class RealtimeStream {
 
   private setupStreamHandlers(): void {
     // Set up stream data handler
-    const originalOnData = (this.stream as unknown as { handlers?: { onData?: (chunk: StreamChunk) => void } }).handlers?.onData;
+    const originalOnData = (
+      this.stream as unknown as { handlers?: { onData?: (chunk: StreamChunk) => void } }
+    ).handlers?.onData;
 
     (this.stream as unknown as { handlers: { onData?: (chunk: StreamChunk) => void } }).handlers = {
-      ...(this.stream as unknown as { handlers: { onData?: (chunk: StreamChunk) => void } }).handlers,
+      ...(this.stream as unknown as { handlers: { onData?: (chunk: StreamChunk) => void } })
+        .handlers,
       onData: (chunk: StreamChunk) => {
         this.handleIncomingData(chunk);
         originalOnData?.(chunk);
@@ -525,8 +537,7 @@ export class RealtimeStream {
       if (message.sequenceNumber > this.nextExpectedSequence) {
         // Packet loss detected
         const lost = message.sequenceNumber - this.nextExpectedSequence;
-        this.bandwidthStats.packetLossRate =
-          this.bandwidthStats.packetLossRate * 0.9 + lost * 0.1;
+        this.bandwidthStats.packetLossRate = this.bandwidthStats.packetLossRate * 0.9 + lost * 0.1;
       }
       this.nextExpectedSequence = message.sequenceNumber + 1;
 
@@ -663,7 +674,7 @@ export class RealtimeStream {
 
       // Calculate jitter (standard deviation of latency)
       const variance =
-        this.latencyHistory.reduce((sum, lat) => sum + Math.pow(lat - avgLatency, 2), 0) /
+        this.latencyHistory.reduce((sum, lat) => sum + (lat - avgLatency) ** 2, 0) /
         this.latencyHistory.length;
       this.bandwidthStats.jitterMs = Math.sqrt(variance);
 
@@ -684,7 +695,7 @@ export class RealtimeStream {
   }
 
   private adaptBitrate(): void {
-    const { congestionLevel, packetLossRate, measuredBandwidth } = this.bandwidthStats;
+    const { congestionLevel, packetLossRate } = this.bandwidthStats;
     let newBitrate = this.bandwidthStats.currentBitrate;
 
     if (congestionLevel > 0.7 || packetLossRate > 0.05) {

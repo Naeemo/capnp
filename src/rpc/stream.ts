@@ -10,8 +10,8 @@
  * - Progress notifications
  */
 
-import type { RpcTransport } from './transport.js';
 import type { RpcMessage } from './rpc-types.js';
+import type { RpcTransport } from './transport.js';
 
 /** Stream state */
 export type StreamState = 'connecting' | 'open' | 'closing' | 'closed' | 'error';
@@ -21,10 +21,10 @@ export type StreamDirection = 'inbound' | 'outbound' | 'bidirectional';
 
 /** Stream priority levels */
 export enum StreamPriority {
-  CRITICAL = 0,   // Must not drop, immediate delivery
-  HIGH = 1,       // High priority, minimal delay
-  NORMAL = 2,     // Normal priority (default)
-  LOW = 3,        // Low priority, can be delayed
+  CRITICAL = 0, // Must not drop, immediate delivery
+  HIGH = 1, // High priority, minimal delay
+  NORMAL = 2, // Normal priority (default)
+  LOW = 3, // Low priority, can be delayed
   BACKGROUND = 4, // Background tasks, lowest priority
 }
 
@@ -44,11 +44,11 @@ export interface FlowControlConfig {
 
 /** Default flow control configuration */
 export const DEFAULT_FLOW_CONTROL: FlowControlConfig = {
-  initialWindowSize: 65536,      // 64KB
-  maxWindowSize: 1048576,        // 1MB
-  minWindowSize: 4096,           // 4KB
-  windowUpdateThreshold: 16384,  // 16KB
-  windowUpdateIncrement: 32768,  // 32KB
+  initialWindowSize: 65536, // 64KB
+  maxWindowSize: 1048576, // 1MB
+  minWindowSize: 4096, // 4KB
+  windowUpdateThreshold: 16384, // 16KB
+  windowUpdateIncrement: 32768, // 32KB
 };
 
 /** Stream configuration options */
@@ -458,7 +458,7 @@ export class Stream {
   // =============================================================================
 
   private transitionState(newState: StreamState): void {
-    const oldState = this.state;
+    const _oldState = this.state;
     this.state = newState;
 
     // Resolve/reject pending promises
@@ -504,7 +504,7 @@ export class Stream {
         }
 
         if (this.state !== 'open') {
-          reject(new Error(`Stream closed`));
+          reject(new Error('Stream closed'));
           return;
         }
 
