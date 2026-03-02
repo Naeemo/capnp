@@ -11,14 +11,14 @@ import type {
   SchemaTarget,
   SchemaResponseResult,
   SchemaPayload,
-  SchemaFormat,
   SchemaDependency,
   AvailableSchema,
   GetSchemaParams,
   GetSchemaResults,
   ListSchemasResults,
 } from "./schema-types";
-import type { Exception } from "./rpc-types";
+import { SchemaFormat } from "./schema-types.js";
+import type { Exception, ExceptionType } from "./rpc-types";
 
 // Message type IDs for schema messages
 export const SCHEMA_MESSAGE_TYPES = {
@@ -467,12 +467,12 @@ function writeException(bytes: Uint8Array, offset: number, exception: Exception)
   let currentOffset = offset + 8 + align8(reasonBytes.length);
 
   // Write type (aligned to 8 bytes)
-  view.setUint16(currentOffset, exception.type, true);
+  view.setUint16(currentOffset, exception.type as number, true);
   currentOffset += 8;
 
   // Write deprecated fields (aligned to 8 bytes)
   view.setUint8(currentOffset, exception.obsoleteIsCallersFault ? 1 : 0);
-  view.setUint16(currentOffset + 1, exception.obsoleteDurability, true);
+  view.setUint16(currentOffset + 1, exception.obsoleteDurability ?? 0, true);
   currentOffset += 8;
 
   return currentOffset;
@@ -491,7 +491,7 @@ function readException(data: Uint8Array, offset: number): { value: Exception; ne
   let currentOffset = offset + 8 + align8(reasonLen);
 
   // Read type (aligned to 8 bytes)
-  const type = view.getUint16(currentOffset, true);
+  const type = view.getUint16(currentOffset, true) as ExceptionType;
   currentOffset += 8;
 
   // Read deprecated fields (aligned to 8 bytes)

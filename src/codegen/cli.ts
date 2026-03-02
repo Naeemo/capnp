@@ -208,7 +208,7 @@ main();
  */
 function generateDynamicLoadingCode(inputFile: string, buffer: ArrayBuffer): string {
   const request = CodeGeneratorRequestReader.fromBuffer(buffer);
-  const nodes = request.getNodes();
+  const nodes = request.nodes;
   
   const runtimePath = values.runtimePath || '@naeemo/capnp';
   const schemaName = basename(inputFile, '.capnp');
@@ -218,13 +218,13 @@ function generateDynamicLoadingCode(inputFile: string, buffer: ArrayBuffer): str
   const interfaceTypes: Array<{ id: string; name: string; displayName: string }> = [];
   
   for (const node of nodes) {
-    const id = node.getId();
-    const displayName = node.getDisplayName();
+    const id = node.id;
+    const displayName = node.displayName;
     const shortName = displayName.split('.').pop() || displayName;
     
-    if (node.isStruct()) {
+    if (node.isStruct) {
       structTypes.push({ id: `0x${id.toString(16)}n`, name: shortName, displayName });
-    } else if (node.isInterface()) {
+    } else if (node.isInterface) {
       interfaceTypes.push({ id: `0x${id.toString(16)}n`, name: shortName, displayName });
     }
   }
@@ -401,14 +401,14 @@ async function runInteractiveMode(inputFile: string): Promise<void> {
     arrayBuffer.set(new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength));
     
     const request = CodeGeneratorRequestReader.fromBuffer(arrayBuffer.buffer);
-    const nodes = request.getNodes();
+    const nodes = request.nodes;
 
     // Build type index
     const typeIndex = new Map<string, { id: bigint; displayName: string; kind: string; node: unknown }>();
     
     for (const node of nodes) {
-      const id = node.getId();
-      const displayName = node.getDisplayName();
+      const id = node.id;
+      const displayName = node.displayName;
       const shortName = displayName.split('.').pop() || displayName;
       
       let kind = 'unknown';
