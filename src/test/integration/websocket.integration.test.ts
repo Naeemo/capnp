@@ -6,9 +6,10 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { StructBuilder, StructReader } from '../../core/index.js';
-import type { CallContext } from '../../rpc/call-context.js';
+import { CallContextImpl } from '../../rpc/call-context.js';
 import { RpcConnection } from '../../rpc/rpc-connection.js';
 import { WebSocketTransport } from '../../rpc/websocket-transport.js';
+import { QuestionTable, AnswerTable, ImportTable, ExportTable } from '../../rpc/four-tables.js';
 
 // Simple test server implementation
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -114,8 +115,6 @@ describe.skip('WebSocket Integration', () => {
 
 describe('RPC Connection Integration', () => {
   it('should create question and answer tables', () => {
-    const { QuestionTable, AnswerTable } = require('../../rpc/four-tables.ts');
-
     const questions = new QuestionTable();
     const answers = new AnswerTable();
 
@@ -128,8 +127,6 @@ describe('RPC Connection Integration', () => {
   });
 
   it('should track capability imports and exports', () => {
-    const { ImportTable, ExportTable } = require('../../rpc/four-tables.ts');
-
     const imports = new ImportTable();
     const exports = new ExportTable();
 
@@ -156,8 +153,6 @@ describe('RPC Connection Integration', () => {
 
 describe('CallContext Integration', () => {
   it('should create and use CallContext', () => {
-    const { CallContextImpl } = require('../../rpc/call-context.ts');
-
     // Mock params and results
     const mockParams = {
       getMessage() {
@@ -182,8 +177,6 @@ describe('CallContext Integration', () => {
   });
 
   it('should handle exceptions in CallContext', () => {
-    const { CallContextImpl } = require('../../rpc/call-context.ts');
-
     const mockParams = {} as StructReader;
     const mockResults = {} as StructBuilder;
 
@@ -196,8 +189,6 @@ describe('CallContext Integration', () => {
   });
 
   it('should prevent double return', () => {
-    const { CallContextImpl } = require('../../rpc/call-context.ts');
-
     const mockParams = {} as StructReader;
     const mockResults = {} as StructBuilder;
 
