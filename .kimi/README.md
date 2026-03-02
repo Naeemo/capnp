@@ -22,8 +22,10 @@
 - [x] Union discriminant offset 从 schema 读取 ✅（已修复：discriminantOffset 需要乘以 2 转换为 byte offset）
 - [x] Union setter 中的 discriminantOffset 硬编码问题 ✅（已修复：通过函数参数传递）
 - [x] 类型检查和 lint 修复 ✅
+- [x] 构建和测试 ✅（v0.2.0 已准备就绪）
+- [ ] 推送到 GitHub（需要 SSH 密钥权限）
+- [ ] 发布 v0.2.0 到 npm（需要 npm 登录）
 - [ ] RPC 层（长期）
-- [ ] 发布 v0.2.0 到 npm
 
 ### 最新进展 (2026-03-02)
 - ✅ **多 Segment / Far Pointer 支持**
