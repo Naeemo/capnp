@@ -75,9 +75,9 @@ log_info "Test 2: TypeScript RPC Message Serialization"
 cd "$PROJECT_ROOT"
 
 # Create a simple test script
-cat > /tmp/test-serialization.ts << 'EOF'
-import { serializeRpcMessage, deserializeRpcMessage } from './src/rpc/message-serializer.js';
-import type { RpcMessage } from './src/rpc/rpc-types.js';
+cat > "$PROJECT_ROOT/test-serialization.ts" << 'EOF'
+import { serializeRpcMessage, deserializeRpcMessage } from './src/rpc/message-serializer';
+import type { RpcMessage } from './src/rpc/rpc-types';
 
 const testMessage: RpcMessage = {
   type: 'call',
@@ -113,10 +113,13 @@ if (deserialized.type === 'call' && deserialized.call.questionId === 1) {
 }
 EOF
 
-if npx tsx /tmp/test-serialization.ts; then
+cd "$PROJECT_ROOT"
+if npx tsx test-serialization.ts; then
     log_info "✓ Serialization test passed"
+    rm -f test-serialization.ts
 else
     log_error "✗ Serialization test failed"
+    rm -f test-serialization.ts
     exit 1
 fi
 
