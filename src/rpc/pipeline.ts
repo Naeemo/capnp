@@ -13,7 +13,16 @@
  */
 
 import type { RpcConnection } from './rpc-connection.js';
-import type { Call, ImportId, InterfaceId, MethodId, Payload, PromisedAnswer, PromisedAnswerOp, QuestionId } from './rpc-types.js';
+import type {
+  Call,
+  ImportId,
+  InterfaceId,
+  MethodId,
+  Payload,
+  PromisedAnswer,
+  PromisedAnswerOp,
+  QuestionId,
+} from './rpc-types.js';
 
 // ========================================================================================
 // PipelineOp - Operations on promised answers
@@ -110,7 +119,14 @@ export function createPipelineClient(options: PipelineClientOptions): PipelineCl
     opTracker,
 
     call(interfaceId: InterfaceId, methodId: MethodId, params: Payload): Promise<unknown> {
-      return makePipelinedCall(connection, questionId, opTracker.getTransform(), interfaceId, methodId, params);
+      return makePipelinedCall(
+        connection,
+        questionId,
+        opTracker.getTransform(),
+        interfaceId,
+        methodId,
+        params
+      );
     },
 
     getPointerField(fieldIndex: number): PipelineClient {

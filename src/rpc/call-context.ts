@@ -5,7 +5,7 @@
  * Allows accessing parameters and setting results.
  */
 
-import type { StructReader, StructBuilder } from '../core/index.js';
+import type { StructBuilder, StructReader } from '../core/index.js';
 import type { Payload } from './rpc-types.js';
 
 export interface CallContext<TParams, TResults> {
@@ -19,22 +19,24 @@ export interface CallContext<TParams, TResults> {
   return(): void;
 
   /** Complete the call with an exception */
-  throwException(reason: string, type?: 'failed' | 'overloaded' | 'disconnected' | 'unimplemented'): void;
+  throwException(
+    reason: string,
+    type?: 'failed' | 'overloaded' | 'disconnected' | 'unimplemented'
+  ): void;
 }
 
 /**
  * Implementation of CallContext
  */
-export class CallContextImpl<TParams extends StructReader, TResults extends StructBuilder> implements CallContext<TParams, TResults> {
+export class CallContextImpl<TParams extends StructReader, TResults extends StructBuilder>
+  implements CallContext<TParams, TResults>
+{
   private params: TParams;
   private results: TResults;
   private returned = false;
   private exception?: { reason: string; type: string };
 
-  constructor(
-    paramsReader: TParams,
-    resultsBuilder: TResults
-  ) {
+  constructor(paramsReader: TParams, resultsBuilder: TResults) {
     this.params = paramsReader;
     this.results = resultsBuilder;
   }

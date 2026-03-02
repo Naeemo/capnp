@@ -7,8 +7,8 @@
  * Reference: rpc.capnp schema
  */
 
-import { MessageBuilder, StructBuilder } from '../core/message-builder.js';
-import { MessageReader, StructReader } from '../core/message-reader.js';
+import { MessageBuilder, type StructBuilder } from '../core/message-builder.js';
+import { MessageReader, type StructReader } from '../core/message-reader.js';
 import { ElementSize } from '../core/pointer.js';
 import type {
   Bootstrap,
@@ -148,12 +148,12 @@ function serializeUnimplemented(root: StructBuilder, message: RpcMessage): void 
   // Set union tag
   root.setUint16(0, MSG_UNIMPLEMENTED);
   // Serialize nested message in pointer 0
-  const nestedData = serializeRpcMessage(message);
+  const _nestedData = serializeRpcMessage(message);
   const nestedBuilder = root.initStruct(0, 0, 1);
   // Copy nested data into the struct's content pointer
   // For simplicity, we store the serialized message as data bytes
   // In a full implementation, we'd properly embed the message structure
-  const contentPtr = nestedBuilder.initStruct(0, 0, 0);
+  const _contentPtr = nestedBuilder.initStruct(0, 0, 0);
   // Store length and data
   // This is a simplified approach - proper implementation would parse the nested message
 }
@@ -280,11 +280,17 @@ function serializeProvide(root: StructBuilder, provide: Provide): void {
   // RecipientId in pointer 1 - placeholder
 }
 
-function serializeAccept(_root: StructBuilder, _accept: { provision: { id: Uint8Array }; embargo: boolean }): void {
+function serializeAccept(
+  _root: StructBuilder,
+  _accept: { provision: { id: Uint8Array }; embargo: boolean }
+): void {
   // Level 3 - not fully implemented
 }
 
-function serializeJoin(_root: StructBuilder, _join: { otherCap: MessageTarget; joinId: number }): void {
+function serializeJoin(
+  _root: StructBuilder,
+  _join: { otherCap: MessageTarget; joinId: number }
+): void {
   // Level 4 - not fully implemented
 }
 
@@ -309,10 +315,15 @@ function serializePromisedAnswer(builder: StructBuilder, promisedAnswer: Promise
   builder.setUint32(0, promisedAnswer.questionId);
   // Transform list in pointer 0
   if (promisedAnswer.transform.length > 0) {
-    const listBuilder = builder.initList(0, ElementSize.INLINE_COMPOSITE, promisedAnswer.transform.length, {
-      dataWords: 2,
-      pointerCount: 0,
-    });
+    const listBuilder = builder.initList(
+      0,
+      ElementSize.INLINE_COMPOSITE,
+      promisedAnswer.transform.length,
+      {
+        dataWords: 2,
+        pointerCount: 0,
+      }
+    );
     for (let i = 0; i < promisedAnswer.transform.length; i++) {
       serializePromisedAnswerOp(listBuilder.getStruct(i), promisedAnswer.transform[i]);
     }
@@ -335,7 +346,7 @@ function serializePayload(builder: StructBuilder, payload: Payload): void {
   // Content (AnyPointer) - store as data bytes in pointer 0
   if (payload.content.length > 0) {
     // For now, store raw bytes - in full implementation this would be a proper struct
-    const contentBuilder = builder.initStruct(0, Math.ceil(payload.content.length / 8), 0);
+    const _contentBuilder = builder.initStruct(0, Math.ceil(payload.content.length / 8), 0);
     // Copy bytes into the struct
   }
 
@@ -394,7 +405,11 @@ function serializeSendResultsTo(builder: StructBuilder, sendTo: SendResultsTo): 
   }
 }
 
-function serializeException(builder: StructBuilder, pointerIndex: number, exception: Exception): void {
+function serializeException(
+  builder: StructBuilder,
+  pointerIndex: number,
+  exception: Exception
+): void {
   const excBuilder = builder.initStruct(pointerIndex, 2, 1);
   excBuilder.setText(0, exception.reason);
 
@@ -457,7 +472,10 @@ export function deserializeRpcMessage(data: Uint8Array): RpcMessage {
 
 function deserializeUnimplemented(_root: StructReader): RpcMessage {
   // For now, return a placeholder - full implementation would deserialize nested message
-  return { type: 'abort', exception: { reason: 'Unimplemented message received', type: 'unimplemented' } };
+  return {
+    type: 'abort',
+    exception: { reason: 'Unimplemented message received', type: 'unimplemented' },
+  };
 }
 
 function deserializeBootstrap(root: StructReader): Bootstrap {
@@ -478,8 +496,12 @@ function deserializeCall(root: StructReader): Call {
     allowThirdPartyTailCall: root.getBool(208),
     noPromisePipelining: root.getBool(209),
     onlyPromisePipeline: root.getBool(210),
-    target: targetStruct ? deserializeMessageTarget(targetStruct) : { type: 'importedCap', importId: 0 },
-    params: paramsStruct ? deserializePayload(paramsStruct) : { content: new Uint8Array(0), capTable: [] },
+    target: targetStruct
+      ? deserializeMessageTarget(targetStruct)
+      : { type: 'importedCap', importId: 0 },
+    params: paramsStruct
+      ? deserializePayload(paramsStruct)
+      : { content: new Uint8Array(0), capTable: [] },
     sendResultsTo: sendToStruct ? deserializeSendResultsTo(sendToStruct) : { type: 'caller' },
   };
 }
@@ -492,7 +514,9 @@ function deserializeReturn(root: StructReader): Return {
     case RET_RESULTS:
       result = {
         type: 'results',
-        payload: root.getStruct(0, 2, 2) ? deserializePayload(root.getStruct(0, 2, 2)!) : { content: new Uint8Array(0), capTable: [] },
+        payload: root.getStruct(0, 2, 2)
+          ? deserializePayload(root.getStruct(0, 2, 2)!)
+          : { content: new Uint8Array(0), capTable: [] },
       };
       break;
     case RET_EXCEPTION:
@@ -538,14 +562,19 @@ function deserializeResolve(root: StructReader): Resolve {
     case RESOLVE_CAP:
       resolution = {
         type: 'cap',
-        cap: root.getStruct(0, 2, 1) ? deserializeCapDescriptor(root.getStruct(0, 2, 1)!) : { type: 'none' },
+        cap: root.getStruct(0, 2, 1)
+          ? deserializeCapDescriptor(root.getStruct(0, 2, 1)!)
+          : { type: 'none' },
       };
       break;
     case RESOLVE_EXCEPTION:
       resolution = { type: 'exception', exception: deserializeException(root, 0) };
       break;
     default:
-      resolution = { type: 'exception', exception: { reason: 'Unknown resolution type', type: 'failed' } };
+      resolution = {
+        type: 'exception',
+        exception: { reason: 'Unknown resolution type', type: 'failed' },
+      };
   }
 
   return {
@@ -584,7 +613,9 @@ function deserializeDisembargo(root: StructReader): Disembargo {
   }
 
   return {
-    target: targetStruct ? deserializeMessageTarget(targetStruct) : { type: 'importedCap', importId: 0 },
+    target: targetStruct
+      ? deserializeMessageTarget(targetStruct)
+      : { type: 'importedCap', importId: 0 },
     context,
   };
 }
@@ -593,19 +624,35 @@ function deserializeProvide(root: StructReader): Provide {
   const targetStruct = root.getStruct(0, 2, 1);
   return {
     questionId: root.getUint32(8),
-    target: targetStruct ? deserializeMessageTarget(targetStruct) : { type: 'importedCap', importId: 0 },
+    target: targetStruct
+      ? deserializeMessageTarget(targetStruct)
+      : { type: 'importedCap', importId: 0 },
     recipient: { id: new Uint8Array(0) },
   };
 }
 
-function deserializeAccept(_root: StructReader): { questionId: number; provision: { id: Uint8Array }; embargo: boolean } {
+function deserializeAccept(_root: StructReader): {
+  questionId: number;
+  provision: { id: Uint8Array };
+  embargo: boolean;
+} {
   // Level 3 - placeholder
   return { questionId: 0, provision: { id: new Uint8Array(0) }, embargo: false };
 }
 
-function deserializeJoin(_root: StructReader): { questionId: number; target: MessageTarget; otherCap: MessageTarget; joinId: number } {
+function deserializeJoin(_root: StructReader): {
+  questionId: number;
+  target: MessageTarget;
+  otherCap: MessageTarget;
+  joinId: number;
+} {
   // Level 4 - placeholder
-  return { questionId: 0, target: { type: 'importedCap', importId: 0 }, otherCap: { type: 'importedCap', importId: 0 }, joinId: 0 };
+  return {
+    questionId: 0,
+    target: { type: 'importedCap', importId: 0 },
+    otherCap: { type: 'importedCap', importId: 0 },
+    joinId: 0,
+  };
 }
 
 // ========================================================================================
@@ -618,19 +665,25 @@ function deserializeMessageTarget(root: StructReader): MessageTarget {
   switch (tag) {
     case TARGET_IMPORTED_CAP:
       return { type: 'importedCap', importId: root.getUint32(8) };
-    case TARGET_PROMISED_ANSWER:
+    case TARGET_PROMISED_ANSWER: {
       const promisedAnswerStruct = root.getStruct(0, 2, 1);
       return {
         type: 'promisedAnswer',
-        promisedAnswer: promisedAnswerStruct ? deserializePromisedAnswer(promisedAnswerStruct) : { questionId: 0, transform: [] },
+        promisedAnswer: promisedAnswerStruct
+          ? deserializePromisedAnswer(promisedAnswerStruct)
+          : { questionId: 0, transform: [] },
       };
+    }
     default:
       return { type: 'importedCap', importId: 0 };
   }
 }
 
 function deserializePromisedAnswer(root: StructReader): PromisedAnswer {
-  const transformList = root.getList<StructReader>(0, ElementSize.INLINE_COMPOSITE, { dataWords: 2, pointerCount: 0 });
+  const transformList = root.getList<StructReader>(0, ElementSize.INLINE_COMPOSITE, {
+    dataWords: 2,
+    pointerCount: 0,
+  });
   const transform: PromisedAnswerOp[] = [];
 
   if (transformList) {
@@ -661,7 +714,10 @@ function deserializePromisedAnswerOp(root: StructReader): PromisedAnswerOp {
 function deserializePayload(root: StructReader): Payload {
   // Content - for now, return empty
   // In full implementation, would deserialize the AnyPointer content
-  const capTableList = root.getList<StructReader>(1, ElementSize.EIGHT_BYTES, { dataWords: 2, pointerCount: 1 });
+  const capTableList = root.getList<StructReader>(1, ElementSize.EIGHT_BYTES, {
+    dataWords: 2,
+    pointerCount: 1,
+  });
   const capTable: CapDescriptor[] = [];
 
   if (capTableList) {
@@ -688,12 +744,15 @@ function deserializeCapDescriptor(root: StructReader): CapDescriptor {
       return { type: 'senderPromise', exportId: root.getUint32(8) };
     case CAP_RECEIVER_HOSTED:
       return { type: 'receiverHosted', importId: root.getUint32(8) };
-    case CAP_RECEIVER_ANSWER:
+    case CAP_RECEIVER_ANSWER: {
       const promisedAnswerStruct = root.getStruct(0, 2, 1);
       return {
         type: 'receiverAnswer',
-        promisedAnswer: promisedAnswerStruct ? deserializePromisedAnswer(promisedAnswerStruct) : { questionId: 0, transform: [] },
+        promisedAnswer: promisedAnswerStruct
+          ? deserializePromisedAnswer(promisedAnswerStruct)
+          : { questionId: 0, transform: [] },
       };
+    }
     case CAP_THIRD_PARTY_HOSTED:
       return { type: 'thirdPartyHosted', thirdPartyCapId: { id: new Uint8Array(0) } };
     default:

@@ -4,9 +4,9 @@
  * Tests for Phase 2 message serialization/deserialization
  */
 
-import { describe, it, expect } from 'vitest';
-import { serializeRpcMessage, deserializeRpcMessage } from './message-serializer.js';
-import type { RpcMessage, Bootstrap, Finish, Exception } from './rpc-types.js';
+import { describe, expect, it } from 'vitest';
+import { deserializeRpcMessage, serializeRpcMessage } from './message-serializer.js';
+import type { Bootstrap, Exception, Finish, RpcMessage } from './rpc-types.js';
 
 describe('RPC Message Serialization', () => {
   describe('Bootstrap', () => {
@@ -41,7 +41,15 @@ describe('RPC Message Serialization', () => {
       const deserialized = deserializeRpcMessage(serialized);
 
       expect(deserialized.type).toBe('finish');
-      const finish = (deserialized as { finish: { questionId: number; releaseResultCaps: boolean; requireEarlyCancellationWorkaround: boolean } }).finish;
+      const finish = (
+        deserialized as {
+          finish: {
+            questionId: number;
+            releaseResultCaps: boolean;
+            requireEarlyCancellationWorkaround: boolean;
+          };
+        }
+      ).finish;
       expect(finish.questionId).toBe(123);
       expect(finish.releaseResultCaps).toBe(true);
       expect(finish.requireEarlyCancellationWorkaround).toBe(false);
@@ -62,8 +70,12 @@ describe('RPC Message Serialization', () => {
       const deserialized = deserializeRpcMessage(serialized);
 
       expect(deserialized.type).toBe('release');
-      expect((deserialized as { release: { id: number; referenceCount: number } }).release.id).toBe(5);
-      expect((deserialized as { release: { id: number; referenceCount: number } }).release.referenceCount).toBe(1);
+      expect((deserialized as { release: { id: number; referenceCount: number } }).release.id).toBe(
+        5
+      );
+      expect(
+        (deserialized as { release: { id: number; referenceCount: number } }).release.referenceCount
+      ).toBe(1);
     });
   });
 
@@ -89,7 +101,8 @@ describe('RPC Message Serialization', () => {
       const deserialized = deserializeRpcMessage(serialized);
 
       expect(deserialized.type).toBe('return');
-      const ret = (deserialized as { return: { answerId: number; result: { type: string } } }).return;
+      const ret = (deserialized as { return: { answerId: number; result: { type: string } } })
+        .return;
       expect(ret.answerId).toBe(456);
       expect(ret.result.type).toBe('results');
     });
@@ -117,7 +130,11 @@ describe('RPC Message Serialization', () => {
       const deserialized = deserializeRpcMessage(serialized);
 
       expect(deserialized.type).toBe('return');
-      const ret = (deserialized as { return: { answerId: number; result: { type: string; exception?: Exception } } }).return;
+      const ret = (
+        deserialized as {
+          return: { answerId: number; result: { type: string; exception?: Exception } };
+        }
+      ).return;
       expect(ret.answerId).toBe(789);
       expect(ret.result.type).toBe('exception');
       if (ret.result.type === 'exception' && ret.result.exception) {
@@ -144,7 +161,14 @@ describe('RPC Message Serialization', () => {
       const deserialized = deserializeRpcMessage(serialized);
 
       expect(deserialized.type).toBe('resolve');
-      const resolve = (deserialized as { resolve: { promiseId: number; resolution: { type: string; cap: { type: string; exportId: number } } } }).resolve;
+      const resolve = (
+        deserialized as {
+          resolve: {
+            promiseId: number;
+            resolution: { type: string; cap: { type: string; exportId: number } };
+          };
+        }
+      ).resolve;
       expect(resolve.promiseId).toBe(10);
       expect(resolve.resolution.type).toBe('cap');
       expect(resolve.resolution.cap.type).toBe('senderHosted');
@@ -170,7 +194,11 @@ describe('RPC Message Serialization', () => {
       const deserialized = deserializeRpcMessage(serialized);
 
       expect(deserialized.type).toBe('resolve');
-      const resolve = (deserialized as { resolve: { promiseId: number; resolution: { type: string; exception: Exception } } }).resolve;
+      const resolve = (
+        deserialized as {
+          resolve: { promiseId: number; resolution: { type: string; exception: Exception } };
+        }
+      ).resolve;
       expect(resolve.promiseId).toBe(11);
       expect(resolve.resolution.type).toBe('exception');
       expect(resolve.resolution.exception.reason).toBe('Promise broken');
@@ -192,7 +220,14 @@ describe('RPC Message Serialization', () => {
       const deserialized = deserializeRpcMessage(serialized);
 
       expect(deserialized.type).toBe('disembargo');
-      const disembargo = (deserialized as { disembargo: { target: { type: string; importId: number }; context: { type: string; embargoId: number } } }).disembargo;
+      const disembargo = (
+        deserialized as {
+          disembargo: {
+            target: { type: string; importId: number };
+            context: { type: string; embargoId: number };
+          };
+        }
+      ).disembargo;
       expect(disembargo.target.type).toBe('importedCap');
       expect(disembargo.context.type).toBe('senderLoopback');
       expect(disembargo.context.embargoId).toBe(100);

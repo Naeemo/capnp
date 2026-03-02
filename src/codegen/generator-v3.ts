@@ -102,20 +102,20 @@ function generateFile(fileId: Id, allNodes: NodeReader[], options: GeneratorOpti
   try {
     const fileNode = allNodes.find((n) => n.id === fileId);
     filePrefix = fileNode?.displayName || '';
-  } catch (e) {
+  } catch (_e) {
     // Ignore errors reading file node
   }
-  
+
   const fileNodes = allNodes.filter((n) => {
     try {
       if (n.scopeId === fileId) return true;
       // Auto-generated method params/results have scopeId = 0
-      if (n.scopeId === 0n && filePrefix && n.displayName.startsWith(filePrefix + ':')) {
+      if (n.scopeId === 0n && filePrefix && n.displayName.startsWith(`${filePrefix}:`)) {
         // Check if it's a method params/results struct
         const shortName = n.displayName.substring(filePrefix.length + 1);
         return shortName.includes('$');
       }
-    } catch (e) {
+    } catch (_e) {
       // Skip nodes that can't be read
     }
     return false;
@@ -153,7 +153,7 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
     unionGroups = analysis.unionGroups;
     regularFields = analysis.regularFields;
     groupFields = analysis.groupFields;
-  } catch (e) {
+  } catch (_e) {
     // Some auto-generated structs may have invalid field data
     // Return a minimal struct definition in this case
     lines.push(`export interface ${structName} {`);
@@ -189,7 +189,7 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
         const tsType = getTypeScriptType(field.slotType, allNodes);
         lines.push(`  ${groupName}${capitalize(field.name)}: ${tsType};`);
       }
-    } catch (e) {
+    } catch (_e) {
       // Skip invalid group fields
     }
   }
@@ -227,7 +227,7 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
         lines.push(`  ${getter}`);
         lines.push('');
       }
-    } catch (e) {
+    } catch (_e) {
       // Skip invalid group fields
     }
   }
@@ -300,7 +300,7 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
         lines.push(`  ${setter}`);
         lines.push('');
       }
-    } catch (e) {
+    } catch (_e) {
       // Skip invalid group fields
     }
   }
@@ -1015,7 +1015,7 @@ function getShortName(displayName: string): string {
   }
   const colonIndex = displayName.lastIndexOf(':');
   let name = colonIndex >= 0 ? displayName.substring(colonIndex + 1) : displayName;
-  
+
   // Replace invalid characters for TypeScript identifiers
   // Handle auto-generated names like "Calculator.evaluate$Params" -> "EvaluateParams"
   if (name.includes('.')) {
@@ -1035,10 +1035,10 @@ function getShortName(displayName: string): string {
       name = parts[parts.length - 1];
     }
   }
-  
+
   // Remove any remaining invalid characters
   name = name.replace(/[^a-zA-Z0-9_]/g, '_');
-  
+
   return name;
 }
 
@@ -1071,7 +1071,9 @@ function generateInterface(node: NodeReader, allNodes: NodeReader[]): string {
   for (const method of methods) {
     const paramType = getTypeNameById(method.paramStructType, allNodes, 'unknown');
     const resultType = getTypeNameById(method.resultStructType, allNodes, 'unknown');
-    lines.push(`  ${method.name}(context: CallContext<${paramType}Reader, ${resultType}Builder>): Promise<void> | void;`);
+    lines.push(
+      `  ${method.name}(context: CallContext<${paramType}Reader, ${resultType}Builder>): Promise<void> | void;`
+    );
   }
   lines.push('}');
   lines.push('');
@@ -1088,14 +1090,18 @@ function generateInterface(node: NodeReader, allNodes: NodeReader[]): string {
   lines.push(`  static readonly interfaceId = ${node.id}n;`);
   lines.push('');
   lines.push('  /** Dispatch a method call to the appropriate handler */');
-  lines.push('  async dispatch(methodId: number, context: CallContext<unknown, unknown>): Promise<void> {');
+  lines.push(
+    '  async dispatch(methodId: number, context: CallContext<unknown, unknown>): Promise<void> {'
+  );
   lines.push('    switch (methodId) {');
 
   for (const method of methods) {
     const paramType = getTypeNameById(method.paramStructType, allNodes, 'unknown');
     const resultType = getTypeNameById(method.resultStructType, allNodes, 'unknown');
     lines.push(`      case ${interfaceName}MethodIds.${method.name}:`);
-    lines.push(`        return this.server.${method.name}(context as CallContext<${paramType}Reader, ${resultType}Builder>);`);
+    lines.push(
+      `        return this.server.${method.name}(context as CallContext<${paramType}Reader, ${resultType}Builder>);`
+    );
   }
 
   lines.push('      default:');
@@ -1125,20 +1131,22 @@ function generateInterface(node: NodeReader, allNodes: NodeReader[]): string {
     const resultType = getTypeNameById(method.resultStructType, allNodes, 'unknown');
 
     // 生成方法文档注释
-    lines.push(`  /**`);
+    lines.push('  /**');
     lines.push(`   * ${method.name}`);
     lines.push(`   * @param params - ${paramType}`);
     lines.push(`   * @returns PipelineClient<${resultType}Reader>`);
-    lines.push(`   */`);
+    lines.push('   */');
 
     // 生成方法签名
-    lines.push(`  ${method.name}(params: ${paramType}Builder): PipelineClient<${resultType}Reader> {`);
-    lines.push(`    return this._call(`);
+    lines.push(
+      `  ${method.name}(params: ${paramType}Builder): PipelineClient<${resultType}Reader> {`
+    );
+    lines.push('    return this._call(');
     lines.push(`      ${interfaceName}Client.interfaceId,`);
     lines.push(`      ${interfaceName}MethodIds.${method.name},`);
-    lines.push(`      params`);
+    lines.push('      params');
     lines.push(`    ) as PipelineClient<${resultType}Reader>;`);
-    lines.push(`  }`);
+    lines.push('  }');
     lines.push('');
   }
 

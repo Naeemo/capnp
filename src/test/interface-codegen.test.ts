@@ -1,7 +1,7 @@
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 import { generateFromRequest } from '../codegen/generator-v3.js';
+import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 
 const buffer = readFileSync('/tmp/calculator.bin');
 const arrayBuffer = new Uint8Array(buffer).buffer;

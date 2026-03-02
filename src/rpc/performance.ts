@@ -44,7 +44,7 @@ export class MemoryPool {
     if (pool && pool.length > 0) {
       const now = Date.now();
       // Find a buffer that's not too old
-      const index = pool.findIndex(b => now - b.lastUsed < this.maxBufferAge);
+      const index = pool.findIndex((b) => now - b.lastUsed < this.maxBufferAge);
 
       if (index >= 0) {
         const pooled = pool.splice(index, 1)[0];
@@ -227,7 +227,10 @@ export class MultiSegmentMessageBuilder {
     if (this.segments.length === 1) {
       // Single segment - use asUint8Array to get the used portion
       const segmentData = this.segments[0].asUint8Array();
-      return segmentData.buffer.slice(segmentData.byteOffset, segmentData.byteOffset + segmentData.byteLength) as ArrayBuffer;
+      return segmentData.buffer.slice(
+        segmentData.byteOffset,
+        segmentData.byteOffset + segmentData.byteLength
+      ) as ArrayBuffer;
     }
 
     // Multi-segment - need to serialize with segment table

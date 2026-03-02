@@ -4,15 +4,15 @@
  * Tests for Level 2 RPC - Persistent capability references
  */
 
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  SturdyRefManager,
   RestoreHandler,
-  serializeSturdyRef,
+  type SturdyRef,
+  SturdyRefManager,
+  createSturdyRef,
   deserializeSturdyRef,
   isSturdyRefValid,
-  createSturdyRef,
-  type SturdyRef,
+  serializeSturdyRef,
 } from './sturdyrefs.js';
 
 describe('SturdyRefManager', () => {

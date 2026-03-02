@@ -4,11 +4,11 @@
  * Phase 3: Complete server/client implementation with WebSocket transport
  */
 
+import { MessageBuilder, MessageReader } from '../core/index.js';
+import type { StructBuilder, StructReader } from '../core/index.js';
+import type { CallContext } from '../rpc/call-context.js';
 import { RpcConnection } from '../rpc/rpc-connection.js';
 import { WebSocketTransport } from '../rpc/websocket-transport.js';
-import type { CallContext } from '../rpc/call-context.js';
-import { MessageBuilder, MessageReader } from '../core/index.js';
-import type { StructReader, StructBuilder } from '../core/index.js';
 
 // ========================================================================================
 // Schema (would normally be generated from .capnp file)
@@ -35,23 +35,53 @@ export class EchoRequestReader implements StructReader {
   get dataView(): DataView {
     return this.reader.dataView;
   }
-  getUint8(offset: number): number { return this.reader.getUint8(offset); }
-  getUint16(offset: number): number { return this.reader.getUint16(offset); }
-  getUint32(offset: number): number { return this.reader.getUint32(offset); }
-  getUint64(offset: number): bigint { return this.reader.getUint64(offset); }
-  getInt8(offset: number): number { return this.reader.getInt8(offset); }
-  getInt16(offset: number): number { return this.reader.getInt16(offset); }
-  getInt32(offset: number): number { return this.reader.getInt32(offset); }
-  getInt64(offset: number): bigint { return this.reader.getInt64(offset); }
-  getFloat32(offset: number): number { return this.reader.getFloat32(offset); }
-  getFloat64(offset: number): number { return this.reader.getFloat64(offset); }
-  getBool(bitOffset: number): boolean { return this.reader.getBool(bitOffset); }
-  getText(pointerIndex: number): string { return this.reader.getText(pointerIndex); }
-  getData(pointerIndex: number): Uint8Array { return this.reader.getData(pointerIndex); }
+  getUint8(offset: number): number {
+    return this.reader.getUint8(offset);
+  }
+  getUint16(offset: number): number {
+    return this.reader.getUint16(offset);
+  }
+  getUint32(offset: number): number {
+    return this.reader.getUint32(offset);
+  }
+  getUint64(offset: number): bigint {
+    return this.reader.getUint64(offset);
+  }
+  getInt8(offset: number): number {
+    return this.reader.getInt8(offset);
+  }
+  getInt16(offset: number): number {
+    return this.reader.getInt16(offset);
+  }
+  getInt32(offset: number): number {
+    return this.reader.getInt32(offset);
+  }
+  getInt64(offset: number): bigint {
+    return this.reader.getInt64(offset);
+  }
+  getFloat32(offset: number): number {
+    return this.reader.getFloat32(offset);
+  }
+  getFloat64(offset: number): number {
+    return this.reader.getFloat64(offset);
+  }
+  getBool(bitOffset: number): boolean {
+    return this.reader.getBool(bitOffset);
+  }
+  getText(pointerIndex: number): string {
+    return this.reader.getText(pointerIndex);
+  }
+  getData(pointerIndex: number): Uint8Array {
+    return this.reader.getData(pointerIndex);
+  }
   getStruct(pointerIndex: number, dataWords: number, pointerCount: number): StructReader {
     return this.reader.getStruct(pointerIndex, dataWords, pointerCount);
   }
-  getList(pointerIndex: number, elementSize: number, structSize?: { dataWords: number; pointerCount: number }) {
+  getList(
+    pointerIndex: number,
+    elementSize: number,
+    structSize?: { dataWords: number; pointerCount: number }
+  ) {
     return this.reader.getList(pointerIndex, elementSize, structSize);
   }
 }
@@ -74,23 +104,54 @@ export class EchoRequestBuilder implements StructBuilder {
   get segment(): { buffer: ArrayBuffer; byteOffset: number; byteLength: number } {
     return this.builder.segment;
   }
-  setUint8(offset: number, value: number): void { this.builder.setUint8(offset, value); }
-  setUint16(offset: number, value: number): void { this.builder.setUint16(offset, value); }
-  setUint32(offset: number, value: number): void { this.builder.setUint32(offset, value); }
-  setUint64(offset: number, value: bigint): void { this.builder.setUint64(offset, value); }
-  setInt8(offset: number, value: number): void { this.builder.setInt8(offset, value); }
-  setInt16(offset: number, value: number): void { this.builder.setInt16(offset, value); }
-  setInt32(offset: number, value: number): void { this.builder.setInt32(offset, value); }
-  setInt64(offset: number, value: bigint): void { this.builder.setInt64(offset, value); }
-  setFloat32(offset: number, value: number): void { this.builder.setFloat32(offset, value); }
-  setFloat64(offset: number, value: number): void { this.builder.setFloat64(offset, value); }
-  setBool(bitOffset: number, value: boolean): void { this.builder.setBool(bitOffset, value); }
-  setText(pointerIndex: number, value: string): void { this.builder.setText(pointerIndex, value); }
-  setData(pointerIndex: number, value: Uint8Array): void { this.builder.setData(pointerIndex, value); }
+  setUint8(offset: number, value: number): void {
+    this.builder.setUint8(offset, value);
+  }
+  setUint16(offset: number, value: number): void {
+    this.builder.setUint16(offset, value);
+  }
+  setUint32(offset: number, value: number): void {
+    this.builder.setUint32(offset, value);
+  }
+  setUint64(offset: number, value: bigint): void {
+    this.builder.setUint64(offset, value);
+  }
+  setInt8(offset: number, value: number): void {
+    this.builder.setInt8(offset, value);
+  }
+  setInt16(offset: number, value: number): void {
+    this.builder.setInt16(offset, value);
+  }
+  setInt32(offset: number, value: number): void {
+    this.builder.setInt32(offset, value);
+  }
+  setInt64(offset: number, value: bigint): void {
+    this.builder.setInt64(offset, value);
+  }
+  setFloat32(offset: number, value: number): void {
+    this.builder.setFloat32(offset, value);
+  }
+  setFloat64(offset: number, value: number): void {
+    this.builder.setFloat64(offset, value);
+  }
+  setBool(bitOffset: number, value: boolean): void {
+    this.builder.setBool(bitOffset, value);
+  }
+  setText(pointerIndex: number, value: string): void {
+    this.builder.setText(pointerIndex, value);
+  }
+  setData(pointerIndex: number, value: Uint8Array): void {
+    this.builder.setData(pointerIndex, value);
+  }
   initStruct(pointerIndex: number, dataWords: number, pointerCount: number): StructBuilder {
     return this.builder.initStruct(pointerIndex, dataWords, pointerCount);
   }
-  initList(pointerIndex: number, length: number, elementSize: number, structSize?: { dataWords: number; pointerCount: number }) {
+  initList(
+    pointerIndex: number,
+    length: number,
+    elementSize: number,
+    structSize?: { dataWords: number; pointerCount: number }
+  ) {
     return this.builder.initList(pointerIndex, length, elementSize, structSize);
   }
 }
@@ -121,23 +182,53 @@ export class EchoResponseReader implements StructReader {
   get dataView(): DataView {
     return this.reader.dataView;
   }
-  getUint8(offset: number): number { return this.reader.getUint8(offset); }
-  getUint16(offset: number): number { return this.reader.getUint16(offset); }
-  getUint32(offset: number): number { return this.reader.getUint32(offset); }
-  getUint64(offset: number): bigint { return this.reader.getUint64(offset); }
-  getInt8(offset: number): number { return this.reader.getInt8(offset); }
-  getInt16(offset: number): number { return this.reader.getInt16(offset); }
-  getInt32(offset: number): number { return this.reader.getInt32(offset); }
-  getInt64(offset: number): bigint { return this.reader.getInt64(offset); }
-  getFloat32(offset: number): number { return this.reader.getFloat32(offset); }
-  getFloat64(offset: number): number { return this.reader.getFloat64(offset); }
-  getBool(bitOffset: number): boolean { return this.reader.getBool(bitOffset); }
-  getText(pointerIndex: number): string { return this.reader.getText(pointerIndex); }
-  getData(pointerIndex: number): Uint8Array { return this.reader.getData(pointerIndex); }
+  getUint8(offset: number): number {
+    return this.reader.getUint8(offset);
+  }
+  getUint16(offset: number): number {
+    return this.reader.getUint16(offset);
+  }
+  getUint32(offset: number): number {
+    return this.reader.getUint32(offset);
+  }
+  getUint64(offset: number): bigint {
+    return this.reader.getUint64(offset);
+  }
+  getInt8(offset: number): number {
+    return this.reader.getInt8(offset);
+  }
+  getInt16(offset: number): number {
+    return this.reader.getInt16(offset);
+  }
+  getInt32(offset: number): number {
+    return this.reader.getInt32(offset);
+  }
+  getInt64(offset: number): bigint {
+    return this.reader.getInt64(offset);
+  }
+  getFloat32(offset: number): number {
+    return this.reader.getFloat32(offset);
+  }
+  getFloat64(offset: number): number {
+    return this.reader.getFloat64(offset);
+  }
+  getBool(bitOffset: number): boolean {
+    return this.reader.getBool(bitOffset);
+  }
+  getText(pointerIndex: number): string {
+    return this.reader.getText(pointerIndex);
+  }
+  getData(pointerIndex: number): Uint8Array {
+    return this.reader.getData(pointerIndex);
+  }
   getStruct(pointerIndex: number, dataWords: number, pointerCount: number): StructReader {
     return this.reader.getStruct(pointerIndex, dataWords, pointerCount);
   }
-  getList(pointerIndex: number, elementSize: number, structSize?: { dataWords: number; pointerCount: number }) {
+  getList(
+    pointerIndex: number,
+    elementSize: number,
+    structSize?: { dataWords: number; pointerCount: number }
+  ) {
     return this.reader.getList(pointerIndex, elementSize, structSize);
   }
 }
@@ -164,23 +255,54 @@ export class EchoResponseBuilder implements StructBuilder {
   get segment(): { buffer: ArrayBuffer; byteOffset: number; byteLength: number } {
     return this.builder.segment;
   }
-  setUint8(offset: number, value: number): void { this.builder.setUint8(offset, value); }
-  setUint16(offset: number, value: number): void { this.builder.setUint16(offset, value); }
-  setUint32(offset: number, value: number): void { this.builder.setUint32(offset, value); }
-  setUint64(offset: number, value: bigint): void { this.builder.setUint64(offset, value); }
-  setInt8(offset: number, value: number): void { this.builder.setInt8(offset, value); }
-  setInt16(offset: number, value: number): void { this.builder.setInt16(offset, value); }
-  setInt32(offset: number, value: number): void { this.builder.setInt32(offset, value); }
-  setInt64(offset: number, value: bigint): void { this.builder.setInt64(offset, value); }
-  setFloat32(offset: number, value: number): void { this.builder.setFloat32(offset, value); }
-  setFloat64(offset: number, value: number): void { this.builder.setFloat64(offset, value); }
-  setBool(bitOffset: number, value: boolean): void { this.builder.setBool(bitOffset, value); }
-  setText(pointerIndex: number, value: string): void { this.builder.setText(pointerIndex, value); }
-  setData(pointerIndex: number, value: Uint8Array): void { this.builder.setData(pointerIndex, value); }
+  setUint8(offset: number, value: number): void {
+    this.builder.setUint8(offset, value);
+  }
+  setUint16(offset: number, value: number): void {
+    this.builder.setUint16(offset, value);
+  }
+  setUint32(offset: number, value: number): void {
+    this.builder.setUint32(offset, value);
+  }
+  setUint64(offset: number, value: bigint): void {
+    this.builder.setUint64(offset, value);
+  }
+  setInt8(offset: number, value: number): void {
+    this.builder.setInt8(offset, value);
+  }
+  setInt16(offset: number, value: number): void {
+    this.builder.setInt16(offset, value);
+  }
+  setInt32(offset: number, value: number): void {
+    this.builder.setInt32(offset, value);
+  }
+  setInt64(offset: number, value: bigint): void {
+    this.builder.setInt64(offset, value);
+  }
+  setFloat32(offset: number, value: number): void {
+    this.builder.setFloat32(offset, value);
+  }
+  setFloat64(offset: number, value: number): void {
+    this.builder.setFloat64(offset, value);
+  }
+  setBool(bitOffset: number, value: boolean): void {
+    this.builder.setBool(bitOffset, value);
+  }
+  setText(pointerIndex: number, value: string): void {
+    this.builder.setText(pointerIndex, value);
+  }
+  setData(pointerIndex: number, value: Uint8Array): void {
+    this.builder.setData(pointerIndex, value);
+  }
   initStruct(pointerIndex: number, dataWords: number, pointerCount: number): StructBuilder {
     return this.builder.initStruct(pointerIndex, dataWords, pointerCount);
   }
-  initList(pointerIndex: number, length: number, elementSize: number, structSize?: { dataWords: number; pointerCount: number }) {
+  initList(
+    pointerIndex: number,
+    length: number,
+    elementSize: number,
+    structSize?: { dataWords: number; pointerCount: number }
+  ) {
     return this.builder.initList(pointerIndex, length, elementSize, structSize);
   }
 }
@@ -216,7 +338,9 @@ export class EchoStub {
       case EchoMethodIds.echo:
         return this.server.echo(context as CallContext<EchoRequestReader, EchoResponseBuilder>);
       case EchoMethodIds.echoStreaming:
-        return this.server.echoStreaming(context as CallContext<EchoRequestReader, EchoResponseBuilder>);
+        return this.server.echoStreaming(
+          context as CallContext<EchoRequestReader, EchoResponseBuilder>
+        );
       default:
         throw new Error(`Unknown method ID: ${methodId}`);
     }
@@ -232,10 +356,6 @@ import { BaseCapabilityClient, type PipelineClient } from '../rpc/index.js';
 
 export class EchoClient extends BaseCapabilityClient {
   static readonly interfaceId = 0x1234567890abcdefn;
-
-  constructor(connection: RpcConnection, importId?: number) {
-    super(connection, importId);
-  }
 
   echo(params: EchoRequestBuilder): PipelineClient<EchoResponseReader> {
     return this._call(
@@ -271,7 +391,7 @@ export class EchoService implements EchoServer {
 
     // Simulate delay if requested
     if (delayMs > 0) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
 
     // Set response
@@ -325,7 +445,9 @@ export async function startEchoServer(port: number): Promise<{ stop: () => Promi
 // Client Usage
 // ========================================================================================
 
-export async function createEchoClient(url: string): Promise<{ client: EchoClient; close: () => Promise<void> }> {
+export async function createEchoClient(
+  url: string
+): Promise<{ client: EchoClient; close: () => Promise<void> }> {
   const transport = await WebSocketTransport.connect(url);
   const connection = new RpcConnection(transport);
   await connection.start();

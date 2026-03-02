@@ -4,9 +4,9 @@
  * Implements RpcTransport over WebSocket for browser and Node.js compatibility.
  */
 
+import { deserializeRpcMessage, serializeRpcMessage } from './message-serializer.js';
 import type { RpcMessage } from './rpc-types.js';
 import type { RpcTransport, WebSocketTransportOptions } from './transport.js';
-import { serializeRpcMessage, deserializeRpcMessage } from './message-serializer.js';
 
 // Message framing: length-prefixed binary messages
 // Format: [4 bytes: message length (little-endian)] [N bytes: message data]

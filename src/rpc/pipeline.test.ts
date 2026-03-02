@@ -4,14 +4,14 @@
  * Tests for Phase 2 Promise Pipelining implementation
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createPipelineClient,
-  isPipelineClient,
+  PIPELINE_CLIENT_SYMBOL,
   PipelineOpTracker,
   PipelineResolutionTracker,
   QueuedCallManager,
-  PIPELINE_CLIENT_SYMBOL,
+  createPipelineClient,
+  isPipelineClient,
 } from './pipeline.js';
 import type { RpcConnection } from './rpc-connection.js';
 import type { Payload } from './rpc-types.js';
@@ -241,7 +241,10 @@ describe('PipelineResolutionTracker', () => {
     tracker.resolveToException(42, 'Something went wrong');
 
     expect(tracker.isResolved(42)).toBe(true);
-    expect(tracker.getResolution(42)).toEqual({ type: 'exception', reason: 'Something went wrong' });
+    expect(tracker.getResolution(42)).toEqual({
+      type: 'exception',
+      reason: 'Something went wrong',
+    });
   });
 
   it('should return undefined for unresolved questions', () => {

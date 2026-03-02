@@ -198,11 +198,14 @@ export class SturdyRefManager {
  */
 export class RestoreHandler {
   private connection: RpcConnection;
-  private pendingRestores = new Map<QuestionId, {
-    resolve: (importId: ImportId) => void;
-    reject: (error: Error) => void;
-    timeout: ReturnType<typeof setTimeout>;
-  }>();
+  private pendingRestores = new Map<
+    QuestionId,
+    {
+      resolve: (importId: ImportId) => void;
+      reject: (error: Error) => void;
+      timeout: ReturnType<typeof setTimeout>;
+    }
+  >();
   private questionIdCounter = 0;
 
   constructor(connection: RpcConnection) {
@@ -264,7 +267,7 @@ export class RestoreHandler {
    * Cancel all pending restores (e.g., on disconnect)
    */
   cancelAll(reason: string): void {
-    for (const [questionId, pending] of this.pendingRestores) {
+    for (const [_questionId, pending] of this.pendingRestores) {
       clearTimeout(pending.timeout);
       pending.reject(new Error(`Restore canceled: ${reason}`));
     }

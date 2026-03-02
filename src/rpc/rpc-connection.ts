@@ -11,6 +11,14 @@
  */
 
 import { AnswerTable, ExportTable, ImportTable, QuestionTable } from './four-tables.js';
+import {
+  type PipelineClient,
+  PipelineOpTracker,
+  PipelineResolutionTracker,
+  QueuedCallManager,
+  createPipelineClient,
+  isPipelineClient,
+} from './pipeline.js';
 import type {
   AnswerId,
   Bootstrap,
@@ -29,14 +37,6 @@ import type {
   RpcMessage,
 } from './rpc-types.js';
 import type { RpcTransport } from './transport.js';
-import {
-  type PipelineClient,
-  PipelineOpTracker,
-  PipelineResolutionTracker,
-  QueuedCallManager,
-  createPipelineClient,
-  isPipelineClient,
-} from './pipeline.js';
 
 export interface RpcConnectionOptions {
   /** Bootstrap capability to expose to the peer */

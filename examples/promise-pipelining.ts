@@ -4,9 +4,9 @@
  * This example demonstrates the Promise Pipelining feature of Phase 2.
  */
 
+import { createPipelineClient, isPipelineClient } from '../rpc/pipeline.js';
 import { RpcConnection } from '../rpc/rpc-connection.js';
 import { WebSocketTransport } from '../rpc/websocket-transport.js';
-import { createPipelineClient, isPipelineClient } from '../rpc/pipeline.js';
 
 /**
  * Example: Using Promise Pipelining
@@ -50,21 +50,16 @@ async function promisePipeliningExample() {
     const specificTable = databasePromise.getPointerField(0);
 
     // And make calls on that field
-    const tableResultPromise = specificTable.call(
-      BigInt('0xaaaaaaaaaaaaaaaa'),
-      2,
-      { content: new Uint8Array(), capTable: [] }
-    );
+    const tableResultPromise = specificTable.call(BigInt('0xaaaaaaaaaaaaaaaa'), 2, {
+      content: new Uint8Array(),
+      capTable: [],
+    });
 
     // Now wait for all results
-    const [queryResult, tableResult] = await Promise.all([
-      queryResultPromise,
-      tableResultPromise,
-    ]);
+    const [queryResult, tableResult] = await Promise.all([queryResultPromise, tableResultPromise]);
 
     console.log('Query result:', queryResult);
     console.log('Table result:', tableResult);
-
   } finally {
     await connection.stop();
   }
@@ -94,19 +89,17 @@ async function transformChainExample() {
     // Chain multiple field accesses
     // This builds up a transform chain: [getPointer(0), getPointer(2), getPointer(1)]
     const deepField = result
-      .getPointerField(0)  // First field
-      .getPointerField(2)  // Third field of that
+      .getPointerField(0) // First field
+      .getPointerField(2) // Third field of that
       .getPointerField(1); // Second field of that
 
     // The transform chain will be sent to the server
-    const finalResult = await deepField.call(
-      BigInt('0xbbbbbbbbbbbbbbbb'),
-      0,
-      { content: new Uint8Array(), capTable: [] }
-    );
+    const finalResult = await deepField.call(BigInt('0xbbbbbbbbbbbbbbbb'), 0, {
+      content: new Uint8Array(),
+      capTable: [],
+    });
 
     console.log('Deep field result:', finalResult);
-
   } finally {
     await connection.stop();
   }
@@ -126,12 +119,10 @@ async function capabilityLifecycleExample() {
     const bootstrap = await connection.bootstrap();
 
     // Make a call that returns a capability
-    const result = await connection.call(
-      bootstrap as number,
-      BigInt('0x1234567890abcdef'),
-      0,
-      { content: new Uint8Array(), capTable: [] }
-    );
+    const _result = await connection.call(bootstrap as number, BigInt('0x1234567890abcdef'), 0, {
+      content: new Uint8Array(),
+      capTable: [],
+    });
 
     // The result contains a capability in its capTable
     // We would extract it and use it...
@@ -139,7 +130,6 @@ async function capabilityLifecycleExample() {
     // When done, release the capability
     // This sends a Release message to the server
     await connection.release(1, 1); // importId=1, referenceCount=1
-
   } finally {
     await connection.stop();
   }
@@ -162,8 +152,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   // promisePipeliningExample().catch(console.error);
 }
 
-export {
-  promisePipeliningExample,
-  transformChainExample,
-  capabilityLifecycleExample,
-};
+export { promisePipeliningExample, transformChainExample, capabilityLifecycleExample };

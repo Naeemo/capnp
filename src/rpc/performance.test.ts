@@ -4,16 +4,16 @@
  * Tests for RPC performance optimizations
  */
 
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   MemoryPool,
   MultiSegmentMessageBuilder,
   OptimizedRpcMessageBuilder,
+  configureGlobalMemoryPool,
   createZeroCopyView,
-  isSameBuffer,
   fastCopy,
   getGlobalMemoryPool,
-  configureGlobalMemoryPool,
+  isSameBuffer,
 } from './performance.js';
 
 describe('MemoryPool', () => {
@@ -118,7 +118,7 @@ describe('MultiSegmentMessageBuilder', () => {
 
   it('should create multiple segments when needed', () => {
     const builder = new MultiSegmentMessageBuilder({
-      initialSegmentSize: 64,  // Small initial segment
+      initialSegmentSize: 64, // Small initial segment
       allowMultipleSegments: true,
     });
 

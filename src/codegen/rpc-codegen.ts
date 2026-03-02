@@ -20,7 +20,10 @@ export interface CallContext<TParams, TResults> {
   return(): void;
 
   /** Complete the call with an exception */
-  throwException(reason: string, type?: 'failed' | 'overloaded' | 'disconnected' | 'unimplemented'): void;
+  throwException(
+    reason: string,
+    type?: 'failed' | 'overloaded' | 'disconnected' | 'unimplemented'
+  ): void;
 }
 
 /**
@@ -97,7 +100,7 @@ export function generateRpcCode(
 function generateServerInterface(
   node: NodeReader,
   allNodes: NodeReader[],
-  opts: RpcCodegenOptions
+  _opts: RpcCodegenOptions
 ): string {
   const lines: string[] = [];
   const interfaceName = getShortName(node.displayName);
@@ -108,7 +111,9 @@ function generateServerInterface(
   for (const method of methods) {
     const paramType = getTypeNameById(method.paramStructType, allNodes, 'unknown');
     const resultType = getTypeNameById(method.resultStructType, allNodes, 'unknown');
-    lines.push(`  ${method.name}(context: CallContext<${paramType}Reader, ${resultType}Builder>): Promise<void> | void;`);
+    lines.push(
+      `  ${method.name}(context: CallContext<${paramType}Reader, ${resultType}Builder>): Promise<void> | void;`
+    );
   }
   lines.push('}');
 
@@ -121,7 +126,7 @@ function generateServerInterface(
 function generateServerStub(
   node: NodeReader,
   allNodes: NodeReader[],
-  opts: RpcCodegenOptions
+  _opts: RpcCodegenOptions
 ): string {
   const lines: string[] = [];
   const interfaceName = getShortName(node.displayName);
@@ -138,14 +143,18 @@ function generateServerStub(
   lines.push(`  static readonly interfaceId = ${node.id}n;`);
   lines.push('');
   lines.push('  /** Dispatch a method call to the appropriate handler */');
-  lines.push('  async dispatch(methodId: number, context: CallContext<unknown, unknown>): Promise<void> {');
+  lines.push(
+    '  async dispatch(methodId: number, context: CallContext<unknown, unknown>): Promise<void> {'
+  );
   lines.push('    switch (methodId) {');
 
   for (const method of methods) {
     const paramType = getTypeNameById(method.paramStructType, allNodes, 'unknown');
     const resultType = getTypeNameById(method.resultStructType, allNodes, 'unknown');
     lines.push(`      case ${interfaceName}MethodIds.${method.name}:`);
-    lines.push(`        return this.server.${method.name}(context as CallContext<${paramType}Reader, ${resultType}Builder>);`);
+    lines.push(
+      `        return this.server.${method.name}(context as CallContext<${paramType}Reader, ${resultType}Builder>);`
+    );
   }
 
   lines.push('      default:');
@@ -179,7 +188,9 @@ function generateClientClass(
   const methods = node.interfaceMethods;
 
   lines.push(`// ${interfaceName} Client Class`);
-  lines.push(`import type { RpcConnection, PipelineClient, Payload } from '${opts.rpcImportPath}';`);
+  lines.push(
+    `import type { RpcConnection, PipelineClient, Payload } from '${opts.rpcImportPath}';`
+  );
   lines.push(`import { BaseCapabilityClient } from '${opts.rpcImportPath}';`);
   lines.push('');
   lines.push(`export class ${interfaceName}Client extends BaseCapabilityClient {`);
@@ -187,7 +198,7 @@ function generateClientClass(
   lines.push('');
 
   // Constructor with connection
-  lines.push(`  constructor(connection: RpcConnection, importId?: number) {`);
+  lines.push('  constructor(connection: RpcConnection, importId?: number) {');
   lines.push('    super(connection, importId);');
   lines.push('  }');
   lines.push('');
@@ -197,36 +208,40 @@ function generateClientClass(
     const resultType = getTypeNameById(method.resultStructType, allNodes, 'unknown');
 
     // Generate method documentation
-    lines.push(`  /**`);
+    lines.push('  /**');
     lines.push(`   * ${method.name}`);
     lines.push(`   * @param params - ${paramType}`);
     lines.push(`   * @returns Promise<${resultType}Reader>`);
-    lines.push(`   */`);
+    lines.push('   */');
 
     // Generate method signature
-    lines.push(`  async ${method.name}(params: ${paramType}Builder): Promise<${resultType}Reader> {`);
-    lines.push(`    const result = await this.callMethod(`);
+    lines.push(
+      `  async ${method.name}(params: ${paramType}Builder): Promise<${resultType}Reader> {`
+    );
+    lines.push('    const result = await this.callMethod(');
     lines.push(`      ${interfaceName}Client.interfaceId,`);
     lines.push(`      ${interfaceName}MethodIds.${method.name},`);
-    lines.push(`      this.serializeParams(params)`);
-    lines.push(`    );`);
+    lines.push('      this.serializeParams(params)');
+    lines.push('    );');
     lines.push(`    return new ${resultType}Reader(result as StructReader);`);
-    lines.push(`  }`);
+    lines.push('  }');
     lines.push('');
 
     // Generate pipelined version
-    lines.push(`  /**`);
+    lines.push('  /**');
     lines.push(`   * ${method.name} with pipelining support`);
     lines.push(`   * @param params - ${paramType}`);
     lines.push(`   * @returns PipelineClient<${resultType}Reader>`);
-    lines.push(`   */`);
-    lines.push(`  ${method.name}Pipelined(params: ${paramType}Builder): PipelineClient<${resultType}Reader> {`);
-    lines.push(`    return this.callMethodPipelined(`);
+    lines.push('   */');
+    lines.push(
+      `  ${method.name}Pipelined(params: ${paramType}Builder): PipelineClient<${resultType}Reader> {`
+    );
+    lines.push('    return this.callMethodPipelined(');
     lines.push(`      ${interfaceName}Client.interfaceId,`);
     lines.push(`      ${interfaceName}MethodIds.${method.name},`);
-    lines.push(`      this.serializeParams(params)`);
+    lines.push('      this.serializeParams(params)');
     lines.push(`    ) as PipelineClient<${resultType}Reader>;`);
-    lines.push(`  }`);
+    lines.push('  }');
     lines.push('');
   }
 

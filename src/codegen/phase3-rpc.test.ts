@@ -4,8 +4,8 @@
  * Tests for the enhanced RPC code generation features.
  */
 
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'fs';
 import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 import { generateFromRequest } from './generator-v3.js';
 

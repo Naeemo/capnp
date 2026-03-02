@@ -1,10 +1,10 @@
-import { readFileSync } from 'fs';
-import { execSync } from 'child_process';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { mkdtempSync, writeFileSync, rmSync } from 'fs';
-import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { generateFromRequest } from '../codegen/generator-v3.js';
+import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 
 // Simulate CLI behavior
 const inputFile = '/root/.openclaw/workspace/capnp-ts/examples/calculator/calculator.capnp';

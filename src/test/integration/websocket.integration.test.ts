@@ -4,14 +4,15 @@
  * Phase 3: Real WebSocket server/client tests
  */
 
-import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-import { WebSocketTransport } from '../../rpc/websocket-transport.js';
-import { RpcConnection } from '../../rpc/rpc-connection.js';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { StructBuilder, StructReader } from '../../core/index.js';
 import type { CallContext } from '../../rpc/call-context.js';
-import type { StructReader, StructBuilder } from '../../core/index.js';
+import { RpcConnection } from '../../rpc/rpc-connection.js';
+import { WebSocketTransport } from '../../rpc/websocket-transport.js';
 
 // Simple test server implementation
-class TestServer {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class _TestServer {
   private requestCount = 0;
 
   async handleCall(methodId: number, params: unknown): Promise<unknown> {
@@ -81,7 +82,7 @@ describe.skip('WebSocket Integration', () => {
       // Use a short timeout to fail fast
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 1000);
-      
+
       await WebSocketTransport.connect('ws://127.0.0.1:59999');
       clearTimeout(timeout);
       expect.fail('Should have thrown an error');
@@ -158,10 +159,16 @@ describe('CallContext Integration', () => {
     const { CallContextImpl } = require('../../rpc/call-context.ts');
 
     // Mock params and results
-    const mockParams = { getMessage() { return 'hello'; } } as unknown as StructReader;
+    const mockParams = {
+      getMessage() {
+        return 'hello';
+      },
+    } as unknown as StructReader;
     const mockResults = {
       message: '',
-      setMessage(value: string) { (this as unknown as { message: string }).message = value; },
+      setMessage(value: string) {
+        (this as unknown as { message: string }).message = value;
+      },
     } as unknown as StructBuilder;
 
     const context = new CallContextImpl(mockParams, mockResults);

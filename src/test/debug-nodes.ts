@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 
 const buffer = readFileSync('/tmp/calculator.bin');
