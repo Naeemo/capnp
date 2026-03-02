@@ -1,49 +1,44 @@
 import { describe, expect, it } from 'vitest';
-import { generateCode } from './generator-v2.js';
-import { parseSchemaV2 } from './parser-v2.js';
+import { execSync } from 'node:child_process';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
+import { generateFromRequest } from './generator.js';
 
 describe('Code Generator', () => {
-  it('should parse simple schema', () => {
+  it('should generate TypeScript from binary schema', () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'capnp-test-'));
+    const schemaFile = join(tempDir, 'test.capnp');
+    const binFile = join(tempDir, 'test.bin');
+
+    // 创建测试 schema
     const schema = `
-      struct Person {
-        name @0 :Text;
-        age @1 :UInt32;
-      }
+@0xdbb9ad1f14bf0b36;
+
+struct Person {
+  name @0 :Text;
+  age @1 :UInt32;
+}
     `;
 
-    const result = parseSchemaV2(schema);
-    expect(result.structs).toHaveLength(1);
-    expect(result.structs[0].name).toBe('Person');
-    expect(result.structs[0].fields).toHaveLength(2);
-  });
+    writeFileSync(schemaFile, schema);
 
-  it('should parse enum', () => {
-    const schema = `
-      enum Status {
-        active @0;
-        inactive @1;
-        pending @2;
-      }
-    `;
+    // 编译为二进制 schema
+    execSync(`capnp compile -o- "${schemaFile}" > "${binFile}"`, { encoding: 'utf-8' });
 
-    const result = parseSchemaV2(schema);
-    expect(result.enums).toHaveLength(1);
-    expect(result.enums[0].name).toBe('Status');
-    expect(result.enums[0].values).toHaveLength(3);
-  });
+    // 读取并生成代码
+    const buffer = readFileSync(binFile);
+    const reader = new CodeGeneratorRequestReader(buffer);
+    const code = generateFromRequest(reader);
 
-  it('should generate TypeScript code', () => {
-    const schema = `
-      struct Person {
-        name @0 :Text;
-        age @1 :UInt32;
-      }
-    `;
+    // 验证生成的代码
+    expect(code).toContain('class PersonReader');
+    expect(code).toContain('class PersonBuilder');
+    expect(code).toContain('get name(): string');
+    expect(code).toContain('get age(): number');
 
-    const parsed = parseSchemaV2(schema);
-    const generated = generateCode(parsed);
-
-    expect(generated).toContain('class PersonReader');
-    expect(generated).toContain('class PersonBuilder');
+    // 清理
+    rmSync(tempDir, { recursive: true });
   });
 });
