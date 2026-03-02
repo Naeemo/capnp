@@ -36,7 +36,7 @@ describe('C++ Interop Tests', () => {
 
   afterAll(async () => {
     if (connection) {
-      await connection.close();
+      await connection.stop();
     }
     if (transport) {
       transport.close();
@@ -149,11 +149,9 @@ describe('C++ Interop Tests', () => {
       // Send an invalid message type
       const invalidMessage: RpcMessage = {
         type: 'abort',
-        abort: {
+        exception: {
           reason: 'Test abort',
           type: 'failed',
-          obsoleteIsCallersFault: false,
-          obsoleteDurability: 0,
         },
       };
 

@@ -1,13 +1,19 @@
 /**
  * Cap'n Proto RPC Module
  *
- * Phase 2: Level 1 RPC Implementation
+ * Phase 4: Level 3 RPC Implementation
  * - Basic message exchange
  * - Bootstrap
  * - Simple Call/Return/Finish
- * - Promise Pipelining (NEW)
- * - Capability passing (NEW)
- * - Resolve/Release/Disembargo (NEW)
+ * - Promise Pipelining
+ * - Capability passing
+ * - Resolve/Release/Disembargo
+ * - SturdyRefs (persistent capabilities)
+ * - Level 3 RPC: Three-way introductions (NEW)
+ *   - Provide/Accept messages
+ *   - ConnectionManager for multi-vat scenarios
+ *   - Third-party capability passing
+ *   - Embargo handling for cycle breaking
  */
 
 // Types
@@ -72,13 +78,13 @@ export {
   type CapabilityClientFactory,
 } from './capability-client.js';
 
-// Message Serialization (NEW in Phase 2)
+// Message Serialization
 export {
   serializeRpcMessage,
   deserializeRpcMessage,
 } from './message-serializer.js';
 
-// Promise Pipelining (NEW in Phase 2)
+// Promise Pipelining
 export {
   createPipelineClient,
   isPipelineClient,
@@ -92,10 +98,10 @@ export {
   type ResolvedCapability,
 } from './pipeline.js';
 
-// Call Context (NEW in Phase 3)
+// Call Context
 export type { CallContext } from './call-context.js';
 
-// SturdyRefs (NEW in Phase 3)
+// SturdyRefs
 export {
   SturdyRefManager,
   RestoreHandler,
@@ -108,7 +114,7 @@ export {
   type RestoreOptions,
 } from './sturdyrefs.js';
 
-// Performance Optimizations (NEW in Phase 3)
+// Performance Optimizations
 export {
   MemoryPool,
   MultiSegmentMessageBuilder,
@@ -122,3 +128,23 @@ export {
   type MultiSegmentOptions,
   type RpcMessageOptions,
 } from './performance.js';
+
+// Level 3 RPC: Connection Manager (NEW)
+export {
+  ConnectionManager,
+  createThirdPartyCapId,
+  createRecipientId,
+  createProvisionId,
+  generateProvisionId,
+  generateVatId,
+  type ConnectionManagerOptions,
+  type ConnectionInfo,
+  type PendingProvision,
+  type VatId,
+} from './connection-manager.js';
+
+// Level 3 RPC: Message Handlers (NEW)
+export {
+  Level3Handlers,
+  type Level3HandlersOptions,
+} from './level3-handlers.js';

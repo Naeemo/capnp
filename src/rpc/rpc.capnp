@@ -1,3 +1,5 @@
+@0xb312981b2552a250;
+
 # Copyright (c) 2013-2014 Sandstorm Development Group, Inc. and contributors
 # Licensed under the MIT License:
 #
@@ -18,12 +20,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-
-@0xb312981b2552a250;
-
-# Cap'n Proto RPC Protocol Definition
-# This is the official protocol definition for Cap'n Proto RPC.
-# See: https://capnproto.org/rpc.html
 
 using Cxx = import "c++.capnp";
 $Cxx.namespace("capnp::rpc");
@@ -82,15 +78,15 @@ struct Message {
     release @6 :Release;
     disembargo @13 :Disembargo;
 
-    # Level 2 features (not implemented in Phase 1)
+    # Level 2 features (deprecated in this version)
     obsoleteSave @7 :AnyPointer;
     obsoleteDelete @9 :AnyPointer;
 
-    # Level 3 features (not implemented in Phase 1)
+    # Level 3 features (Three-way introductions) ----------------------
     provide @10 :Provide;
     accept @11 :Accept;
 
-    # Level 4 features (not implemented in Phase 1)
+    # Level 4 features (Join) ----------------------------------------
     join @12 :Join;
   }
 }
@@ -263,41 +259,57 @@ struct Disembargo {
   }
 }
 
-# Level 3 message types ----------------------------------------------
+# Level 3 message types (Three-way introductions) --------------------
 
 struct Provide {
   # Message type sent to indicate that the sender wishes to make a particular capability 
   # implemented by the receiver available to a third party for direct access.
+  #
+  # This is part of the "three-way introduction" protocol. When Alice wants to introduce
+  # Bob to Carol, Alice sends a Provide message to Carol, identifying Bob as the recipient.
+  # Carol then waits for Bob to connect and send an Accept message.
 
   questionId @0 :QuestionId;
   # Question ID to be held open until the recipient has received the capability.
+  # This allows the sender to pipeline messages to the provided capability.
 
   target @1 :MessageTarget;
   # What is to be provided to the third party.
 
   recipient @2 :RecipientId;
   # Identity of the third party that is expected to pick up the capability.
+  # This is typically a vat ID or public key that identifies Bob.
 }
 
 struct Accept {
   # Message type sent to pick up a capability hosted by the receiving vat and provided by a 
   # third party.
+  #
+  # This is the second part of the "three-way introduction" protocol. After Alice has sent
+  # a Provide message to Carol, Bob sends an Accept message to Carol to pick up the
+  # capability.
 
   questionId @0 :QuestionId;
   # A new question ID identifying this accept message.
 
   provision @1 :ProvisionId;
-  # Identifies the provided object to be picked up.
+  # Identifies the provided object to be picked up. This is obtained from the Provide
+  # message or from a ThirdPartyCapId.
 
   embargo @2 :Bool;
-  # If true, this accept shall be temporarily embargoed.
+  # If true, this accept shall be temporarily embargoed. This is used to break cycles
+  # in the introduction graph (e.g., when Alice introduces Bob to Carol and Carol to Bob
+  # simultaneously).
 }
 
-# Level 4 message types ----------------------------------------------
+# Level 4 message types (Join) ---------------------------------------
 
 struct Join {
   # Level 4: Message type sent to establish direct connectivity to the common root of two 
   # or more proxied capabilities.
+  #
+  # Join is used to verify that two capabilities are actually the same object. This is
+  # important for capability-based security when proxies are involved.
 
   questionId @0 :QuestionId;
   # Question ID for this join operation.
@@ -309,7 +321,7 @@ struct Join {
   # The second capability to join.
 
   joinId @3 :UInt32;
-  # Identifier for this join operation.
+  # Identifier for this join operation. Used to correlate the result.
 }
 
 # ========================================================================================
@@ -361,7 +373,8 @@ struct CapDescriptor {
     # A capability that will be returned by the specified promised answer.
 
     thirdPartyHosted @5 :ThirdPartyCapId;
-    # Level 3: A capability hosted by a third party.
+    # Level 3: A capability hosted by a third party. The receiver should contact the
+    # third party to obtain direct access to this capability.
   }
 }
 
@@ -443,18 +456,92 @@ struct ReceiverHostedCap {
 
 struct ThirdPartyCapId {
   # Level 3: Identifies a capability hosted by a third party.
+  #
+  # This is used when a capability is passed from Alice to Bob, but the capability
+  # is actually hosted by Carol. Bob uses this ID to connect to Carol and pick up
+  # the capability.
+
   id @0 :Data;
-  # Placeholder for third-party capability ID.
+  # Network-specific identifier for the third-party capability.
+  # This typically contains:
+  # - The vat ID of the hosting vat (Carol)
+  # - A provision ID that identifies the specific capability
+  # - Connection hints (address, port, etc.)
 }
 
 struct RecipientId {
   # Level 3: Identifies a vat that is expected to receive a capability.
+  #
+  # This is used in Provide messages to specify who is allowed to pick up the
+  # provided capability.
+
   id @0 :Data;
-  # Placeholder for recipient ID.
+  # Network-specific identifier for the recipient vat.
+  # This typically contains:
+  # - The vat ID or public key of the recipient
+  # - Authentication information
 }
 
 struct ProvisionId {
   # Level 3: Identifies a capability being provided to a recipient.
+  #
+  # This is used in Accept messages to identify which provided capability to pick up.
+
   id @0 :Data;
-  # Placeholder for provision ID.
+  # Network-specific identifier for the provision.
+  # This is typically generated by the providing vat and is unique within the
+  # context of the introduction.
 }
+
+# ========================================================================================
+# Level 3 RPC: Three-way Introductions - Detailed Protocol
+# ========================================================================================
+#
+# The three-way introduction protocol allows capabilities to be passed between vats
+# that don't have a direct connection, and enables those vats to form direct connections.
+#
+# Example scenario: Alice wants to introduce Bob to Carol
+#
+# 1. Initial state:
+#    - Alice has connections to both Bob and Carol
+#    - Bob and Carol have no direct connection
+#    - Alice holds a capability to Carol's service
+#
+# 2. Alice sends Carol a Provide message:
+#    - questionId: new ID for this introduction
+#    - target: the capability Alice wants to share (Carol's service)
+#    - recipient: Bob's vat ID
+#
+# 3. Carol receives the Provide message:
+#    - Creates a pending provision for Bob
+#    - Returns an answer to Alice (can be empty)
+#
+# 4. Alice sends Bob a capability reference (CapDescriptor with thirdPartyHosted):
+#    - thirdPartyCapId contains Carol's vat ID and provision ID
+#
+# 5. Bob receives the capability and wants to use it:
+#    - Detects it's a third-party capability
+#    - Establishes a connection to Carol (if not already connected)
+#    - Sends an Accept message to Carol
+#
+# 6. Carol receives Bob's Accept:
+#    - Matches the provision ID to the pending provision
+#    - Returns the actual capability to Bob
+#    - Bob can now call Carol directly
+#
+# 7. Embargo handling:
+#    - If Bob was already calling Carol through Alice, those calls are embargoed
+#    - Once the direct connection is established, the embargo is lifted
+#    - Disembargo messages are used to synchronize this
+#
+# Key benefits:
+# - Bob and Carol communicate directly, not through Alice
+# - Alice doesn't see the messages between Bob and Carol
+# - Reduces latency and load on Alice
+# - Preserves capability security
+#
+# Cycle breaking with Embargo:
+# - If Alice introduces Bob to Carol AND Carol to Bob simultaneously
+# - Both introductions use embargo=true
+# - This prevents deadlock where both wait for the other to complete
+# - The embargoes are lifted once the connections are established
