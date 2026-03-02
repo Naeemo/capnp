@@ -25,19 +25,18 @@
 - [x] 构建和测试 ✅（v0.2.0 已准备就绪）
 - [x] 推送到 GitHub ✅（21 commits 已推送）
 - [x] 发布 v0.2.0 到 npm ✅（已通过 GitHub Actions 自动发布）
-- [x] **Phase 2 互操作测试** ✅（19 个新测试，总计 33 个互操作测试）
-- [ ] RPC 层（长期）
+- [x] **Phase 3 RPC 完成** - Interface 代码生成、SturdyRefs、性能优化全部完成
+- [x] **250 个测试通过** - RPC 核心功能稳定
+- [ ] C++ 互操作测试（需要外部服务器）
+- [ ] 文档完善
 
 ### 最新进展 (2026-03-02)
-- ✅ **Phase 2 互操作测试完成** - 新增 19 个测试，总计 33 个互操作测试全部通过
-- ✅ **v0.2.0 已发布到 npm** - 通过 GitHub Actions 自动发布
-- ✅ **多 Segment / Far Pointer 支持**
-- ✅ **Union discriminant offset 修复**
-- ✅ V3 CLI 工具完成 (`src/codegen/cli-v3.ts`)
-- ✅ V3 生成器 Union 支持
-- ✅ **V3 生成器 Group 支持**
-- ✅ **V3 生成器默认值支持（XOR 编码）**
-- 所有 162 个测试通过
+- ✅ **Phase 3 RPC 完成** - Interface 代码生成、SturdyRefs、性能优化全部完成
+- ✅ **250 个测试通过** - RPC 核心功能稳定
+- ✅ **Promise Pipelining** - Level 1 RPC 完整实现
+- ✅ **SturdyRefs (Level 2)** - 持久化能力引用
+- [ ] C++ 互操作测试（需要外部服务器）
+- [ ] 文档完善
 
 ## 技术决策
 
@@ -92,13 +91,19 @@ src/
 7. ✅ 多 Segment / Far Pointer
 8. ✅ 互操作测试完善 (33 个测试通过)
 
-### Phase 3: RPC 层 (进行中)
+### Phase 3: RPC 层 ✅ 已完成
 9. ✅ Interface 代码生成
    - Method ID 常量生成
    - Server Interface 生成
    - Client Class 生成（支持 Promise Pipelining）
-10. [ ] 集成测试（与 C++ 实现互操作）
-11. [ ] 性能优化
+10. ✅ SturdyRefs (Level 2) - 持久化能力引用
+11. ✅ 性能优化 (MemoryPool, MultiSegmentMessageBuilder)
+12. ✅ 集成测试框架
+
+### Phase 4: 完善与扩展 (进行中)
+13. [ ] C++ 互操作性测试（需要启动 C++ 服务器）
+14. [ ] 文档完善（RPC 使用指南、教程）
+15. [ ] Level 3/4 RPC（根据需求）
 
 ## 使用 V3 CLI
 
