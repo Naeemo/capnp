@@ -293,10 +293,8 @@ export function supportsStreaming(connection: RpcConnection): connection is Stre
   return connection instanceof StreamingRpcConnection;
 }
 
-// Re-export types
+// Re-export types from stream-manager
 export type {
-  StreamingCapabilities,
-  StreamingRpcConnectionOptions,
   StreamManager,
   StreamType,
   CreateStreamOptions,

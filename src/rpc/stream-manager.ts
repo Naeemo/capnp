@@ -196,7 +196,7 @@ export class StreamManager {
     const streamOptions: StreamOptions = {
       streamId,
       direction: options.direction ?? 'bidirectional',
-      priority: options.priority ?? this.config.defaultPriority,
+      priority: options.priority ?? this.config.defaultPriority ?? StreamPriority.NORMAL,
       metadata: options.metadata,
       flowControl: options.flowControl,
     };
@@ -227,7 +227,7 @@ export class StreamManager {
       id: streamId,
       type,
       direction: streamOptions.direction,
-      priority: streamOptions.priority,
+      priority: streamOptions.priority ?? StreamPriority.NORMAL,
       state: 'connecting',
       createdAt: Date.now(),
       bytesTransferred: 0,
@@ -490,16 +490,17 @@ export function createStreamManager(
 }
 
 // Re-export types
-export { Stream, StreamPriority, StreamOptions, StreamState, StreamDirection } from './stream.js';
-export {
+export type { Stream, StreamOptions, StreamState, StreamDirection } from './stream.js';
+export { StreamPriority } from './stream.js';
+export type {
   BulkTransfer,
-  BulkTransferManager,
   BulkTransferConfig,
   BulkTransferMetadata,
 } from './bulk.js';
-export {
+export { BulkTransferManager } from './bulk.js';
+export type {
   RealtimeStream,
-  RealtimeStreamManager,
   RealtimeConfig,
   RealtimeStreamHandlers,
 } from './realtime.js';
+export { RealtimeStreamManager } from './realtime.js';

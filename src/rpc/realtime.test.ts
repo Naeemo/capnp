@@ -251,32 +251,34 @@ describe('RealtimeStream', () => {
       );
     });
 
-    it('should call onBandwidthAdapt when bitrate changes', (done) => {
-      const onBandwidthAdapt = vi.fn((newBitrate: number) => {
-        expect(typeof newBitrate).toBe('number');
-        done();
+    it('should call onBandwidthAdapt when bitrate changes', () => {
+      return new Promise<void>((resolve) => {
+        const onBandwidthAdapt = vi.fn((newBitrate: number) => {
+          expect(typeof newBitrate).toBe('number');
+          resolve();
+        });
+
+        const adaptStream = new RealtimeStream(
+          baseStream,
+          {
+            adaptiveBitrate: true,
+            bandwidthWindowMs: 50,
+          },
+          { onBandwidthAdapt }
+        );
+
+        adaptStream.start();
+
+        // Send some messages to generate bandwidth data
+        for (let i = 0; i < 10; i++) {
+          adaptStream.sendMessage(new Uint8Array(1000), StreamPriority.NORMAL);
+        }
+
+        // Force bandwidth update
+        setTimeout(() => {
+          (adaptStream as unknown as { updateBandwidthStats: () => void }).updateBandwidthStats();
+        }, 100);
       });
-
-      const adaptStream = new RealtimeStream(
-        baseStream,
-        {
-          adaptiveBitrate: true,
-          bandwidthWindowMs: 50,
-        },
-        { onBandwidthAdapt }
-      );
-
-      adaptStream.start();
-
-      // Send some messages to generate bandwidth data
-      for (let i = 0; i < 10; i++) {
-        adaptStream.sendMessage(new Uint8Array(1000), StreamPriority.NORMAL);
-      }
-
-      // Force bandwidth update
-      setTimeout(() => {
-        (adaptStream as unknown as { updateBandwidthStats: () => void }).updateBandwidthStats();
-      }, 100);
     });
   });
 
@@ -311,24 +313,26 @@ describe('RealtimeStream', () => {
   });
 
   describe('Latency Tracking', () => {
-    it('should track latency changes', (done) => {
-      const onLatencyChange = vi.fn((latencyMs: number) => {
-        expect(typeof latencyMs).toBe('number');
-        done();
+    it('should track latency changes', () => {
+      return new Promise<void>((resolve) => {
+        const onLatencyChange = vi.fn((latencyMs: number) => {
+          expect(typeof latencyMs).toBe('number');
+          resolve();
+        });
+
+        const latencyStream = new RealtimeStream(
+          baseStream,
+          { bandwidthWindowMs: 50 },
+          { onLatencyChange }
+        );
+
+        latencyStream.start();
+
+        // Simulate incoming messages with latency
+        setTimeout(() => {
+          (latencyStream as unknown as { updateBandwidthStats: () => void }).updateBandwidthStats();
+        }, 100);
       });
-
-      const latencyStream = new RealtimeStream(
-        baseStream,
-        { bandwidthWindowMs: 50 },
-        { onLatencyChange }
-      );
-
-      latencyStream.start();
-
-      // Simulate incoming messages with latency
-      setTimeout(() => {
-        (latencyStream as unknown as { updateBandwidthStats: () => void }).updateBandwidthStats();
-      }, 100);
     });
   });
 });
