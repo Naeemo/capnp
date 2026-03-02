@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0] - 2026-03-02
+
+### Added
+- **RPC Layer**: Complete Cap'n Proto RPC implementation (Level 0-2)
+  - Promise Pipelining for chained RPC calls
+  - Capability passing between client and server
+  - SturdyRefs for persistent capability references
+  - WebSocket transport layer
+- **RPC Code Generation**: Generate TypeScript Client/Server from interface definitions
+- **Performance Optimizations**: MemoryPool, MultiSegmentMessageBuilder, zero-copy utilities
+- **Integration Tests**: WebSocket and RPC integration test suite
+- **Examples**: Echo service, Calculator, Promise Pipelining examples
+
+### Changed
+- Enhanced V3 code generator with RPC interface support
+- 257 tests passing (up from 143)
+
 ## [0.2.0] - 2026-03-02
 
 ### Added
@@ -27,5 +44,6 @@
 - CLI: `npx @naeemo/capnp gen schema.capnp -o types.ts`
 - 133 tests passing
 
+[0.3.0]: https://github.com/Naeemo/capnp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Naeemo/capnp/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Naeemo/capnp/releases/tag/v0.1.0

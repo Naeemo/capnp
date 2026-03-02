@@ -164,14 +164,21 @@ export class MultiSegmentMessageBuilder {
    * Allocate space in the message
    */
   allocate(size: number): { segment: Segment; offset: number } {
-    // Align to 8 bytes
-    const alignedSize = (size + 7) & ~7;
+    // Align to 8 bytes and convert to words
+    const alignedBytes = (size + 7) & ~7;
+    const words = alignedBytes / 8;
 
-    // Try to allocate in current segment
-    const offset = this.currentSegment.allocate(alignedSize);
-    if (offset >= 0) {
-      this.totalSize += alignedSize;
-      return { segment: this.currentSegment, offset };
+    // Check if current segment has enough space
+    // Segment capacity is the buffer size, not the current size
+    const currentCapacity = this.currentSegment.byteLength;
+    const currentUsed = this.currentSegment.wordCount * 8; // wordCount * 8 = bytes used
+    const remainingSpace = currentCapacity - currentUsed;
+
+    if (remainingSpace >= alignedBytes) {
+      // Current segment has enough space
+      const wordOffset = this.currentSegment.allocate(words);
+      this.totalSize += alignedBytes;
+      return { segment: this.currentSegment, offset: wordOffset * 8 };
     }
 
     // Need a new segment
@@ -181,15 +188,15 @@ export class MultiSegmentMessageBuilder {
 
     // Create new segment
     const newSegmentSize = Math.min(
-      Math.max(alignedSize, this.options.initialSegmentSize),
+      Math.max(alignedBytes, this.options.initialSegmentSize),
       this.options.maxSegmentSize
     );
     this.currentSegment = new Segment(newSegmentSize);
     this.segments.push(this.currentSegment);
 
-    const newOffset = this.currentSegment.allocate(alignedSize);
-    this.totalSize += alignedSize;
-    return { segment: this.currentSegment, offset: newOffset };
+    const newWordOffset = this.currentSegment.allocate(words);
+    this.totalSize += alignedBytes;
+    return { segment: this.currentSegment, offset: newWordOffset * 8 };
   }
 
   /**
