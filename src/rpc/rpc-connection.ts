@@ -17,6 +17,13 @@
 
 import type { ConnectionManager, VatId } from './connection-manager.js';
 import { AnswerTable, ExportTable, ImportTable, QuestionTable } from './four-tables.js';
+import { parseSchemaNodes, createSchemaRegistry } from './schema-parser.js';
+import type { SchemaNode, SchemaTarget, SchemaPayload, SchemaRegistry } from './schema-types.js';
+import { SchemaFormat } from './schema-types.js';
+import {
+  serializeSchemaRequest,
+  deserializeSchemaResponse,
+} from './schema-serializer.js';
 import type { Level3Handlers } from './level3-handlers.js';
 import type { Level4Handlers } from './level4-handlers.js';
 import {
@@ -86,6 +93,11 @@ export class RpcConnection {
 
   // Phase 6: Level 4 handlers
   private level4Handlers?: Level4Handlers;
+
+  // Phase 7: Dynamic Schema cache
+  private schemaCache: Map<bigint, SchemaNode> = new Map();
+  private schemaRegistry: SchemaRegistry = createSchemaRegistry();
+  private schemaQuestionIdCounter = 1000000; // Separate counter for schema requests
 
   constructor(transport: RpcTransport, options: RpcConnectionOptions = {}) {
     this.transport = transport;
@@ -733,5 +745,273 @@ export class RpcConnection {
     // This is a simplified implementation
     // In a full implementation, we'd send the Provide message and wait for response
     return undefined;
+  }
+
+  // ========================================================================================
+  // Phase 7: Dynamic Schema Methods
+  // ========================================================================================
+
+  /**
+   * Get dynamic schema information for a type from the remote server.
+   * This allows runtime discovery of schema information for types not known at compile time.
+   * 
+   * Results are cached to avoid repeated network requests for the same type.
+   * 
+   * @param typeId - The unique type ID of the schema to fetch
+   * @returns The schema node for the requested type
+   * @throws Error if the schema cannot be fetched or parsed
+   * 
+   * @example
+   * ```typescript
+   * const schema = await connection.getDynamicSchema(0x1234567890abcdefn);
+   * console.log('Struct fields:', schema.structInfo?.fields);
+   * ```
+   */
+  async getDynamicSchema(typeId: bigint): Promise<SchemaNode> {
+    // Check cache first
+    const cached = this.schemaCache.get(typeId);
+    if (cached) {
+      return cached;
+    }
+
+    // Check registry
+    const registered = this.schemaRegistry.getNode(typeId);
+    if (registered) {
+      this.schemaCache.set(typeId, registered);
+      return registered;
+    }
+
+    // Fetch from remote
+    const schemaPayload = await this.fetchSchemaFromRemote({ type: 'byTypeId', typeId });
+    
+    // Parse the schema data
+    const nodes = parseSchemaNodes(schemaPayload.schemaData);
+    
+    // Register all parsed nodes
+    for (const node of nodes) {
+      this.schemaRegistry.registerNode(node);
+      this.schemaCache.set(node.id, node);
+    }
+
+    // Return the requested node
+    const result = this.schemaRegistry.getNode(typeId);
+    if (!result) {
+      throw new Error(`Schema for type ${typeId.toString(16)} not found in response`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Get dynamic schema by type name.
+   * 
+   * @param typeName - The fully qualified type name (e.g., "foo.bar.MyStruct")
+   * @returns The schema node for the requested type
+   * @throws Error if the schema cannot be fetched or parsed
+   */
+  async getDynamicSchemaByName(typeName: string): Promise<SchemaNode> {
+    // Check registry by name
+    const registered = this.schemaRegistry.getNodeByName(typeName);
+    if (registered) {
+      this.schemaCache.set(registered.id, registered);
+      return registered;
+    }
+
+    // Fetch from remote
+    const schemaPayload = await this.fetchSchemaFromRemote({ type: 'byTypeName', typeName });
+    
+    // Parse the schema data
+    const nodes = parseSchemaNodes(schemaPayload.schemaData);
+    
+    // Register all parsed nodes
+    for (const node of nodes) {
+      this.schemaRegistry.registerNode(node);
+      this.schemaCache.set(node.id, node);
+    }
+
+    // Return the requested node
+    const result = this.schemaRegistry.getNodeByName(typeName);
+    if (!result) {
+      throw new Error(`Schema for type "${typeName}" not found in response`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Fetch schema information from the remote vat.
+   * This is an internal method used by getDynamicSchema.
+   * 
+   * @param target - The schema target specification
+   * @returns The schema payload containing binary schema data
+   * @throws Error if the request fails
+   */
+  private async fetchSchemaFromRemote(target: SchemaTarget): Promise<SchemaPayload> {
+    if (!this.running) {
+      throw new Error('Connection is not running');
+    }
+
+    const questionId = this.schemaQuestionIdCounter++;
+
+    // Create schema request
+    const requestData = serializeSchemaRequest({
+      questionId,
+      targetSchema: target,
+    });
+
+    // Send the request as a custom RPC message
+    // In a full implementation, this would use a proper RPC interface
+    // For now, we use a simplified approach with a custom message type
+    const schemaRequestMsg: RpcMessage = {
+      type: 'call',
+      call: {
+        questionId,
+        target: { type: 'importedCap', importId: 0 }, // Schema capability ID
+        interfaceId: BigInt('0x1234567890abcdef'), // Schema interface ID
+        methodId: 0, // getSchema method
+        allowThirdPartyTailCall: false,
+        noPromisePipelining: false,
+        onlyPromisePipeline: false,
+        params: {
+          content: requestData,
+          capTable: [],
+        },
+        sendResultsTo: { type: 'caller' },
+      },
+    };
+
+    await this.transport.send(schemaRequestMsg);
+
+    // Wait for response
+    const question = this.questions.create();
+    // Override the question ID to match our schema request
+    (question as { id: number }).id = questionId;
+
+    try {
+      const result = await question.completionPromise;
+      
+      // Parse the response
+      if (result && typeof result === 'object' && 'content' in result) {
+        const response = deserializeSchemaResponse((result as { content: Uint8Array }).content);
+        
+        if (response.result.type === 'success') {
+          return response.result.payload;
+        } else {
+          throw new Error(`Schema request failed: ${response.result.exception.reason}`);
+        }
+      }
+      
+      throw new Error('Invalid schema response format');
+    } catch (error) {
+      this.questions.remove(questionId);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the schema registry for this connection.
+   * The registry contains all schemas that have been fetched or registered.
+   * 
+   * @returns The schema registry
+   */
+  getSchemaRegistry(): SchemaRegistry {
+    return this.schemaRegistry;
+  }
+
+  /**
+   * Register a schema node locally.
+   * This can be used to pre-populate the schema cache or add custom schemas.
+   * 
+   * @param node - The schema node to register
+   */
+  registerSchema(node: SchemaNode): void {
+    this.schemaRegistry.registerNode(node);
+    this.schemaCache.set(node.id, node);
+  }
+
+  /**
+   * Clear the schema cache.
+   * This forces subsequent getDynamicSchema calls to fetch from the remote server.
+   */
+  clearSchemaCache(): void {
+    this.schemaCache.clear();
+  }
+
+  /**
+   * Check if a schema is cached locally.
+   * 
+   * @param typeId - The type ID to check
+   * @returns True if the schema is in the cache
+   */
+  hasCachedSchema(typeId: bigint): boolean {
+    return this.schemaCache.has(typeId) || this.schemaRegistry.hasNode(typeId);
+  }
+
+  /**
+   * List all available schemas from the remote vat.
+   * This requires the remote to support the schema listing capability.
+   * 
+   * @returns Array of available schema information
+   * @throws Error if the request fails or is not supported
+   */
+  async listAvailableSchemas(): Promise<Array<{ typeId: bigint; displayName: string }>> {
+    if (!this.running) {
+      throw new Error('Connection is not running');
+    }
+
+    const questionId = this.schemaQuestionIdCounter++;
+
+    // Create list schemas request
+    const requestData = serializeSchemaRequest({
+      questionId,
+      targetSchema: { type: 'allSchemas' },
+    });
+
+    const listRequestMsg: RpcMessage = {
+      type: 'call',
+      call: {
+        questionId,
+        target: { type: 'importedCap', importId: 0 },
+        interfaceId: BigInt('0x1234567890abcdef'),
+        methodId: 1, // listSchemas method
+        allowThirdPartyTailCall: false,
+        noPromisePipelining: false,
+        onlyPromisePipeline: false,
+        params: {
+          content: requestData,
+          capTable: [],
+        },
+        sendResultsTo: { type: 'caller' },
+      },
+    };
+
+    await this.transport.send(listRequestMsg);
+
+    const question = this.questions.create();
+    (question as { id: number }).id = questionId;
+
+    try {
+      const result = await question.completionPromise;
+      
+      if (result && typeof result === 'object' && 'content' in result) {
+        const response = deserializeSchemaResponse((result as { content: Uint8Array }).content);
+        
+        if (response.result.type === 'success') {
+          // Parse the list of schemas from the payload
+          const nodes = parseSchemaNodes(response.result.payload.schemaData);
+          return nodes.map(node => ({
+            typeId: node.id,
+            displayName: node.displayName,
+          }));
+        } else {
+          throw new Error(`List schemas failed: ${response.result.exception.reason}`);
+        }
+      }
+      
+      throw new Error('Invalid list schemas response format');
+    } catch (error) {
+      this.questions.remove(questionId);
+      throw error;
+    }
   }
 }
