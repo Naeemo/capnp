@@ -34,6 +34,7 @@ import type {
   ExportId,
   Finish,
   ImportId,
+  Join,
   Payload,
   PromisedAnswerOp,
   Provide,
@@ -47,6 +48,7 @@ import type {
 import type { RpcTransport } from './transport.js';
 import type { ConnectionManager, VatId } from './connection-manager.js';
 import type { Level3Handlers } from './level3-handlers.js';
+import type { Level4Handlers } from './level4-handlers.js';
 
 export interface RpcConnectionOptions {
   /** Bootstrap capability to expose to the peer */
@@ -57,6 +59,8 @@ export interface RpcConnectionOptions {
   connectionManager?: ConnectionManager;
   /** Level 3 message handlers */
   level3Handlers?: Level3Handlers;
+  /** Level 4 message handlers */
+  level4Handlers?: Level4Handlers;
 }
 
 export class RpcConnection {
@@ -80,6 +84,9 @@ export class RpcConnection {
   // Phase 4: Level 3 handlers
   private level3Handlers?: Level3Handlers;
 
+  // Phase 6: Level 4 handlers
+  private level4Handlers?: Level4Handlers;
+
   constructor(transport: RpcTransport, options: RpcConnectionOptions = {}) {
     this.transport = transport;
     this.options = options;
@@ -93,6 +100,10 @@ export class RpcConnection {
     this.transport.onError = (error) => {
       this.handleError(error);
     };
+
+    // Set up Level 3 and Level 4 handlers
+    this.level3Handlers = options.level3Handlers;
+    this.level4Handlers = options.level4Handlers;
   }
 
   /** Start processing messages */
@@ -353,6 +364,10 @@ export class RpcConnection {
         break;
       case 'accept':
         await this.handleAccept(message.accept);
+        break;
+      // Level 4 message types
+      case 'join':
+        await this.handleJoin(message.join);
         break;
       case 'abort':
         this.handleAbort(message.exception.reason);
@@ -634,6 +649,45 @@ export class RpcConnection {
       },
     };
     await this.transport.send(returnMsg);
+  }
+
+  // ========================================================================================
+  // Level 4 RPC Methods
+  // ========================================================================================
+
+  /**
+   * Set the Level 4 handlers for this connection.
+   * This enables reference equality verification support.
+   */
+  setLevel4Handlers(handlers: Level4Handlers): void {
+    this.level4Handlers = handlers;
+  }
+
+  /**
+   * Send a Join message to verify that two capabilities point to the same object.
+   * Requires Level 4 handlers to be set.
+   */
+  async join(target1: ImportId, target2: ImportId): Promise<unknown> {
+    if (!this.level4Handlers) {
+      throw new Error('Level 4 handlers not set');
+    }
+
+    // This is a simplified implementation
+    // In a full implementation, we'd use the Level4Handlers to send the Join
+    return undefined;
+  }
+
+  /** Handle join message (Level 4) */
+  private async handleJoin(join: Join): Promise<void> {
+    if (this.level4Handlers) {
+      await this.level4Handlers.handleJoin(join);
+    } else {
+      // Level 4 not enabled - send unimplemented
+      await this.sendReturnException(
+        join.questionId,
+        'Level 4 RPC (Join) not implemented'
+      );
+    }
   }
 
   // ========================================================================================

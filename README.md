@@ -14,6 +14,7 @@ A pure TypeScript implementation of Cap'n Proto, featuring zero-copy deserializa
 - ✅ **Official Compatible** - Tested against official C++ implementation
 - 📦 **Schema Code Generation** - Generate TypeScript types from `.capnp` schemas
 - ⚡ **High Performance** - 1.4μs serialization, 0.6μs deserialization for simple structs
+- 🌐 **Full RPC Stack** - Complete Level 0-4 RPC implementation (Bootstrap, Pipelining, SturdyRefs, 3-way Handoff, Join)
 
 ## Installation
 

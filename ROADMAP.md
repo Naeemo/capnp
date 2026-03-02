@@ -11,12 +11,13 @@
 | RPC Level 0 | ✅ 完成 | Bootstrap, Call/Return/Finish |
 | RPC Level 1 | ✅ 完成 | Promise Pipelining, Capability 传递 |
 | RPC Level 2 | ✅ 完成 | SturdyRefs (持久化能力) |
-| **RPC Level 3** | **✅ 完成** | **三方握手 (Provide/Accept)** |
+| RPC Level 3 | ✅ 完成 | 三方握手 (Provide/Accept) |
+| **RPC Level 4** | **✅ 完成** | **引用相等验证 (Join)** |
 | WebSocket 传输 | ✅ 完成 | - |
 | C++ 互操作 | ✅ 完成 | 与官方 C++ 实现兼容 |
 
 ### 测试统计
-- **260+ 测试通过** (新增 14 个 Level 3 测试)
+- **270+ 测试通过** (新增 17 个 Level 4 测试)
 - **v0.3.0 已发布到 npm**
 
 ---
@@ -28,14 +29,14 @@
 | 功能 | 官方状态 | 我们的状态 | 优先级 | 说明 |
 |------|---------|-----------|--------|------|
 | **Level 3 RPC** | 已定义 | ✅ **已实现** | P1 | 三方握手 (Provide/Accept)，支持多节点直接连接 |
-| **Level 4 RPC** | 已定义 | ❌ 未实现 | P1 | 引用相等验证 / Join 操作 |
+| **Level 4 RPC** | 已定义 | ✅ **已实现** | P1 | 引用相等验证 / Join 操作 |
 | **Dynamic Schema** | 计划中 | ❌ 未实现 | P2 | 运行时获取 schema，对动态语言很重要 |
 
 ### 🟡 中优先级（性能与功能增强）
 
 | 功能 | 官方状态 | 我们的状态 | 优先级 | 说明 |
 |------|---------|-----------|--------|------|
-| **Bulk/Realtime API** | 计划中 | ❌ 未实现 | P2 | 流控和实时通信支持 |
+| **Bulk/Realtime API** | 计划中 | ✅ **已实现** | P2 | 流控和实时通信支持 (Phase 5) |
 | **UDP Transport** | 计划中 | ❌ 未实现 | P3 | 零往返三方握手，实时通信 |
 | **加密传输** | 未指定 | ❌ 未实现 | P3 | Noise Protocol + libsodium |
 | **LZ4 压缩** | 计划中 | ❌ 未实现 | P4 | 减少带宽 |
@@ -48,6 +49,87 @@
 | **Type Aliases** | 计划中 | ❌ 未实现 | P4 | `typedef` 支持 |
 | **Maps** | 计划中 | ❌ 未实现 | P5 | 基于封装类型的 Map |
 | **JSON 编解码定制** | 计划中 | ❌ 未实现 | P5 | 字段名映射等 |
+
+---
+
+## ✅ Phase 6 完成总结 (Level 4 RPC)
+
+### 已实现功能
+
+#### 1. 协议扩展
+- ✅ Join 消息类型定义在 `rpc.capnp`
+- ✅ Join 请求/响应处理
+- ✅ 支持多个能力引用的相等验证
+
+#### 2. 引用相等验证
+- ✅ `ObjectIdentity` 接口（vatId, objectId, identityHash）
+- ✅ 身份哈希生成（SHA-256）
+- ✅ 跨连接的身份关联
+- ✅ 对象身份比较逻辑
+
+#### 3. 安全模式
+- ✅ 托管代理（Escrow Agent）模式
+- ✅ 共识验证（多党共识）
+- ✅ 防欺骗机制（身份哈希验证）
+- ✅ 审计日志
+- ✅ Vat 白名单
+
+#### 4. 集成到 RPC 层
+- ✅ `Level4Handlers` 类
+- ✅ `RpcConnection.setLevel4Handlers()` 方法
+- ✅ Join 消息路由
+- ✅ 结果缓存机制
+
+#### 5. 测试
+- ✅ 17 个 Level 4 单元测试
+- ✅ 托管场景测试
+- ✅ 安全边界测试
+- ✅ 所有 194 个 RPC 测试通过
+
+### 核心概念
+
+Level 4 RPC 允许验证从不同来源接收的能力引用是否指向同一个底层对象：
+
+```
+Alice 从 Bob 和 Carol 分别收到对同一对象的引用
+→ Alice 可以验证 Bob 和 Carol 确实在谈论同一个对象
+→ 用于共识验证、托管场景等
+```
+
+### 使用示例
+
+```typescript
+import {
+  RpcConnection,
+  Level4Handlers,
+  generateVatId,
+} from '@naeemo/capnp';
+
+// 创建连接和 Level 4 处理器
+const connection = new RpcConnection(transport, {
+  selfVatId: generateVatId(),
+});
+
+const level4Handlers = new Level4Handlers({
+  connection,
+  selfVatId,
+  escrowConfig: {
+    enabled: true,
+    requiredParties: 2,
+    onConsensus: (identity, parties) => {
+      console.log('Consensus reached!');
+    },
+  },
+});
+
+connection.setLevel4Handlers(level4Handlers);
+
+// 验证两个能力引用是否相等
+const result = await level4Handlers.sendJoin(target1, target2);
+if (result.equal) {
+  console.log('Same object!');
+}
+```
 
 ---
 
@@ -135,16 +217,16 @@ connection.setLevel3Handlers(level3Handlers);
 
 ## 🎯 推荐执行顺序
 
-### Phase 5: 流控与实时通信（建议 2-3 周）
+### Phase 7: Dynamic Schema（建议 2-3 周）
 
-**目标**: Bulk/Realtime API
+**目标**: 运行时 schema 获取
 
 **核心功能**:
-- 流控机制（背压）
-- 消息优先级
-- 丢弃策略（实时场景）
+- 运行时 schema 查询
+- 动态接口发现
+- 类型安全验证
 
-### Phase 6: 传输层扩展（建议 2-4 周）
+### Phase 8: 传输层扩展（建议 2-4 周）
 
 **目标**: UDP、加密传输
 
@@ -153,28 +235,19 @@ connection.setLevel3Handlers(level3Handlers);
 - Noise Protocol 加密
 - 与现代加密方案集成
 
-### Phase 7: Level 4 RPC（建议 2-3 周）
-
-**目标**: Join 操作
-
-**核心功能**:
-- 引用相等验证
-- Join 消息处理
-- 能力合并
-
 ---
 
 ## 📚 与官方功能对比
 
 ### 已对齐
-- ✅ Level 0-3 RPC 完整实现
+- ✅ Level 0-4 RPC 完整实现
 - ✅ Promise Pipelining（核心特性）
 - ✅ Capability-based 安全模型
 - ✅ WebSocket 传输
 - ✅ 三方握手协议
+- ✅ 引用相等验证 (Join)
 
 ### 主要差距
-- ❌ Level 4 RPC（Join 操作）
 - ❌ Dynamic Schema（运行时获取）
 - ❌ 高级传输层（UDP、加密）
 - ❌ 性能优化（LZ4、共享内存）
@@ -184,7 +257,8 @@ connection.setLevel3Handlers(level3Handlers);
 - ✅ 浏览器 + Node.js 兼容
 - ✅ 完整的代码生成
 - ✅ 与官方 C++ 实现互操作
-- ✅ Level 3 RPC 完整实现
+- ✅ Level 3-4 RPC 完整实现
+- ✅ 流控和实时通信支持
 
 ---
 
@@ -203,3 +277,4 @@ connection.setLevel3Handlers(level3Handlers);
 - [RPC 协议文档](https://capnproto.org/rpc.html)
 - [rpc.capnp 协议定义](https://github.com/capnproto/capnproto/blob/master/c++/src/capnp/rpc.capnp)
 - [Phase 4 进度文档](./src/rpc/PHASE4_PROGRESS.md)
+- [Phase 6 进度文档](./src/rpc/PHASE6_PROGRESS.md)

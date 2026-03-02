@@ -1,7 +1,14 @@
 /**
  * Cap'n Proto RPC Module
  *
- * Phase 5: Flow Control and Realtime Communication (NEW)
+ * Phase 6: Level 4 RPC - Reference Equality / Join (NEW)
+ * - Join operations for verifying capability equality
+ * - Object identity tracking and verification
+ * - Escrow agent mode for consensus verification
+ * - Anti-spoofing security mechanisms
+ * - Identity hash generation and verification
+ *
+ * Phase 5: Flow Control and Realtime Communication
  * - Stream abstraction with flow control
  * - Bulk API for high-volume transfers
  * - Realtime API for low-latency communication
@@ -155,6 +162,21 @@ export {
   Level3Handlers,
   type Level3HandlersOptions,
 } from './level3-handlers.js';
+
+// Level 4 RPC: Reference Equality / Join (NEW)
+export {
+  Level4Handlers,
+  type Level4HandlersOptions,
+  type JoinOptions,
+  type ObjectIdentity,
+  type PendingJoin,
+  type CachedJoinResult,
+  type EscrowConfig,
+  type JoinSecurityPolicy,
+  DEFAULT_JOIN_OPTIONS,
+  DEFAULT_ESCROW_CONFIG,
+  DEFAULT_JOIN_SECURITY_POLICY,
+} from './level4-handlers.js';
 
 // Phase 5: Stream Management and Flow Control
 export {
