@@ -1,6 +1,6 @@
 # @naeemo/capnp 项目状态与下一步计划
 
-## 📊 当前状态（2026-03-02）
+## 📊 当前状态（2026-03-03）
 
 ### 已实现功能
 
@@ -15,266 +15,136 @@
 | **RPC Level 4** | **✅ 完成** | **引用相等验证 (Join)** |
 | WebSocket 传输 | ✅ 完成 | - |
 | C++ 互操作 | ✅ 完成 | 与官方 C++ 实现兼容 |
+| **Streaming API** | **✅ 完成** | **Bulk/Realtime (官方路线图中)** |
 
 ### 测试统计
-- **270+ 测试通过** (新增 17 个 Level 4 测试)
-- **v0.3.0 已发布到 npm**
+- **361 测试通过**
+- **v0.4.0 已发布到 npm**
 
 ---
 
-## 📋 下一步计划（对比官方路线图）
+## 📋 下一步计划（基于官方路线图 2025）
 
-### 🔴 高优先级（核心功能缺口）
+### 🔴 高优先级（核心功能）
 
 | 功能 | 官方状态 | 我们的状态 | 优先级 | 说明 |
 |------|---------|-----------|--------|------|
-| **Level 3 RPC** | 已定义 | ✅ **已实现** | P1 | 三方握手 (Provide/Accept)，支持多节点直接连接 |
-| **Level 4 RPC** | 已定义 | ✅ **已实现** | P1 | 引用相等验证 / Join 操作 |
-| **Dynamic Schema** | 计划中 | ❌ 未实现 | P2 | 运行时获取 schema，对动态语言很重要 |
+| **Dynamic Schema** | 计划中 | ❌ 未实现 | P1 | 运行时获取 schema，对动态语言很重要。允许 Python 等应用从 RPC 服务器直接获取 schema，无需本地副本 |
+| **UDP Transport** | 计划中 | ❌ 未实现 | P2 | 零往返三方握手，实时通信。支持真正的零拷贝和更低延迟 |
+| **加密传输** | 计划中 | ❌ 未实现 | P2 | Noise Protocol + libsodium。基于能力授权（非 PKI），支持零往返三方握手 |
 
-### 🟡 中优先级（性能与功能增强）
-
-| 功能 | 官方状态 | 我们的状态 | 优先级 | 说明 |
-|------|---------|-----------|--------|------|
-| **Bulk/Realtime API** | 计划中 | ✅ **已实现** | P2 | 流控和实时通信支持 (Phase 5) |
-| **UDP Transport** | 计划中 | ❌ 未实现 | P3 | 零往返三方握手，实时通信 |
-| **加密传输** | 未指定 | ❌ 未实现 | P3 | Noise Protocol + libsodium |
-| **LZ4 压缩** | 计划中 | ❌ 未实现 | P4 | 减少带宽 |
-
-### 🟢 低优先级（语言特性与工具）
+### 🟡 中优先级（性能与工具）
 
 | 功能 | 官方状态 | 我们的状态 | 优先级 | 说明 |
 |------|---------|-----------|--------|------|
-| **Doc Comments** | 计划中 | ❌ 未实现 | P4 | 从 schema 提取文档注释 |
-| **Type Aliases** | 计划中 | ❌ 未实现 | P4 | `typedef` 支持 |
-| **Maps** | 计划中 | ❌ 未实现 | P5 | 基于封装类型的 Map |
-| **JSON 编解码定制** | 计划中 | ❌ 未实现 | P5 | 字段名映射等 |
+| **LZ4 压缩** | 计划中 | ❌ 未实现 | P3 | 减少带宽，最小 CPU 开销 |
+| **Doc Comments** | 计划中 | ❌ 未实现 | P3 | 从 schema 提取文档注释，生成代码文档 |
+| **Type Aliases** | 计划中 | ❌ 未实现 | P4 | `typedef` 支持，代码生成时创建类型别名 |
+| **JSON 编解码定制** | 计划中 | ❌ 未实现 | P4 | 字段名映射、自定义 JSON 表示 |
+
+### 🟢 低优先级（高级特性）
+
+| 功能 | 官方状态 | 我们的状态 | 优先级 | 说明 |
+|------|---------|-----------|--------|------|
+| **Encapsulated Types** | 计划中 | ❌ 未实现 | P5 | 封装类型，允许手写包装器注入生成的代码 |
+| **Maps** | 计划中 | ❌ 未实现 | P5 | 基于封装和参数化类型的 Map 支持 |
+| **Inline Lists** | 计划中 | ❌ 未实现 | P5 | 固定长度列表内联存储，节省指针空间 |
 
 ---
 
-## ✅ Phase 6 完成总结 (Level 4 RPC)
+## 🎯 Phase 7: Dynamic Schema（建议 2-3 周）
 
-### 已实现功能
-
-#### 1. 协议扩展
-- ✅ Join 消息类型定义在 `rpc.capnp`
-- ✅ Join 请求/响应处理
-- ✅ 支持多个能力引用的相等验证
-
-#### 2. 引用相等验证
-- ✅ `ObjectIdentity` 接口（vatId, objectId, identityHash）
-- ✅ 身份哈希生成（SHA-256）
-- ✅ 跨连接的身份关联
-- ✅ 对象身份比较逻辑
-
-#### 3. 安全模式
-- ✅ 托管代理（Escrow Agent）模式
-- ✅ 共识验证（多党共识）
-- ✅ 防欺骗机制（身份哈希验证）
-- ✅ 审计日志
-- ✅ Vat 白名单
-
-#### 4. 集成到 RPC 层
-- ✅ `Level4Handlers` 类
-- ✅ `RpcConnection.setLevel4Handlers()` 方法
-- ✅ Join 消息路由
-- ✅ 结果缓存机制
-
-#### 5. 测试
-- ✅ 17 个 Level 4 单元测试
-- ✅ 托管场景测试
-- ✅ 安全边界测试
-- ✅ 所有 194 个 RPC 测试通过
-
-### 核心概念
-
-Level 4 RPC 允许验证从不同来源接收的能力引用是否指向同一个底层对象：
-
-```
-Alice 从 Bob 和 Carol 分别收到对同一对象的引用
-→ Alice 可以验证 Bob 和 Carol 确实在谈论同一个对象
-→ 用于共识验证、托管场景等
-```
-
-### 使用示例
-
-```typescript
-import {
-  RpcConnection,
-  Level4Handlers,
-  generateVatId,
-} from '@naeemo/capnp';
-
-// 创建连接和 Level 4 处理器
-const connection = new RpcConnection(transport, {
-  selfVatId: generateVatId(),
-});
-
-const level4Handlers = new Level4Handlers({
-  connection,
-  selfVatId,
-  escrowConfig: {
-    enabled: true,
-    requiredParties: 2,
-    onConsensus: (identity, parties) => {
-      console.log('Consensus reached!');
-    },
-  },
-});
-
-connection.setLevel4Handlers(level4Handlers);
-
-// 验证两个能力引用是否相等
-const result = await level4Handlers.sendJoin(target1, target2);
-if (result.equal) {
-  console.log('Same object!');
-}
-```
-
----
-
-## ✅ Phase 4 完成总结 (Level 3 RPC)
-
-### 已实现功能
-
-#### 1. 协议扩展
-- ✅ 扩展 `rpc.capnp` 协议定义，添加 Level 3 消息类型
-- ✅ Provide 消息：提供能力给第三方
-- ✅ Accept 消息：接受第三方能力
-- ✅ Embargo 消息（用于打破循环依赖）
-- ✅ ThirdPartyCapId, RecipientId, ProvisionId 类型定义
-
-#### 2. 连接管理
-- ✅ `ConnectionManager`：管理多个并发连接
-- ✅ 自动连接建立逻辑
-- ✅ 连接池和复用
-- ✅ Vat ID 和 Provision ID 生成
-
-#### 3. 能力传递
-- ✅ 跨连接的能力引用传递
-- ✅ ThirdPartyCapId 处理
-- ✅ 接收方能力恢复
-- ✅ `createThirdPartyCapId()` 辅助函数
-
-#### 4. 消息处理
-- ✅ `Level3Handlers` 类
-- ✅ Provide 消息处理
-- ✅ Accept 消息处理
-- ✅ 循环依赖场景处理 (Embargo)
-
-#### 5. 测试
-- ✅ 14 个 Level 3 单元测试
-- ✅ 三节点测试场景
-- ✅ 循环依赖测试
-- ✅ 所有 97 个 RPC 测试通过
-
-### 核心概念
-
-Level 3 RPC 允许 RPC 网络中的多个节点相互传递能力引用并自动形成直接连接：
-
-```
-Alice (A) 发送 Carol (C) 的引用给 Bob (B)
-→ B 自动与 C 建立直接连接
-→ Bob 可以直接调用 Carol，无需通过 Alice 代理
-```
-
-### 使用示例
-
-```typescript
-import {
-  RpcConnection,
-  ConnectionManager,
-  Level3Handlers,
-  generateVatId,
-} from '@naeemo/capnp';
-
-// 创建 Vat ID 和连接管理器
-const selfVatId = generateVatId();
-const connectionManager = new ConnectionManager({
-  selfVatId,
-  connectionFactory: async (vatId, address) => {
-    // 创建到目标 vat 的传输层连接
-    return new WebSocketTransport(new WebSocket(address));
-  },
-  autoConnect: true,
-});
-
-// 创建连接并设置 Level 3 处理器
-const connection = new RpcConnection(transport, {
-  selfVatId,
-  connectionManager,
-});
-
-const level3Handlers = new Level3Handlers({
-  connection,
-  connectionManager,
-  selfVatId,
-});
-connection.setLevel3Handlers(level3Handlers);
-```
-
----
-
-## 🎯 推荐执行顺序
-
-### Phase 7: Dynamic Schema（建议 2-3 周）
-
-**目标**: 运行时 schema 获取
+**目标**: 实现运行时 schema 获取和解析
 
 **核心功能**:
-- 运行时 schema 查询
-- 动态接口发现
-- 类型安全验证
+1. **Schema 传输协议**
+   - 扩展 RPC 协议支持 schema 请求/响应
+   - 序列化 schema 格式（基于 capnp 二进制）
 
-### Phase 8: 传输层扩展（建议 2-4 周）
+2. **Dynamic Schema 解析**
+   - 运行时解析 schema 二进制
+   - 动态生成 reader/writer
 
-**目标**: UDP、加密传输
+3. **工具支持**
+   - `capnp-ts-codegen --dynamic` 模式
+   - 交互式 schema 浏览器
+
+**使用场景**:
+```typescript
+// 从远程服务器获取 schema
+const schema = await connection.getDynamicSchema();
+
+// 动态解析消息
+const reader = schema.parseMessage(buffer);
+console.log(reader.getField('name'));
+```
+
+---
+
+## 🎯 Phase 8: UDP Transport（建议 3-4 周）
+
+**目标**: 实现 UDP 传输层，支持零往返握手
 
 **核心功能**:
-- UDP transport（零往返握手）
-- Noise Protocol 加密
-- 与现代加密方案集成
+1. **UDP Transport 实现**
+   - 基于 UDP 的 RPC 传输
+   - 可靠性层（类似 QUIC）
+
+2. **零往返优化**
+   - 0-RTT 三方握手
+   - 预共享密钥支持
+
+3. **与现有架构集成**
+   - 与 Streaming API 配合
+   - 实时通信优化
 
 ---
 
-## 📚 与官方功能对比
+## 🎯 Phase 9: 加密传输（建议 3-4 周）
 
-### 已对齐
-- ✅ Level 0-4 RPC 完整实现
-- ✅ Promise Pipelining（核心特性）
-- ✅ Capability-based 安全模型
-- ✅ WebSocket 传输
-- ✅ 三方握手协议
-- ✅ 引用相等验证 (Join)
+**目标**: Noise Protocol 加密传输
 
-### 主要差距
-- ❌ Dynamic Schema（运行时获取）
-- ❌ 高级传输层（UDP、加密）
-- ❌ 性能优化（LZ4、共享内存）
+**核心功能**:
+1. **Noise Protocol 实现**
+   - 基于 libsodium
+   - 能力授权（非 PKI）
 
-### 独特优势
-- ✅ 纯 TypeScript 实现
-- ✅ 浏览器 + Node.js 兼容
-- ✅ 完整的代码生成
-- ✅ 与官方 C++ 实现互操作
-- ✅ Level 3-4 RPC 完整实现
-- ✅ 流控和实时通信支持
+2. **零往返握手**
+   - 通过 introducer 预共享密钥
+   - 与 Level 3 RPC 集成
+
+3. **安全特性**
+   - 完美前向保密
+   - 身份验证
 
 ---
 
-## 🚀 长期愿景
-
-1. **成为 TypeScript 生态的 Cap'n Proto 标准实现**
-2. **支持所有官方 RPC 层级（Level 1-4）**
-3. **提供企业级特性（加密、认证、监控）**
-4. **构建周边工具（调试器、代理、ORM）**
-
----
-
-## 📝 参考链接
+## 📚 参考链接
 
 - [官方路线图](https://capnproto.org/roadmap.html)
-- [RPC 协议文档](https://capnproto.org/rpc.html)
-- [rpc.capnp 协议定义](https://github.com/capnproto/capnproto/blob/master/c++/src/capnp/rpc.capnp)
-- [Phase 4 进度文档](./src/rpc/PHASE4_PROGRESS.md)
-- [Phase 6 进度文档](./src/rpc/PHASE6_PROGRESS.md)
+- [官方 RPC 文档](https://capnproto.org/rpc.html)
+- [Noise Protocol](http://noiseprotocol.org/)
+- [libsodium](https://doc.libsodium.org/)
+
+---
+
+## 🏆 里程碑
+
+| 版本 | 日期 | 成就 |
+|------|------|------|
+| v0.1.0 | 2026-02-28 | 初始发布，核心序列化 |
+| v0.2.0 | 2026-03-02 | V3 代码生成器 |
+| v0.3.0 | 2026-03-02 | Level 0-2 RPC |
+| **v0.4.0** | **2026-03-02** | **Level 3-4 RPC + Streaming** |
+| v0.5.0 | TBD | Dynamic Schema |
+| v0.6.0 | TBD | UDP Transport |
+| v0.7.0 | TBD | 加密传输 |
+| v1.0.0 | TBD | 完整官方协议支持 |
+
+---
+
+## 📝 备注
+
+- 官方 Cap'n Proto 1.0 发布时间未定
+- 我们的实现优先覆盖官方已定义的功能
+- 性能优化和安全审查将在功能完整后进行
