@@ -24,39 +24,17 @@
 - [x] 类型检查和 lint 修复 ✅
 - [x] 构建和测试 ✅（v0.2.0 已准备就绪）
 - [x] 推送到 GitHub ✅（21 commits 已推送）
-- [ ] 发布 v0.2.0 到 npm（npm token 已过期，需要重新登录）
+- [x] 发布 v0.2.0 到 npm ✅（已通过 GitHub Actions 自动发布）
 - [ ] RPC 层（长期）
 
 ### 最新进展 (2026-03-02)
+- ✅ **v0.2.0 已发布到 npm** - 通过 GitHub Actions 自动发布
 - ✅ **多 Segment / Far Pointer 支持**
-  - MessageReader 支持解析 multi-segment 消息
-  - 实现 `resolvePointer()` 方法处理 far pointer 间接寻址
-  - 支持 single-far 和 double-far 两种模式
-  - StructReader.getText/getStruct/getList 全部支持跨 segment 访问
-  - ListReader 支持多 segment
 - ✅ **Union discriminant offset 修复**
-  - 修复了 discriminantOffset 单位问题（schema 中以 16-bit words 为单位，需要乘以 2 转换为 byte offset）
-  - Union getter 现在正确使用 `discriminantOffset * 2`
-  - Union setter 现在通过参数传递正确的 discriminantOffset
 - ✅ V3 CLI 工具完成 (`src/codegen/cli-v3.ts`)
-  - 自动调用 `capnp compile -o-` 编译 schema
-  - 支持 `-o` 单文件输出、`-d` 多文件输出到目录
-  - 支持 `-r` 自定义运行时导入路径
-  - 添加到 package.json bin: `capnp-ts-codegen`
 - ✅ V3 生成器 Union 支持
-  - 自动识别 Union 字段（discriminantValue ≠ 0xFFFF）
-  - 生成 `getUnionTag()` / `getUnionVariant()` 方法
-  - 每个 variant 生成独立的 getter/setter
-  - 生成类型安全的 Union variant 类型
 - ✅ **V3 生成器 Group 支持**
-  - 自动识别 Group 字段（isGroup === true）
-  - Group 字段内联到父 struct 中
-  - 生成带前缀的 getter/setter（如 `getAddressStreet()`）
 - ✅ **V3 生成器默认值支持（XOR 编码）**
-  - 从 binary schema 读取字段默认值
-  - 生成 XOR 编码/解码逻辑
-  - 支持所有数值类型（int/uint/float/bool/enum）
-  - 自动生成 float XOR 辅助函数
 - 所有 143 个测试通过
 
 ## 技术决策
