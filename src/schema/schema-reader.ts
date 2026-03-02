@@ -143,6 +143,31 @@ export class NodeReader {
     return enumerants;
   }
 
+  // --- Interface 相关字段 (union tag = 3) ---
+
+  get interfaceMethods(): MethodReader[] {
+    // methods @15 :List(Method); 在 interface group 内，ptr[3]
+    // Method: 5 words data, 2 pointers
+    const listReader = this.reader.getList(3, ElementSize.INLINE_COMPOSITE, {
+      dataWords: 5,
+      pointerCount: 2,
+    });
+    if (!listReader) return [];
+
+    const methods: MethodReader[] = [];
+    for (let i = 0; i < listReader.length; i++) {
+      try {
+        const itemReader = listReader.getStruct(i);
+        const method = new MethodReader(itemReader);
+        if (!method.name && i > 0) break;
+        methods.push(method);
+      } catch (_e) {
+        break;
+      }
+    }
+    return methods;
+  }
+
   // --- NestedNodes ---
 
   get nestedNodes(): NestedNodeReader[] {
@@ -462,6 +487,32 @@ export class ValueReader {
   getAsBoolean(): boolean | undefined {
     if (this.isBool) return this.boolValue;
     return undefined;
+  }
+}
+
+// ============================================================================
+// Method - Interface 方法
+// ============================================================================
+
+export class MethodReader {
+  constructor(private reader: StructReader) {}
+
+  get name(): string {
+    return this.reader.getText(0);
+  }
+
+  get codeOrder(): number {
+    return this.reader.getUint16(0);
+  }
+
+  get paramStructType(): Id {
+    // paramStructType @2 :Id; 在 bytes [8, 16)
+    return this.reader.getUint64(8);
+  }
+
+  get resultStructType(): Id {
+    // resultStructType @3 :Id; 在 bytes [16, 24)
+    return this.reader.getUint64(16);
   }
 }
 

@@ -61,11 +61,11 @@ Features:
   - Group
   - Default values (XOR encoding)
   - Multi-segment messages
+  - Interface (RPC client/server generation)
 
 Not yet supported:
-  - Interface
   - Const
-  - RPC
+  - Advanced RPC features (Level 2-4)
 `);
   process.exit(0);
 }
@@ -114,13 +114,13 @@ async function main() {
 
     console.error('Reading binary schema...');
     const buffer = readFileSync(binFile);
-    const arrayBuffer = buffer.buffer.slice(
-      buffer.byteOffset,
-      buffer.byteOffset + buffer.byteLength
-    );
+    // Create a proper ArrayBuffer copy to avoid issues with Node.js Buffer pooling
+    // Buffer.slice() shares the same underlying memory, which can cause issues
+    const arrayBuffer = new Uint8Array(buffer.byteLength);
+    arrayBuffer.set(new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength));
 
     console.error('Generating TypeScript code...');
-    const request = CodeGeneratorRequestReader.fromBuffer(arrayBuffer);
+    const request = CodeGeneratorRequestReader.fromBuffer(arrayBuffer.buffer);
 
     const options: GeneratorOptions = {
       runtimeImportPath: values.runtimePath || '@naeemo/capnp',

@@ -92,9 +92,13 @@ src/
 7. ✅ 多 Segment / Far Pointer
 8. ✅ 互操作测试完善 (33 个测试通过)
 
-### Phase 3: 进阶
-9. [ ] 性能优化
-10. [ ] RPC 层
+### Phase 3: RPC 层 (进行中)
+9. ✅ Interface 代码生成
+   - Method ID 常量生成
+   - Server Interface 生成
+   - Client Class 生成（支持 Promise Pipelining）
+10. [ ] 集成测试（与 C++ 实现互操作）
+11. [ ] 性能优化
 
 ## 使用 V3 CLI
 

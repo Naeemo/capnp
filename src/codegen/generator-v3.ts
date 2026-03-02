@@ -95,7 +95,31 @@ function generateFile(fileId: Id, allNodes: NodeReader[], options: GeneratorOpti
   lines.push('');
 
   // 找到属于这个文件的所有节点
-  const fileNodes = allNodes.filter((n) => n.scopeId === fileId);
+  // 包括：
+  // 1. scopeId === fileId 的节点（正常定义的 struct/enum/interface）
+  // 2. scopeId === 0 且 displayName 包含文件名的节点（auto-generated method params/results）
+  let filePrefix = '';
+  try {
+    const fileNode = allNodes.find((n) => n.id === fileId);
+    filePrefix = fileNode?.displayName || '';
+  } catch (e) {
+    // Ignore errors reading file node
+  }
+  
+  const fileNodes = allNodes.filter((n) => {
+    try {
+      if (n.scopeId === fileId) return true;
+      // Auto-generated method params/results have scopeId = 0
+      if (n.scopeId === 0n && filePrefix && n.displayName.startsWith(filePrefix + ':')) {
+        // Check if it's a method params/results struct
+        const shortName = n.displayName.substring(filePrefix.length + 1);
+        return shortName.includes('$');
+      }
+    } catch (e) {
+      // Skip nodes that can't be read
+    }
+    return false;
+  });
 
   // 生成每个节点的代码
   for (const node of fileNodes) {
@@ -103,6 +127,8 @@ function generateFile(fileId: Id, allNodes: NodeReader[], options: GeneratorOpti
       lines.push(generateStruct(node, allNodes));
     } else if (node.isEnum) {
       lines.push(generateEnum(node));
+    } else if (node.isInterface) {
+      lines.push(generateInterface(node, allNodes));
     }
     lines.push('');
   }
@@ -118,7 +144,31 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
   const structName = getShortName(node.displayName);
 
   // 分析字段：分离 Union 字段、普通字段和 Group 字段
-  const { unionGroups, regularFields, groupFields } = analyzeFields(node, allNodes);
+  let unionGroups: UnionGroup[] = [];
+  let regularFields: FieldReader[] = [];
+  let groupFields: { field: FieldReader; groupNode: NodeReader }[] = [];
+
+  try {
+    const analysis = analyzeFields(node, allNodes);
+    unionGroups = analysis.unionGroups;
+    regularFields = analysis.regularFields;
+    groupFields = analysis.groupFields;
+  } catch (e) {
+    // Some auto-generated structs may have invalid field data
+    // Return a minimal struct definition in this case
+    lines.push(`export interface ${structName} {`);
+    lines.push('  // Note: Could not parse struct fields');
+    lines.push('}');
+    lines.push('');
+    lines.push(`export class ${structName}Reader {`);
+    lines.push('  constructor(private reader: StructReader) {}');
+    lines.push('}');
+    lines.push('');
+    lines.push(`export class ${structName}Builder {`);
+    lines.push('  constructor(private builder: StructBuilder) {}');
+    lines.push('}');
+    return lines.join('\n');
+  }
 
   // 生成接口定义
   lines.push(`export interface ${structName} {`);
@@ -133,10 +183,14 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
   // Group 字段 - 内联 Group 的字段
   for (const { field: groupField, groupNode } of groupFields) {
     const groupName = groupField.name;
-    for (const field of groupNode.structFields) {
-      if (!field.isSlot) continue;
-      const tsType = getTypeScriptType(field.slotType, allNodes);
-      lines.push(`  ${groupName}${capitalize(field.name)}: ${tsType};`);
+    try {
+      for (const field of groupNode.structFields) {
+        if (!field.isSlot) continue;
+        const tsType = getTypeScriptType(field.slotType, allNodes);
+        lines.push(`  ${groupName}${capitalize(field.name)}: ${tsType};`);
+      }
+    } catch (e) {
+      // Skip invalid group fields
     }
   }
 
@@ -166,11 +220,15 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
   // Group 字段 getters - 内联 Group 的字段
   for (const { field: groupField, groupNode } of groupFields) {
     const groupName = groupField.name;
-    for (const field of groupNode.structFields) {
-      if (!field.isSlot) continue;
-      const getter = generateGroupFieldGetter(field, groupName);
-      lines.push(`  ${getter}`);
-      lines.push('');
+    try {
+      for (const field of groupNode.structFields) {
+        if (!field.isSlot) continue;
+        const getter = generateGroupFieldGetter(field, groupName);
+        lines.push(`  ${getter}`);
+        lines.push('');
+      }
+    } catch (e) {
+      // Skip invalid group fields
     }
   }
 
@@ -235,11 +293,15 @@ function generateStruct(node: NodeReader, allNodes: NodeReader[]): string {
   // Group 字段 setters
   for (const { field: groupField, groupNode } of groupFields) {
     const groupName = groupField.name;
-    for (const field of groupNode.structFields) {
-      if (!field.isSlot) continue;
-      const setter = generateGroupFieldSetter(field, groupName);
-      lines.push(`  ${setter}`);
-      lines.push('');
+    try {
+      for (const field of groupNode.structFields) {
+        if (!field.isSlot) continue;
+        const setter = generateGroupFieldSetter(field, groupName);
+        lines.push(`  ${setter}`);
+        lines.push('');
+      }
+    } catch (e) {
+      // Skip invalid group fields
     }
   }
 
@@ -944,12 +1006,152 @@ function getTypeScriptType(type: TypeReader | null, allNodes: NodeReader[]): str
 /**
  * 从 displayName 获取短名称
  * 例如 "test-schema.capnp:Person" -> "Person"
+ * 处理 auto-generated 名称如 "Calculator.evaluate$Params" -> "EvaluateParams"
  */
 function getShortName(displayName: string): string {
-  const colonIndex = displayName.lastIndexOf(':');
-  if (colonIndex >= 0) {
-    return displayName.substring(colonIndex + 1);
+  // Handle empty or undefined display names
+  if (!displayName) {
+    return 'Unknown';
   }
-  // 如果没有冒号，可能是文件名，返回空或文件名
-  return displayName.replace(/\.capnp$/, '').replace(/[^a-zA-Z0-9_]/g, '_');
+  const colonIndex = displayName.lastIndexOf(':');
+  let name = colonIndex >= 0 ? displayName.substring(colonIndex + 1) : displayName;
+  
+  // Replace invalid characters for TypeScript identifiers
+  // Handle auto-generated names like "Calculator.evaluate$Params" -> "EvaluateParams"
+  if (name.includes('.')) {
+    const parts = name.split('.');
+    if (parts.length === 2 && parts[1].includes('$')) {
+      // Interface method params/results: "Interface.method$Params" -> "MethodParams"
+      const methodPart = parts[1];
+      const dollarIndex = methodPart.indexOf('$');
+      if (dollarIndex > 0) {
+        const methodName = methodPart.substring(0, dollarIndex);
+        const suffix = methodPart.substring(dollarIndex + 1);
+        name = capitalize(methodName) + suffix;
+      } else {
+        name = capitalize(parts[1]);
+      }
+    } else {
+      name = parts[parts.length - 1];
+    }
+  }
+  
+  // Remove any remaining invalid characters
+  name = name.replace(/[^a-zA-Z0-9_]/g, '_');
+  
+  return name;
+}
+
+/**
+ * 生成 Interface 的 TypeScript 代码
+ * 包括：Method Constants、Client Class、Server Interface、Server Stub
+ */
+function generateInterface(node: NodeReader, allNodes: NodeReader[]): string {
+  const lines: string[] = [];
+  const interfaceName = getShortName(node.displayName);
+  const methods = node.interfaceMethods;
+
+  if (methods.length === 0) {
+    return `// Interface ${interfaceName} has no methods`;
+  }
+
+  // 1. 生成 Method ID 常量
+  lines.push(`// ${interfaceName} Method IDs`);
+  lines.push(`export const ${interfaceName}InterfaceId = ${node.id}n;`);
+  lines.push(`export const ${interfaceName}MethodIds = {`);
+  for (const method of methods) {
+    lines.push(`  ${method.name}: ${method.codeOrder},`);
+  }
+  lines.push('} as const;');
+  lines.push('');
+
+  // 2. 生成 Server Interface
+  lines.push(`// ${interfaceName} Server Interface`);
+  lines.push(`export interface ${interfaceName}Server {`);
+  for (const method of methods) {
+    const paramType = getTypeNameById(method.paramStructType, allNodes, 'unknown');
+    const resultType = getTypeNameById(method.resultStructType, allNodes, 'unknown');
+    lines.push(`  ${method.name}(context: CallContext<${paramType}Reader, ${resultType}Builder>): Promise<void> | void;`);
+  }
+  lines.push('}');
+  lines.push('');
+
+  // 3. 生成 Server Stub
+  lines.push(`// ${interfaceName} Server Stub`);
+  lines.push(`export class ${interfaceName}Stub {`);
+  lines.push(`  private server: ${interfaceName}Server;`);
+  lines.push('');
+  lines.push(`  constructor(server: ${interfaceName}Server) {`);
+  lines.push('    this.server = server;');
+  lines.push('  }');
+  lines.push('');
+  lines.push(`  static readonly interfaceId = ${node.id}n;`);
+  lines.push('');
+  lines.push('  /** Dispatch a method call to the appropriate handler */');
+  lines.push('  async dispatch(methodId: number, context: CallContext<unknown, unknown>): Promise<void> {');
+  lines.push('    switch (methodId) {');
+
+  for (const method of methods) {
+    const paramType = getTypeNameById(method.paramStructType, allNodes, 'unknown');
+    const resultType = getTypeNameById(method.resultStructType, allNodes, 'unknown');
+    lines.push(`      case ${interfaceName}MethodIds.${method.name}:`);
+    lines.push(`        return this.server.${method.name}(context as CallContext<${paramType}Reader, ${resultType}Builder>);`);
+  }
+
+  lines.push('      default:');
+  lines.push('        throw new Error(`Unknown method ID: ${methodId}`);');
+  lines.push('    }');
+  lines.push('  }');
+  lines.push('');
+  lines.push('  /** Check if a method ID is valid */');
+  lines.push('  isValidMethod(methodId: number): boolean {');
+  lines.push('    return [');
+  for (const method of methods) {
+    lines.push(`      ${interfaceName}MethodIds.${method.name},`);
+  }
+  lines.push('    ].includes(methodId);');
+  lines.push('  }');
+  lines.push('}');
+  lines.push('');
+
+  // 4. 生成 Client Class
+  lines.push(`// ${interfaceName} Client Class`);
+  lines.push(`export class ${interfaceName}Client extends BaseCapabilityClient {`);
+  lines.push(`  static readonly interfaceId = ${node.id}n;`);
+  lines.push('');
+
+  for (const method of methods) {
+    const paramType = getTypeNameById(method.paramStructType, allNodes, 'unknown');
+    const resultType = getTypeNameById(method.resultStructType, allNodes, 'unknown');
+
+    // 生成方法文档注释
+    lines.push(`  /**`);
+    lines.push(`   * ${method.name}`);
+    lines.push(`   * @param params - ${paramType}`);
+    lines.push(`   * @returns PipelineClient<${resultType}Reader>`);
+    lines.push(`   */`);
+
+    // 生成方法签名
+    lines.push(`  ${method.name}(params: ${paramType}Builder): PipelineClient<${resultType}Reader> {`);
+    lines.push(`    return this._call(`);
+    lines.push(`      ${interfaceName}Client.interfaceId,`);
+    lines.push(`      ${interfaceName}MethodIds.${method.name},`);
+    lines.push(`      params`);
+    lines.push(`    ) as PipelineClient<${resultType}Reader>;`);
+    lines.push(`  }`);
+    lines.push('');
+  }
+
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+/**
+ * 根据类型 ID 获取类型名称
+ */
+function getTypeNameById(id: bigint, allNodes: NodeReader[], fallback: string): string {
+  const node = allNodes.find((n) => n.id === id);
+  if (!node) return fallback;
+  return getShortName(node.displayName);
 }

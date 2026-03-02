@@ -23,3 +23,6 @@ export type {
   ListPointer,
   FarPointer,
 } from './core/pointer.js';
+
+// RPC (Phase 1: Level 0)
+export * from './rpc/index.js';

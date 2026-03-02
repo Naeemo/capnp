@@ -83,6 +83,13 @@ export class Segment {
   }
 
   /**
+   * 获取底层 ArrayBuffer
+   */
+  getArrayBuffer(): ArrayBuffer {
+    return this.buffer;
+  }
+
+  /**
    * 获取字数量
    */
   get wordCount(): number {
