@@ -9,6 +9,7 @@ export default defineConfig({
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Quick Start', link: '/quickstart' },
+      { text: 'RPC Guide', link: '/RPC_GUIDE' },
       { text: 'Changelog', link: '/changelog' },
     ],
     sidebar: [
@@ -17,6 +18,7 @@ export default defineConfig({
         items: [
           { text: 'Introduction', link: '/' },
           { text: 'Quick Start', link: '/quickstart' },
+          { text: 'RPC Guide', link: '/RPC_GUIDE' },
           { text: 'Changelog', link: '/changelog' },
         ],
       },
