@@ -16,12 +16,13 @@ import {
   DEFAULT_JOIN_SECURITY_POLICY,
   type EscrowConfig,
   type JoinOptions,
+  type JoinResult,
   type JoinSecurityPolicy,
   type ObjectIdentity,
   type PendingJoin,
 } from './level4-types.js';
 import type { RpcConnection } from './rpc-connection.js';
-import type { Join, JoinResult, MessageTarget, QuestionId, RpcMessage } from './rpc-types.js';
+import type { Join, MessageTarget, QuestionId, RpcMessage } from './rpc-types.js';
 
 /** Options for Level4Handlers */
 export interface Level4HandlersOptions {
