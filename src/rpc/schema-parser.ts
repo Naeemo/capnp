@@ -5,9 +5,8 @@
  * allowing dynamic generation of readers/writers for types not known at compile time.
  */
 
-import {
+import type {
   SchemaNode,
-  SchemaNodeType,
   SchemaField,
   SchemaType,
   SchemaTypeKind,
@@ -17,7 +16,8 @@ import {
   SchemaBrand,
   SchemaBrandScope,
   SchemaBrandBinding,
-} from "./schema-types";
+} from "./schema-types.js";
+import { SchemaNodeType } from "./schema-types.js";
 
 /**
  * Parse schema binary data into SchemaNode objects

@@ -258,7 +258,7 @@ export type {
   SchemaTarget,
   SchemaResponseResult,
   SchemaPayload,
-  SchemaFormat,
+  // SchemaFormat is exported as value below
   SchemaDependency,
   AvailableSchema,
   SchemaCapability,
@@ -280,9 +280,8 @@ export type {
   DynamicSchemaLoader,
 } from './schema-types.js';
 
-export {
-  SchemaFormat,
-} from './schema-types.js';
+// Re-export SchemaFormat as both type and value
+export { SchemaFormat } from './schema-types.js';
 
 export {
   serializeSchemaRequest,
@@ -299,3 +298,22 @@ export {
   parseSchemaNodes,
   createSchemaRegistry,
 } from './schema-parser.js';
+
+// Phase 7: Dynamic Reader/Writer (NEW)
+export {
+  createDynamicReader,
+  createDynamicReaderFromStruct,
+  createDynamicReaderByTypeId,
+  dumpDynamicReader,
+  type DynamicReader,
+} from './dynamic-reader.js';
+
+export {
+  createDynamicWriter,
+  createNestedDynamicWriter,
+  createDynamicWriterByTypeId,
+  serializeDynamic,
+  serializeDynamicByTypeId,
+  type DynamicWriter,
+  type DynamicListWriter,
+} from './dynamic-writer.js';
