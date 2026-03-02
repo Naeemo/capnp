@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.0] - 2026-03-02
+
+### Added
+- **Level 3 RPC**: Three-way introductions for multi-node connections
+  - Provide/Accept message handling
+  - Automatic connection establishment between nodes
+  - Cross-connection capability passing
+  - ConnectionManager for managing multiple concurrent connections
+- **Level 4 RPC**: Join / Reference Equality
+  - Verify capabilities from different sources point to same object
+  - Escrow Agent security mode for consensus verification
+  - Anti-spoofing with identity hash verification
+  - Audit logging for security-sensitive operations
+- **Streaming & Realtime API** (Phase 5)
+  - Stream abstraction with backpressure
+  - Bulk API for large data transfer with flow control
+  - Realtime API with priority queues and drop policies
+  - Bandwidth adaptation and jitter buffering
+- **360+ tests passing** (up from 257)
+
+### Milestone
+🎉 **Complete Cap'n Proto RPC Level 0-4 implementation achieved!**
+First TypeScript implementation with full official RPC protocol support.
+
 ## [0.3.0] - 2026-03-02
 
 ### Added
@@ -44,6 +68,7 @@
 - CLI: `npx @naeemo/capnp gen schema.capnp -o types.ts`
 - 133 tests passing
 
+[0.4.0]: https://github.com/Naeemo/capnp/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Naeemo/capnp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Naeemo/capnp/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Naeemo/capnp/releases/tag/v0.1.0
