@@ -61,6 +61,9 @@ export class Segment {
    */
   getWord(wordOffset: number): bigint {
     const byteOffset = wordOffset * WORD_SIZE;
+    if (byteOffset + 8 > this._size) {
+      throw new Error(`Offset ${wordOffset} is outside the bounds of the segment (${this.wordCount} words)`);
+    }
     const low = BigInt(this.view.getUint32(byteOffset, true));
     const high = BigInt(this.view.getUint32(byteOffset + 4, true));
     return (high << BigInt(32)) | low;
@@ -71,6 +74,9 @@ export class Segment {
    */
   setWord(wordOffset: number, value: bigint): void {
     const byteOffset = wordOffset * WORD_SIZE;
+    if (byteOffset + 8 > this.buffer.byteLength) {
+      throw new Error(`Offset ${wordOffset} is outside the bounds of the segment`);
+    }
     this.view.setUint32(byteOffset, Number(value & BigInt(0xffffffff)), true);
     this.view.setUint32(byteOffset + 4, Number(value >> BigInt(32)), true);
   }
