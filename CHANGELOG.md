@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.5.2] - 2026-03-03
+
+### Added
+- **Documentation**: Complete documentation overhaul
+  - Quick Start Guide (`docs/getting-started.md`)
+  - RPC Guide with Promise Pipelining examples (`docs/guides/rpc.md`)
+  - Code Generator documentation (`docs/guides/codegen.md`)
+  - Dynamic Schema tutorial (`docs/guides/dynamic-schema.md`)
+  - Streaming API guide (`docs/guides/streaming.md`)
+  - Performance best practices (`docs/best-practices/performance.md`)
+  - Error handling patterns (`docs/best-practices/error-handling.md`)
+  - Performance benchmarks (`docs/benchmarks.md`)
+- **Performance Benchmarks**: Comprehensive performance testing
+  - 10 serialization scenarios tested
+  - JSON comparison benchmark
+  - Detailed performance report with optimization suggestions
+- **C++ Interop**: Node.js to C++ EzRpc compatibility
+  - `EzRpcTransport` for raw TCP communication
+  - Bootstrap handshake tests passing
+  - 5 interop tests covering protocol basics
+
+### Fixed
+- **Boundary Checks**: Added comprehensive bounds checking
+  - Segment.getWord/setWord bounds validation
+  - StructReader all getters with boundary protection
+  - List pointer boundary checks
+  - 12 new edge case tests all passing
+- **RPC Error Handling**: Improved EzRpcTransport robustness
+  - Fixed connected property check
+  - Better connection timeout messages
+  - Proper cleanup on disconnect
+  - 30-second receive timeout protection
+- **Error Messages**: Clearer error messages throughout
+
+### Stats
+- **414 tests passing** (up from 420+)
+- **8 documentation files** added
+- **2 benchmark suites** added
+
+[0.5.2]: https://github.com/Naeemo/capnp/releases/tag/v0.5.2
+
 ## [0.5.0] - 2026-03-03
 
 ### Added
