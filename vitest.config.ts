@@ -5,7 +5,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts'],
-    exclude: ['src/interop-cpp/**/*.test.ts'],
+    exclude: ['node_modules/', 'dist/', 'wasm/'],
     coverage: {
       reporter: ['text', 'json', 'html'],
       exclude: ['node_modules/', 'dist/', 'wasm/'],
