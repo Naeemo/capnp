@@ -1,5 +1,5 @@
 #!/bin/bash
-# Push script for capnp-ts
+# Push script for @naeemo/capnp
 
-cd /root/.openclaw/workspace/capnp-ts
+cd /root/.openclaw/workspace/capnp
 git push origin main

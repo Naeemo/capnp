@@ -1,126 +1,180 @@
-# @naeemo/capnp 项目核心信息
+# @naeemo/capnp 项目记忆
+
+> 纯 TypeScript 实现的 Cap'n Proto，零拷贝反序列化，与官方 C++ 实现兼容。
 
 ## 项目定位
-纯 TypeScript 实现的 Cap'n Proto，零拷贝反序列化，与官方 C++ 实现兼容。
 
-## 当前状态 (2026-03-02)
+一个完整的 Cap'n Proto TypeScript 实现，支持：
+- 零拷贝序列化/反序列化
+- 完整的 RPC 协议（Level 0-4）
+- Binary Schema 代码生成
+- 动态 Schema 支持
 
-### 已完成
-- [x] 核心序列化：MessageBuilder, MessageReader, List, Pointer, Segment
-- [x] 基础代码生成：v2 版本在用，支持 struct/enum/List
-- [x] 测试框架：Vitest
-- [x] 文档：VitePress 站点
-- [x] **Binary Schema 解析器**：可以读取官方 `capnp compile -o-` 生成的编译后 schema
-- [x] **V3 代码生成器**：使用 binary schema 生成 TypeScript（Interface + Reader + Builder）
-- [x] **V3 CLI 工具** (`cli-v3.ts`)：使用官方 capnp 编译器生成代码
-- [x] **Union 代码生成**：V3 生成器支持 Union 字段（discriminant + variant）
+## 当前版本
 
-### 进行中 / 待完成
-- [x] Group 支持 ✅
-- [x] 默认值（XOR 编码）✅
-- [x] 多 Segment / Far Pointer ✅（支持 single-far 和 double-far 间接寻址）
-- [x] Union discriminant offset 从 schema 读取 ✅（已修复：discriminantOffset 需要乘以 2 转换为 byte offset）
-- [x] Union setter 中的 discriminantOffset 硬编码问题 ✅（已修复：通过函数参数传递）
-- [x] 类型检查和 lint 修复 ✅
-- [x] 构建和测试 ✅（v0.2.0 已准备就绪）
-- [x] 推送到 GitHub ✅（21 commits 已推送）
-- [x] 发布 v0.2.0 到 npm ✅（已通过 GitHub Actions 自动发布）
-- [x] **Phase 3 RPC 完成** - Interface 代码生成、SturdyRefs、性能优化全部完成
-- [x] **250 个测试通过** - RPC 核心功能稳定
-- [ ] C++ 互操作测试（需要外部服务器）
-- [ ] 文档完善
+**v0.5.0** - 2026-03-02 发布
 
-### 最新进展 (2026-03-02)
-- ✅ **Phase 3 RPC 完成** - Interface 代码生成、SturdyRefs、性能优化全部完成
-- ✅ **250 个测试通过** - RPC 核心功能稳定
-- ✅ **Promise Pipelining** - Level 1 RPC 完整实现
-- ✅ **SturdyRefs (Level 2)** - 持久化能力引用
-- [ ] C++ 互操作测试（需要外部服务器）
-- [ ] 文档完善
+## 功能状态
 
-## 技术决策
+### 核心序列化 ✅ 完整
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| MessageReader/MessageBuilder | ✅ | 单段/多段消息 |
+| StructReader/StructBuilder | ✅ | 结构体读写 |
+| ListReader/ListBuilder | ✅ | 列表支持 |
+| Union | ✅ | Union 类型完整支持 |
+| Far Pointer | ✅ | 单/双间接寻址 |
+| 默认值/XOR编码 | ✅ | 默认值的编码解码 |
 
-### Schema 解析策略
-- **当前**：正则解析器（临时方案，功能有限）
-- **目标**：调用 `capnp compile -o binary` 生成编译后 schema，解析二进制格式
-- **原因**：字段布局算法复杂，官方已处理好 offset/dataWords/pointerCount
+### Binary Schema ✅ 完整
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| Schema 解析 | ✅ | 读取 `capnp compile -o-` 输出 |
+| V3 代码生成器 | ✅ | 生成 Interface + Reader + Builder |
+| Union 代码生成 | ✅ | discriminant + variant |
+| Group 支持 | ✅ | Group 字段生成 |
+| Interface 代码生成 | ✅ | RPC Interface 生成 |
 
-### 代码生成策略
-- 基于编译后的 schema 生成 TypeScript
-- Reader 类：getter + 类型安全
-- Builder 类：setter + factory
-- Union：discriminant 检查 + variant 类型
+### RPC 协议 ✅ Level 0-4 完整
 
-## 目录结构
+**Level 0 - 基础消息交换**
+- ✅ Bootstrap
+- ✅ Call/Return/Finish
+- ✅ 基础消息序列化
+
+**Level 1 - Promise Pipelining**
+- ✅ 流水线调用
+- ✅ 能力传递
+- ✅ Resolve/Release
+
+**Level 2 - 持久化能力**
+- ✅ SturdyRefs
+- ✅ Save/Restore
+
+**Level 3 - 三方引入**
+- ✅ Three-way introductions
+- ✅ Provide/Accept
+- ✅ ConnectionManager
+- ✅ Embargo 处理
+
+**Level 4 - 引用相等**
+- ✅ Join 操作
+- ✅ 对象身份验证
+- ✅ Escrow 代理模式
+
+### 流控制与实时通信 ✅
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| Stream API | ✅ | 流抽象与流控 |
+| Bulk API | ✅ | 批量数据传输 |
+| Realtime API | ✅ | 低延迟通信 |
+
+### 动态 Schema ✅
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| Schema 传输协议 | ✅ | 运行时获取 Schema |
+| DynamicReader | ✅ | 动态读取 |
+| DynamicWriter | ✅ | 动态写入 |
+| Schema Registry | ✅ | Schema 缓存管理 |
+
+### 性能优化 ✅
+- ✅ MemoryPool - 内存池
+- ✅ MultiSegmentMessageBuilder - 多段构建器优化
+- ✅ OptimizedRpcMessageBuilder - RPC 消息优化
+- ✅ Zero-copy views
+
+## 技术架构
 
 ```
 src/
-  core/           # 核心序列化
-    message-builder.ts
-    message-reader.ts
-    list.ts
-    pointer.ts
-    segment.ts
-    union.ts
-  schema/         # Binary schema 解析
-    schema-reader.ts    # 读取 capnp compile -o- 输出
-  codegen/        # 代码生成
-    parser-v2.ts        # 当前在用（正则）- 待废弃
-    generator-v2.ts     # 当前在用 - 待废弃
-    generator-v3.ts     # 新版，使用 binary schema，支持 Union
-    cli-v3.ts           # V3 CLI 工具
-    struct-gen.ts
-    enum-gen.ts
-    type-utils.ts
-  cli/            # 命令行工具
-  test/           # 测试
-  interop/        # 与官方实现互操作测试
+├── core/                    # 核心序列化
+│   ├── message-reader.ts    # 消息读取
+│   ├── message-builder.ts   # 消息构建
+│   ├── list.ts              # 列表实现
+│   ├── pointer.ts           # 指针编解码
+│   ├── segment.ts           # 段管理
+│   └── union.ts             # Union 支持
+│
+├── schema/                  # Binary Schema 解析
+│   └── schema-reader.ts     # 编译后 Schema 读取
+│
+├── codegen/                 # 代码生成
+│   ├── generator.ts         # 主生成器
+│   ├── struct-gen.ts        # 结构体生成
+│   ├── enum-gen.ts          # 枚举生成
+│   ├── rpc-codegen.ts       # RPC 代码生成
+│   └── cli.ts               # CLI 工具
+│
+├── rpc/                     # RPC 实现
+│   ├── rpc-types.ts         # RPC 类型定义
+│   ├── rpc-connection.ts    # 连接管理
+│   ├── four-tables.ts       # 四表管理
+│   ├── pipeline.ts          # Promise Pipelining
+│   ├── sturdyrefs.ts        # 持久化能力
+│   ├── connection-manager.ts# Level 3 连接管理
+│   ├── level3-handlers.ts   # Level 3 处理器
+│   ├── level4-handlers.ts   # Level 4 处理器
+│   ├── stream.ts            # 流控制
+│   ├── bulk.ts              # 批量传输
+│   ├── realtime.ts          # 实时通信
+│   ├── schema-*.ts          # 动态 Schema
+│   └── dynamic-*.ts         # 动态读写
+│
+└── test/                    # 测试
 ```
 
-## 开发路线图
+## 关键设计决策
 
-### Phase 1: 基础补全 (进行中)
-1. ✅ 接入官方 schema 编译器（binary schema 解析）
-2. ✅ V3 代码生成器基础
-3. ✅ V3 CLI 工具
-4. ✅ Union 代码生成支持
-5. ✅ Group 支持
-6. ✅ 默认值（XOR 编码）
+### 1. Schema 解析策略
+使用官方 `capnp compile -o binary` 生成的编译后 Schema，而非正则解析。
+**原因**：字段布局算法复杂，官方已处理好 offset/dataWords/pointerCount。
 
-### Phase 2: 兼容性 ✅ 已完成
-7. ✅ 多 Segment / Far Pointer
-8. ✅ 互操作测试完善 (33 个测试通过)
+### 2. 代码生成策略
+- **Reader 类**：getter + 类型安全
+- **Builder 类**：setter + factory
+- **Union**：discriminant 检查 + variant 类型
+- **Interface**：Method ID 常量 + Server Interface + Client Class
 
-### Phase 3: RPC 层 ✅ 已完成
-9. ✅ Interface 代码生成
-   - Method ID 常量生成
-   - Server Interface 生成
-   - Client Class 生成（支持 Promise Pipelining）
-10. ✅ SturdyRefs (Level 2) - 持久化能力引用
-11. ✅ 性能优化 (MemoryPool, MultiSegmentMessageBuilder)
-12. ✅ 集成测试框架
+### 3. RPC 架构
+- 基于四表（Question/Answer/Import/Export）
+- Promise Pipelining 支持流水线调用
+- 支持 SturdyRefs 持久化能力
+- 支持三方引入和 Join 操作
 
-### Phase 4: 完善与扩展 (进行中)
-13. [ ] C++ 互操作性测试（需要启动 C++ 服务器）
-14. [ ] 文档完善（RPC 使用指南、教程）
-15. [ ] Level 3/4 RPC（根据需求）
+## 使用方式
 
-## 使用 V3 CLI
-
+### 代码生成
 ```bash
 # 安装 capnp 工具后
 npx capnp-ts-codegen schema.capnp -o types.ts
-npx capnp-ts-codegen schema.capnp -d ./generated
-npx capnp-ts-codegen schema.capnp -o types.ts -r ../my-runtime
 ```
 
-## 关键参考
+### RPC 服务端
+```typescript
+import { RpcConnection } from '@naeemo/capnp';
+
+const connection = new RpcConnection(transport, {
+  bootstrap: myCapability
+});
+```
+
+### RPC 客户端
+```typescript
+const client = await connection.bootstrap();
+const result = await client.callMethod();
+```
+
+## 参考资源
 
 - 官方协议：https://capnproto.org/encoding.html
 - 官方语言规范：https://capnproto.org/language.html
-- 路线图：https://capnproto.org/roadmap.html
+- 官方 RPC：https://capnproto.org/rpc.html
+- 官方路线图：https://capnproto.org/roadmap.html
 
 ## 维护者
 
 - Naeemo <naeemo@qq.com>
 - Kimi (AI assistant)
+
+---
+*本文件由开发助手维护，记录项目当前状态和设计决策。*
