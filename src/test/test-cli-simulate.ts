@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { generateFromRequest } from '../codegen/generator-v3.js';
+import { generateFromRequest } from '../codegen/generator.js';
 import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 
 // Simulate CLI behavior

@@ -5,7 +5,7 @@ export default defineConfig({
   description: "A pure TypeScript implementation of Cap'n Proto",
   base: '/capnp/',
   ignoreDeadLinks: true,
-  
+
   // 国际化配置
   locales: {
     root: {
@@ -31,7 +31,7 @@ export default defineConfig({
             ],
           },
         ],
-      }
+      },
     },
     zh: {
       label: '简体中文',
@@ -57,14 +57,12 @@ export default defineConfig({
             ],
           },
         ],
-      }
-    }
+      },
+    },
   },
-  
+
   themeConfig: {
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/Naeemo/capnp' },
-    ],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/Naeemo/capnp' }],
     footer: {
       message: 'Released under the MIT License.',
       copyright: 'Copyright © 2024-2026 Naeemo',

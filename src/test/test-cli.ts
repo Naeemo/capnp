@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { generateFromRequest } from '../codegen/generator-v3.js';
+import { generateFromRequest } from '../codegen/generator.js';
 import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 
 const buffer = readFileSync('/tmp/calculator2.bin');

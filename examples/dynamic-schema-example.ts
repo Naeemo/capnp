@@ -1,6 +1,6 @@
 /**
  * Phase 7: Dynamic Schema Usage Example
- * 
+ *
  * This example demonstrates how to use the Dynamic Schema Transfer Protocol
  * to fetch schema information from a remote server and use it to read/write
  * Cap'n Proto messages at runtime.
@@ -8,14 +8,14 @@
 
 import {
   RpcConnection,
-  WebSocketTransport,
   SchemaCapabilityClient,
   SchemaCapabilityServer,
+  type SchemaNode,
+  SchemaNodeType,
+  WebSocketTransport,
   createDynamicReader,
   createDynamicWriter,
-  SchemaNodeType,
-  type SchemaNode,
-} from "@naeemo/capnp";
+} from '@naeemo/capnp';
 
 // ============================================================================
 // Example 1: Server-side Schema Provider
@@ -24,8 +24,8 @@ import {
 async function setupSchemaServer() {
   // Define some example schemas
   const personSchema: SchemaNode = {
-    id: BigInt("0x1234567890abcdef"),
-    displayName: "example.Person",
+    id: BigInt('0x1234567890abcdef'),
+    displayName: 'example.Person',
     displayNamePrefixLength: 8,
     scopeId: BigInt(0),
     nestedNodes: [],
@@ -39,16 +39,37 @@ async function setupSchemaServer() {
       discriminantCount: 0,
       discriminantOffset: 0,
       fields: [
-        { name: "id", codeOrder: 0, discriminantValue: 0, offset: 0, type: { kind: { type: "uint32" } }, hadExplicitDefault: false },
-        { name: "name", codeOrder: 1, discriminantValue: 0, offset: 64, type: { kind: { type: "text" } }, hadExplicitDefault: false },
-        { name: "email", codeOrder: 2, discriminantValue: 0, offset: 128, type: { kind: { type: "text" } }, hadExplicitDefault: false },
+        {
+          name: 'id',
+          codeOrder: 0,
+          discriminantValue: 0,
+          offset: 0,
+          type: { kind: { type: 'uint32' } },
+          hadExplicitDefault: false,
+        },
+        {
+          name: 'name',
+          codeOrder: 1,
+          discriminantValue: 0,
+          offset: 64,
+          type: { kind: { type: 'text' } },
+          hadExplicitDefault: false,
+        },
+        {
+          name: 'email',
+          codeOrder: 2,
+          discriminantValue: 0,
+          offset: 128,
+          type: { kind: { type: 'text' } },
+          hadExplicitDefault: false,
+        },
       ],
     },
   };
 
   const addressSchema: SchemaNode = {
-    id: BigInt("0xfedcba0987654321"),
-    displayName: "example.Address",
+    id: BigInt('0xfedcba0987654321'),
+    displayName: 'example.Address',
     displayNamePrefixLength: 8,
     scopeId: BigInt(0),
     nestedNodes: [],
@@ -62,9 +83,30 @@ async function setupSchemaServer() {
       discriminantCount: 0,
       discriminantOffset: 0,
       fields: [
-        { name: "street", codeOrder: 0, discriminantValue: 0, offset: 0, type: { kind: { type: "text" } }, hadExplicitDefault: false },
-        { name: "city", codeOrder: 1, discriminantValue: 0, offset: 64, type: { kind: { type: "text" } }, hadExplicitDefault: false },
-        { name: "country", codeOrder: 2, discriminantValue: 0, offset: 128, type: { kind: { type: "text" } }, hadExplicitDefault: false },
+        {
+          name: 'street',
+          codeOrder: 0,
+          discriminantValue: 0,
+          offset: 0,
+          type: { kind: { type: 'text' } },
+          hadExplicitDefault: false,
+        },
+        {
+          name: 'city',
+          codeOrder: 1,
+          discriminantValue: 0,
+          offset: 64,
+          type: { kind: { type: 'text' } },
+          hadExplicitDefault: false,
+        },
+        {
+          name: 'country',
+          codeOrder: 2,
+          discriminantValue: 0,
+          offset: 128,
+          type: { kind: { type: 'text' } },
+          hadExplicitDefault: false,
+        },
       ],
     },
   };
@@ -78,7 +120,7 @@ async function setupSchemaServer() {
   const schemaServer = new SchemaCapabilityServer(registry);
 
   // Set up the RPC connection with WebSocket transport
-  const transport = new WebSocketTransport("ws://localhost:8080");
+  const transport = new WebSocketTransport('ws://localhost:8080');
   const connection = new RpcConnection(transport);
 
   // Register the schema provider
@@ -87,7 +129,7 @@ async function setupSchemaServer() {
   // Start the connection
   await connection.start();
 
-  console.log("Schema server started on ws://localhost:8080");
+  console.log('Schema server started on ws://localhost:8080');
   console.log(`Serving ${schemaServer.getSchemaCount()} schemas`);
 
   return connection;
@@ -99,7 +141,7 @@ async function setupSchemaServer() {
 
 async function useDynamicSchemaClient() {
   // Connect to the schema server
-  const transport = new WebSocketTransport("ws://localhost:8080");
+  const transport = new WebSocketTransport('ws://localhost:8080');
   const connection = new RpcConnection(transport);
   await connection.start();
 
@@ -108,18 +150,18 @@ async function useDynamicSchemaClient() {
 
   // List all available schemas
   const schemas = await schemaClient.listAvailableSchemas();
-  console.log("Available schemas:");
+  console.log('Available schemas:');
   for (const schema of schemas) {
     console.log(`  - ${schema.displayName} (0x${schema.typeId.toString(16)})`);
   }
 
   // Fetch a specific schema by ID
-  const personSchema = await schemaClient.getSchemaById(BigInt("0x1234567890abcdef"));
+  const personSchema = await schemaClient.getSchemaById(BigInt('0x1234567890abcdef'));
   console.log(`\nFetched schema: ${personSchema.displayName}`);
-  console.log(`Fields: ${personSchema.structInfo?.fields.map(f => f.name).join(", ")}`);
+  console.log(`Fields: ${personSchema.structInfo?.fields.map((f) => f.name).join(', ')}`);
 
   // Fetch by name
-  const addressSchema = await schemaClient.getSchemaByName("example.Address");
+  const addressSchema = await schemaClient.getSchemaByName('example.Address');
   console.log(`\nFetched schema: ${addressSchema.displayName}`);
 
   return { connection, schemaClient, personSchema };
@@ -134,9 +176,9 @@ function createPersonMessage(schema: SchemaNode) {
   const writer = createDynamicWriter(schema);
 
   // Set field values by name
-  writer.set("id", 42);
-  writer.setText("name", "Alice Smith");
-  writer.setText("email", "alice@example.com");
+  writer.set('id', 42);
+  writer.setText('name', 'Alice Smith');
+  writer.setText('email', 'alice@example.com');
 
   // Serialize to buffer
   const buffer = writer.toBuffer();
@@ -154,18 +196,18 @@ function readPersonMessage(schema: SchemaNode, buffer: ArrayBuffer) {
   const reader = createDynamicReader(schema, buffer);
 
   // Access fields by name
-  const id = reader.get("id") as number;
-  const name = reader.get("name") as string;
-  const email = reader.get("email") as string;
+  const id = reader.get('id') as number;
+  const name = reader.get('name') as string;
+  const email = reader.get('email') as string;
 
-  console.log("\nRead Person message:");
+  console.log('\nRead Person message:');
   console.log(`  ID: ${id}`);
   console.log(`  Name: ${name}`);
   console.log(`  Email: ${email}`);
 
   // Get all field names
   const fields = reader.getFieldNames();
-  console.log(`\nAll fields: ${fields.join(", ")}`);
+  console.log(`\nAll fields: ${fields.join(', ')}`);
 
   return { id, name, email };
 }
@@ -176,8 +218,8 @@ function readPersonMessage(schema: SchemaNode, buffer: ArrayBuffer) {
 
 function createMessageWithList() {
   const schema: SchemaNode = {
-    id: BigInt("0x1111111111111111"),
-    displayName: "example.Team",
+    id: BigInt('0x1111111111111111'),
+    displayName: 'example.Team',
     displayNamePrefixLength: 8,
     scopeId: BigInt(0),
     nestedNodes: [],
@@ -191,40 +233,54 @@ function createMessageWithList() {
       discriminantCount: 0,
       discriminantOffset: 0,
       fields: [
-        { name: "name", codeOrder: 0, discriminantValue: 0, offset: 0, type: { kind: { type: "text" } }, hadExplicitDefault: false },
-        { 
-          name: "members", 
-          codeOrder: 1, 
-          discriminantValue: 0, 
-          offset: 64, 
-          type: { kind: { type: "list", elementType: { kind: { type: "text" } } } },
-          hadExplicitDefault: false 
+        {
+          name: 'name',
+          codeOrder: 0,
+          discriminantValue: 0,
+          offset: 0,
+          type: { kind: { type: 'text' } },
+          hadExplicitDefault: false,
         },
-        { name: "count", codeOrder: 2, discriminantValue: 0, offset: 32, type: { kind: { type: "uint32" } }, hadExplicitDefault: false },
+        {
+          name: 'members',
+          codeOrder: 1,
+          discriminantValue: 0,
+          offset: 64,
+          type: { kind: { type: 'list', elementType: { kind: { type: 'text' } } } },
+          hadExplicitDefault: false,
+        },
+        {
+          name: 'count',
+          codeOrder: 2,
+          discriminantValue: 0,
+          offset: 32,
+          type: { kind: { type: 'uint32' } },
+          hadExplicitDefault: false,
+        },
       ],
     },
   };
 
   const writer = createDynamicWriter(schema);
-  writer.setText("name", "Engineering Team");
-  writer.set("count", 3);
+  writer.setText('name', 'Engineering Team');
+  writer.set('count', 3);
 
   // Initialize and populate the list
-  const listWriter = writer.initList("members", 3);
-  listWriter.set(0, "Alice");
-  listWriter.set(1, "Bob");
-  listWriter.set(2, "Charlie");
+  const listWriter = writer.initList('members', 3);
+  listWriter.set(0, 'Alice');
+  listWriter.set(1, 'Bob');
+  listWriter.set(2, 'Charlie');
 
   const buffer = writer.toBuffer();
 
   // Read back
   const reader = createDynamicReader(schema, buffer);
-  const teamName = reader.get("name");
-  const members = reader.getList("members") as string[];
+  const teamName = reader.get('name');
+  const members = reader.getList('members') as string[];
 
-  console.log("\nTeam:");
+  console.log('\nTeam:');
   console.log(`  Name: ${teamName}`);
-  console.log(`  Members: ${members.join(", ")}`);
+  console.log(`  Members: ${members.join(', ')}`);
 
   return buffer;
 }
@@ -234,28 +290,27 @@ function createMessageWithList() {
 // ============================================================================
 
 async function useConnectionDirectly() {
-  const transport = new WebSocketTransport("ws://localhost:8080");
+  const transport = new WebSocketTransport('ws://localhost:8080');
   const connection = new RpcConnection(transport);
   await connection.start();
 
   // Fetch schema directly through the connection
-  const typeId = BigInt("0x1234567890abcdef");
-  
+  const typeId = BigInt('0x1234567890abcdef');
+
   try {
     const schema = await connection.getDynamicSchema(typeId);
     console.log(`\nFetched schema via connection: ${schema.displayName}`);
 
     // Check if schema is cached
     if (connection.hasCachedSchema(typeId)) {
-      console.log("Schema is now cached");
+      console.log('Schema is now cached');
     }
 
     // Get the registry
     const registry = connection.getSchemaRegistry();
-    console.log(`Registry has ${registry.hasNode(typeId) ? "the" : "no"} schema`);
-
+    console.log(`Registry has ${registry.hasNode(typeId) ? 'the' : 'no'} schema`);
   } catch (error) {
-    console.error("Failed to fetch schema:", error);
+    console.error('Failed to fetch schema:', error);
   }
 
   return connection;
@@ -266,25 +321,25 @@ async function useConnectionDirectly() {
 // ============================================================================
 
 async function main() {
-  console.log("=== Dynamic Schema Transfer Protocol Examples ===\n");
+  console.log('=== Dynamic Schema Transfer Protocol Examples ===\n');
 
   // Note: These examples require a running WebSocket server
   // For demonstration purposes, we'll just show the code structure
 
-  console.log("Example 1: Server-side setup");
-  console.log("----------------------------");
-  console.log("See setupSchemaServer() function\n");
+  console.log('Example 1: Server-side setup');
+  console.log('----------------------------');
+  console.log('See setupSchemaServer() function\n');
 
-  console.log("Example 2: Client-side schema fetching");
-  console.log("--------------------------------------");
-  console.log("See useDynamicSchemaClient() function\n");
+  console.log('Example 2: Client-side schema fetching');
+  console.log('--------------------------------------');
+  console.log('See useDynamicSchemaClient() function\n');
 
-  console.log("Example 3: Dynamic message writing");
-  console.log("----------------------------------");
+  console.log('Example 3: Dynamic message writing');
+  console.log('----------------------------------');
   // Create a sample schema for demonstration
   const sampleSchema: SchemaNode = {
-    id: BigInt("0x1234567890abcdef"),
-    displayName: "example.Person",
+    id: BigInt('0x1234567890abcdef'),
+    displayName: 'example.Person',
     displayNamePrefixLength: 8,
     scopeId: BigInt(0),
     nestedNodes: [],
@@ -298,23 +353,44 @@ async function main() {
       discriminantCount: 0,
       discriminantOffset: 0,
       fields: [
-        { name: "id", codeOrder: 0, discriminantValue: 0, offset: 0, type: { kind: { type: "uint32" } }, hadExplicitDefault: false },
-        { name: "name", codeOrder: 1, discriminantValue: 0, offset: 64, type: { kind: { type: "text" } }, hadExplicitDefault: false },
-        { name: "email", codeOrder: 2, discriminantValue: 0, offset: 128, type: { kind: { type: "text" } }, hadExplicitDefault: false },
+        {
+          name: 'id',
+          codeOrder: 0,
+          discriminantValue: 0,
+          offset: 0,
+          type: { kind: { type: 'uint32' } },
+          hadExplicitDefault: false,
+        },
+        {
+          name: 'name',
+          codeOrder: 1,
+          discriminantValue: 0,
+          offset: 64,
+          type: { kind: { type: 'text' } },
+          hadExplicitDefault: false,
+        },
+        {
+          name: 'email',
+          codeOrder: 2,
+          discriminantValue: 0,
+          offset: 128,
+          type: { kind: { type: 'text' } },
+          hadExplicitDefault: false,
+        },
       ],
     },
   };
   const buffer = createPersonMessage(sampleSchema);
 
-  console.log("\nExample 4: Dynamic message reading");
-  console.log("----------------------------------");
+  console.log('\nExample 4: Dynamic message reading');
+  console.log('----------------------------------');
   readPersonMessage(sampleSchema, buffer);
 
-  console.log("\nExample 5: Working with lists");
-  console.log("-----------------------------");
+  console.log('\nExample 5: Working with lists');
+  console.log('-----------------------------');
   createMessageWithList();
 
-  console.log("\n=== Examples Complete ===");
+  console.log('\n=== Examples Complete ===');
 }
 
 // Run if executed directly

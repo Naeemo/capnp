@@ -1,9 +1,9 @@
 /**
  * Dynamic Schema Client Example
- * 
+ *
  * This example demonstrates how to use the Phase 7 Dynamic Schema feature
  * to interact with a Cap'n Proto service without compile-time type information.
- * 
+ *
  * Usage:
  *   1. Start a Cap'n Proto server that supports schema queries
  *   2. Run this example: tsx examples/dynamic-schema-client.ts
@@ -11,11 +11,11 @@
 
 import {
   RpcConnection,
+  type SchemaNode,
   WebSocketTransport,
   createDynamicReader,
   createDynamicWriter,
   dumpDynamicReader,
-  type SchemaNode,
 } from '../src/index.js';
 
 // Configuration
@@ -23,7 +23,7 @@ const SERVER_URL = 'ws://localhost:8080';
 
 /**
  * Example 1: Basic Dynamic Schema Usage
- * 
+ *
  * Connect to a server and fetch schema information dynamically.
  */
 async function example1BasicUsage() {
@@ -41,17 +41,17 @@ async function example1BasicUsage() {
     // In a real scenario, you would know the type ID from documentation
     // or from a previous bootstrap call
     const typeId = 0x1234567890abcdefn; // Example type ID
-    
+
     try {
       const schema = await connection.getDynamicSchema(typeId);
       console.log(`📋 Fetched schema: ${schema.displayName}`);
       console.log(`   Type: ${schema.type === 1 ? 'struct' : 'other'}`);
-      
+
       if (schema.structInfo) {
         console.log(`   Data words: ${schema.structInfo.dataWordCount}`);
         console.log(`   Pointers: ${schema.structInfo.pointerCount}`);
         console.log(`   Fields: ${schema.structInfo.fields.length}`);
-        
+
         // List all fields
         console.log('\n   Fields:');
         for (const field of schema.structInfo.fields) {
@@ -73,7 +73,7 @@ async function example1BasicUsage() {
 
 /**
  * Example 2: Reading Messages with Dynamic Reader
- * 
+ *
  * Read a Cap'n Proto message using dynamically loaded schema.
  */
 async function example2ReadingMessages() {
@@ -82,7 +82,7 @@ async function example2ReadingMessages() {
   // In a real scenario, you would receive this buffer from a server
   // Here we create a mock buffer for demonstration
   const mockBuffer = new ArrayBuffer(64);
-  
+
   // Define a schema inline (normally this would come from the server)
   const personSchema: SchemaNode = {
     id: BigInt('0x1234567890abcdef'),
@@ -161,7 +161,7 @@ async function example2ReadingMessages() {
 
 /**
  * Example 3: Writing Messages with Dynamic Writer
- * 
+ *
  * Write a Cap'n Proto message using dynamically loaded schema.
  */
 async function example3WritingMessages() {
@@ -257,7 +257,7 @@ async function example3WritingMessages() {
 
 /**
  * Example 4: Schema Registry and Caching
- * 
+ *
  * Demonstrate how schema caching works across multiple requests.
  */
 async function example4SchemaCaching() {
@@ -295,7 +295,7 @@ async function example4SchemaCaching() {
 
 /**
  * Example 5: Listing Available Schemas
- * 
+ *
  * Query the server for all available schemas.
  */
 async function example5ListingSchemas() {
@@ -311,7 +311,7 @@ async function example5ListingSchemas() {
 
     try {
       const schemas = await connection.listAvailableSchemas();
-      
+
       console.log(`\n📦 Found ${schemas.length} schemas:`);
       for (const schema of schemas) {
         console.log(`   - ${schema.displayName} (0x${schema.typeId.toString(16)})`);
@@ -330,7 +330,7 @@ async function example5ListingSchemas() {
 
 /**
  * Example 6: Using Dynamic Schema with RPC Calls
- * 
+ *
  * Make an RPC call and parse the result using dynamic schema.
  */
 async function example6RpcWithDynamicSchema() {
@@ -347,7 +347,7 @@ async function example6RpcWithDynamicSchema() {
     // In a real scenario:
     // 1. Get the bootstrap capability
     // const bootstrap = await connection.bootstrap();
-    // 
+    //
     // 2. Make a call that returns a struct
     // const result = await connection.call(...);
     //
@@ -373,7 +373,7 @@ async function example6RpcWithDynamicSchema() {
  */
 async function main() {
   console.log('╔══════════════════════════════════════════════════════════════╗');
-  console.log('║     Cap\'n Proto Dynamic Schema Client Examples               ║');
+  console.log("║     Cap'n Proto Dynamic Schema Client Examples               ║");
   console.log('╚══════════════════════════════════════════════════════════════╝\n');
 
   // Run examples

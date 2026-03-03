@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generateFromRequest } from '../codegen/generator-v3.js';
+import { generateFromRequest } from '../codegen/generator.js';
 import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

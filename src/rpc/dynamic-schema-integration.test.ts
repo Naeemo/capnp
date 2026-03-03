@@ -1,13 +1,13 @@
 /**
  * Phase 7: Dynamic Schema Integration Tests
- * 
+ *
  * Tests for RpcConnection.getDynamicSchema() and related methods
  */
 
-import { describe, it, expect, vi } from "vitest";
-import { RpcConnection } from "./rpc-connection.js";
-import type { RpcTransport } from "./transport.js";
-import type { SchemaNode } from "./schema-types.js";
+import { describe, expect, it, vi } from 'vitest';
+import { RpcConnection } from './rpc-connection.js';
+import type { SchemaNode } from './schema-types.js';
+import type { RpcTransport } from './transport.js';
 
 // Mock transport for testing
 function createMockTransport(): RpcTransport {
@@ -21,16 +21,16 @@ function createMockTransport(): RpcTransport {
   };
 }
 
-describe("RpcConnection Dynamic Schema", () => {
-  describe("getDynamicSchema", () => {
-    it("should return cached schema if available", async () => {
+describe('RpcConnection Dynamic Schema', () => {
+  describe('getDynamicSchema', () => {
+    it('should return cached schema if available', async () => {
       const transport = createMockTransport();
       const connection = new RpcConnection(transport);
 
       // Pre-register a schema
       const mockSchema: SchemaNode = {
-        id: BigInt("0x1234567890abcdef"),
-        displayName: "TestStruct",
+        id: BigInt('0x1234567890abcdef'),
+        displayName: 'TestStruct',
         displayNamePrefixLength: 0,
         scopeId: BigInt(0),
         nestedNodes: [],
@@ -50,26 +50,26 @@ describe("RpcConnection Dynamic Schema", () => {
       connection.registerSchema(mockSchema);
 
       // Should return cached schema without network call
-      const schema = await connection.getDynamicSchema(BigInt("0x1234567890abcdef"));
-      
+      const schema = await connection.getDynamicSchema(BigInt('0x1234567890abcdef'));
+
       expect(schema).toBeDefined();
-      expect(schema.displayName).toBe("TestStruct");
+      expect(schema.displayName).toBe('TestStruct');
       expect(transport.send).not.toHaveBeenCalled();
     });
 
-    it("should check if schema is cached", () => {
+    it('should check if schema is cached', () => {
       const transport = createMockTransport();
       const connection = new RpcConnection(transport);
 
-      const typeId = BigInt("0x1234567890abcdef");
-      
+      const typeId = BigInt('0x1234567890abcdef');
+
       // Initially not cached
       expect(connection.hasCachedSchema(typeId)).toBe(false);
 
       // Register schema
       const mockSchema: SchemaNode = {
         id: typeId,
-        displayName: "TestStruct",
+        displayName: 'TestStruct',
         displayNamePrefixLength: 0,
         scopeId: BigInt(0),
         nestedNodes: [],
@@ -91,16 +91,16 @@ describe("RpcConnection Dynamic Schema", () => {
       expect(connection.hasCachedSchema(typeId)).toBe(true);
     });
 
-    it("should clear schema cache", () => {
+    it('should clear schema cache', () => {
       const transport = createMockTransport();
       const connection = new RpcConnection(transport);
 
-      const typeId = BigInt("0x1234567890abcdef");
-      
+      const typeId = BigInt('0x1234567890abcdef');
+
       // Register schema
       const mockSchema: SchemaNode = {
         id: typeId,
-        displayName: "TestStruct",
+        displayName: 'TestStruct',
         displayNamePrefixLength: 0,
         scopeId: BigInt(0),
         nestedNodes: [],
@@ -127,27 +127,27 @@ describe("RpcConnection Dynamic Schema", () => {
       expect(connection.getSchemaRegistry().hasNode(typeId)).toBe(true);
     });
 
-    it("should get schema registry", () => {
+    it('should get schema registry', () => {
       const transport = createMockTransport();
       const connection = new RpcConnection(transport);
 
       const registry = connection.getSchemaRegistry();
-      
+
       expect(registry).toBeDefined();
-      expect(typeof registry.registerNode).toBe("function");
-      expect(typeof registry.getNode).toBe("function");
-      expect(typeof registry.hasNode).toBe("function");
+      expect(typeof registry.registerNode).toBe('function');
+      expect(typeof registry.getNode).toBe('function');
+      expect(typeof registry.hasNode).toBe('function');
     });
   });
 
-  describe("Schema Registry Integration", () => {
-    it("should register and retrieve schema by name", () => {
+  describe('Schema Registry Integration', () => {
+    it('should register and retrieve schema by name', () => {
       const transport = createMockTransport();
       const connection = new RpcConnection(transport);
 
       const mockSchema: SchemaNode = {
-        id: BigInt("0x1234567890abcdef"),
-        displayName: "myapp.TestStruct",
+        id: BigInt('0x1234567890abcdef'),
+        displayName: 'myapp.TestStruct',
         displayNamePrefixLength: 0,
         scopeId: BigInt(0),
         nestedNodes: [],
@@ -167,10 +167,10 @@ describe("RpcConnection Dynamic Schema", () => {
       connection.registerSchema(mockSchema);
 
       const registry = connection.getSchemaRegistry();
-      const retrieved = registry.getNodeByName("myapp.TestStruct");
-      
+      const retrieved = registry.getNodeByName('myapp.TestStruct');
+
       expect(retrieved).toBeDefined();
-      expect(retrieved?.id).toBe(BigInt("0x1234567890abcdef"));
+      expect(retrieved?.id).toBe(BigInt('0x1234567890abcdef'));
     });
   });
 });

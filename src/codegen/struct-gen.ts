@@ -2,7 +2,6 @@
  * Struct generator
  */
 
-import type { Struct } from './parser-v2.js';
 import {
   capitalize,
   getGetterMethod,
@@ -11,6 +10,7 @@ import {
   isPointerType,
   mapTypeToTs,
 } from './type-utils.js';
+import type { StructSchema as Struct } from './types.js';
 
 export function generateStruct(struct: Struct, lines: string[]): void {
   let dataWords = 0;

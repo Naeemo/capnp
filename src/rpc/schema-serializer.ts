@@ -1,24 +1,24 @@
 /**
  * Phase 7: Dynamic Schema Transfer Protocol - Message Serializer
- * 
+ *
  * This module handles serialization and deserialization of schema-related
  * RPC messages (SchemaRequest, SchemaResponse, etc.)
  */
 
+import type { Exception, ExceptionType } from './rpc-types';
 import type {
-  SchemaRequest,
-  SchemaResponse,
-  SchemaTarget,
-  SchemaResponseResult,
-  SchemaPayload,
-  SchemaDependency,
   AvailableSchema,
   GetSchemaParams,
   GetSchemaResults,
   ListSchemasResults,
-} from "./schema-types";
-import { SchemaFormat } from "./schema-types.js";
-import type { Exception, ExceptionType } from "./rpc-types";
+  SchemaDependency,
+  SchemaPayload,
+  SchemaRequest,
+  SchemaResponse,
+  SchemaResponseResult,
+  SchemaTarget,
+} from './schema-types';
+import { SchemaFormat } from './schema-types.js';
 
 // Message type IDs for schema messages
 export const SCHEMA_MESSAGE_TYPES = {
@@ -33,18 +33,18 @@ export function serializeSchemaRequest(request: SchemaRequest): Uint8Array {
   // Calculate size needed
   const targetSize = getSchemaTargetSize(request.targetSchema);
   const totalSize = 8 + targetSize; // questionId (4) + padding + target
-  
+
   const buffer = new ArrayBuffer(totalSize);
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
-  
+
   // Write questionId
   view.setUint32(0, request.questionId, true);
-  
+
   // Write target (starts at offset 8 for alignment)
   let offset = 8;
   offset = writeSchemaTarget(bytes, offset, request.targetSchema);
-  
+
   return bytes;
 }
 
@@ -53,13 +53,13 @@ export function serializeSchemaRequest(request: SchemaRequest): Uint8Array {
  */
 export function deserializeSchemaRequest(data: Uint8Array): SchemaRequest {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  
+
   // Read questionId
   const questionId = view.getUint32(0, true);
-  
+
   // Read target (starts at offset 8)
   const target = readSchemaTarget(data, 8);
-  
+
   return {
     questionId,
     targetSchema: target.value,
@@ -71,19 +71,18 @@ export function deserializeSchemaRequest(data: Uint8Array): SchemaRequest {
  */
 function getSchemaTargetSize(target: SchemaTarget): number {
   switch (target.type) {
-    case "allSchemas":
-    case "bootstrapInterface":
+    case 'allSchemas':
+    case 'bootstrapInterface':
       return 8; // tag only
-    case "byTypeId":
-    case "byFileId":
+    case 'byTypeId':
+    case 'byFileId':
       return 16; // tag + 8-byte ID
-    case "byTypeName":
-    case "byFileName":
+    case 'byTypeName':
+    case 'byFileName': {
       // tag + pointer + string data (aligned)
-      const strLen = target.type === "byTypeName" 
-        ? target.typeName.length 
-        : target.fileName.length;
+      const strLen = target.type === 'byTypeName' ? target.typeName.length : target.fileName.length;
       return 16 + align8(strLen);
+    }
     default:
       return 8;
   }
@@ -94,83 +93,86 @@ function getSchemaTargetSize(target: SchemaTarget): number {
  */
 function writeSchemaTarget(bytes: Uint8Array, offset: number, target: SchemaTarget): number {
   const view = new DataView(bytes.buffer, bytes.byteOffset);
-  
+
   switch (target.type) {
-    case "allSchemas":
+    case 'allSchemas':
       view.setUint16(offset, 0, true);
       break;
-    case "byTypeId":
+    case 'byTypeId':
       view.setUint16(offset, 1, true);
       view.setBigUint64(offset + 8, target.typeId, true);
       break;
-    case "byTypeName": {
+    case 'byTypeName': {
       view.setUint16(offset, 2, true);
       const strBytes = new TextEncoder().encode(target.typeName);
       writePointer(bytes, offset + 8, strBytes.length);
       bytes.set(strBytes, offset + 16);
       return offset + 16 + align8(strBytes.length);
     }
-    case "byFileId":
+    case 'byFileId':
       view.setUint16(offset, 3, true);
       view.setBigUint64(offset + 8, target.fileId, true);
       break;
-    case "byFileName": {
+    case 'byFileName': {
       view.setUint16(offset, 4, true);
       const strBytes = new TextEncoder().encode(target.fileName);
       writePointer(bytes, offset + 8, strBytes.length);
       bytes.set(strBytes, offset + 16);
       return offset + 16 + align8(strBytes.length);
     }
-    case "bootstrapInterface":
+    case 'bootstrapInterface':
       view.setUint16(offset, 5, true);
       break;
   }
-  
+
   return offset + 8;
 }
 
 /**
  * Read a SchemaTarget from binary format
  */
-function readSchemaTarget(data: Uint8Array, offset: number): { value: SchemaTarget; nextOffset: number } {
+function readSchemaTarget(
+  data: Uint8Array,
+  offset: number
+): { value: SchemaTarget; nextOffset: number } {
   const view = new DataView(data.buffer, data.byteOffset);
   const tag = view.getUint16(offset, true);
-  
+
   switch (tag) {
     case 0:
-      return { value: { type: "allSchemas" }, nextOffset: offset + 8 };
+      return { value: { type: 'allSchemas' }, nextOffset: offset + 8 };
     case 1:
-      return { 
-        value: { type: "byTypeId", typeId: view.getBigUint64(offset + 8, true) },
-        nextOffset: offset + 16 
+      return {
+        value: { type: 'byTypeId', typeId: view.getBigUint64(offset + 8, true) },
+        nextOffset: offset + 16,
       };
     case 2: {
       const strLen = readPointer(data, offset + 8);
       const strBytes = data.slice(offset + 16, offset + 16 + strLen);
       const typeName = new TextDecoder().decode(strBytes);
-      return { 
-        value: { type: "byTypeName", typeName },
-        nextOffset: offset + 16 + align8(strLen)
+      return {
+        value: { type: 'byTypeName', typeName },
+        nextOffset: offset + 16 + align8(strLen),
       };
     }
     case 3:
-      return { 
-        value: { type: "byFileId", fileId: view.getBigUint64(offset + 8, true) },
-        nextOffset: offset + 16 
+      return {
+        value: { type: 'byFileId', fileId: view.getBigUint64(offset + 8, true) },
+        nextOffset: offset + 16,
       };
     case 4: {
       const strLen = readPointer(data, offset + 8);
       const strBytes = data.slice(offset + 16, offset + 16 + strLen);
       const fileName = new TextDecoder().decode(strBytes);
-      return { 
-        value: { type: "byFileName", fileName },
-        nextOffset: offset + 16 + align8(strLen)
+      return {
+        value: { type: 'byFileName', fileName },
+        nextOffset: offset + 16 + align8(strLen),
       };
     }
     case 5:
-      return { value: { type: "bootstrapInterface" }, nextOffset: offset + 8 };
+      return { value: { type: 'bootstrapInterface' }, nextOffset: offset + 8 };
     default:
-      return { value: { type: "allSchemas" }, nextOffset: offset + 8 };
+      return { value: { type: 'allSchemas' }, nextOffset: offset + 8 };
   }
 }
 
@@ -180,17 +182,17 @@ function readSchemaTarget(data: Uint8Array, offset: number): { value: SchemaTarg
 export function serializeSchemaResponse(response: SchemaResponse): Uint8Array {
   const resultSize = getSchemaResponseResultSize(response.result);
   const totalSize = 8 + resultSize; // answerId (4) + padding + result
-  
+
   const buffer = new ArrayBuffer(totalSize);
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
-  
+
   // Write answerId
   view.setUint32(0, response.answerId, true);
-  
+
   // Write result
   writeSchemaResponseResult(bytes, 8, response.result);
-  
+
   return bytes;
 }
 
@@ -199,13 +201,13 @@ export function serializeSchemaResponse(response: SchemaResponse): Uint8Array {
  */
 export function deserializeSchemaResponse(data: Uint8Array): SchemaResponse {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  
+
   // Read answerId
   const answerId = view.getUint32(0, true);
-  
+
   // Read result
   const result = readSchemaResponseResult(data, 8);
-  
+
   return {
     answerId,
     result: result.value,
@@ -217,9 +219,9 @@ export function deserializeSchemaResponse(data: Uint8Array): SchemaResponse {
  */
 function getSchemaResponseResultSize(result: SchemaResponseResult): number {
   switch (result.type) {
-    case "success":
+    case 'success':
       return 8 + getSchemaPayloadSize(result.payload);
-    case "exception":
+    case 'exception':
       return 8 + getExceptionSize(result.exception);
     default:
       return 8;
@@ -229,14 +231,18 @@ function getSchemaResponseResultSize(result: SchemaResponseResult): number {
 /**
  * Write a SchemaResponseResult to binary format
  */
-function writeSchemaResponseResult(bytes: Uint8Array, offset: number, result: SchemaResponseResult): number {
+function writeSchemaResponseResult(
+  bytes: Uint8Array,
+  offset: number,
+  result: SchemaResponseResult
+): number {
   const view = new DataView(bytes.buffer, bytes.byteOffset);
-  
+
   switch (result.type) {
-    case "success":
+    case 'success':
       view.setUint16(offset, 0, true);
       return writeSchemaPayload(bytes, offset + 8, result.payload);
-    case "exception":
+    case 'exception':
       view.setUint16(offset, 1, true);
       return writeException(bytes, offset + 8, result.exception);
     default:
@@ -248,21 +254,33 @@ function writeSchemaResponseResult(bytes: Uint8Array, offset: number, result: Sc
 /**
  * Read a SchemaResponseResult from binary format
  */
-function readSchemaResponseResult(data: Uint8Array, offset: number): { value: SchemaResponseResult; nextOffset: number } {
+function readSchemaResponseResult(
+  data: Uint8Array,
+  offset: number
+): { value: SchemaResponseResult; nextOffset: number } {
   const view = new DataView(data.buffer, data.byteOffset);
   const tag = view.getUint16(offset, true);
-  
+
   switch (tag) {
     case 0: {
       const payload = readSchemaPayload(data, offset + 8);
-      return { value: { type: "success", payload: payload.value }, nextOffset: payload.nextOffset };
+      return { value: { type: 'success', payload: payload.value }, nextOffset: payload.nextOffset };
     }
     case 1: {
       const exception = readException(data, offset + 8);
-      return { value: { type: "exception", exception: exception.value }, nextOffset: exception.nextOffset };
+      return {
+        value: { type: 'exception', exception: exception.value },
+        nextOffset: exception.nextOffset,
+      };
     }
     default:
-      return { value: { type: "success", payload: { schemaData: new Uint8Array(), format: SchemaFormat.BINARY, dependencies: [] } }, nextOffset: offset + 8 };
+      return {
+        value: {
+          type: 'success',
+          payload: { schemaData: new Uint8Array(), format: SchemaFormat.BINARY, dependencies: [] },
+        },
+        nextOffset: offset + 8,
+      };
   }
 }
 
@@ -316,7 +334,10 @@ function writeSchemaPayload(bytes: Uint8Array, offset: number, payload: SchemaPa
 /**
  * Read a SchemaPayload from binary format
  */
-function readSchemaPayload(data: Uint8Array, offset: number): { value: SchemaPayload; nextOffset: number } {
+function readSchemaPayload(
+  data: Uint8Array,
+  offset: number
+): { value: SchemaPayload; nextOffset: number } {
   const view = new DataView(data.buffer, data.byteOffset);
 
   // Read format
@@ -371,7 +392,11 @@ function getSchemaDependenciesSize(deps: SchemaDependency[]): number {
 /**
  * Write SchemaDependency array to binary format
  */
-function writeSchemaDependencies(bytes: Uint8Array, offset: number, deps: SchemaDependency[]): number {
+function writeSchemaDependencies(
+  bytes: Uint8Array,
+  offset: number,
+  deps: SchemaDependency[]
+): number {
   const view = new DataView(bytes.buffer, bytes.byteOffset);
 
   // Write list pointer (count)
@@ -384,7 +409,7 @@ function writeSchemaDependencies(bytes: Uint8Array, offset: number, deps: Schema
     currentOffset += 8;
 
     // Write fileName pointer and text (with null terminator)
-    const fileNameBytes = new TextEncoder().encode(dep.fileName + '\0');
+    const fileNameBytes = new TextEncoder().encode(`${dep.fileName}\0`);
     writePointer(bytes, currentOffset, fileNameBytes.length);
     currentOffset += 8;
     bytes.set(fileNameBytes, currentOffset);
@@ -408,7 +433,10 @@ function writeSchemaDependencies(bytes: Uint8Array, offset: number, deps: Schema
 /**
  * Read SchemaDependency array from binary format
  */
-function readSchemaDependencies(data: Uint8Array, offset: number): { value: SchemaDependency[]; nextOffset: number } {
+function readSchemaDependencies(
+  data: Uint8Array,
+  offset: number
+): { value: SchemaDependency[]; nextOffset: number } {
   const view = new DataView(data.buffer, data.byteOffset);
 
   // Read list pointer (count)
@@ -542,17 +570,17 @@ function readPointer(data: Uint8Array, offset: number): number {
 export function serializeGetSchemaParams(params: GetSchemaParams): Uint8Array {
   const targetSize = getSchemaTargetSize(params.target);
   const totalSize = 12 + targetSize; // format (4) + padding + target
-  
+
   const buffer = new ArrayBuffer(totalSize);
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
-  
+
   // Write format
   view.setUint32(0, params.format ?? SchemaFormat.BINARY, true);
-  
+
   // Write target
   writeSchemaTarget(bytes, 8, params.target);
-  
+
   return bytes;
 }
 
@@ -562,13 +590,13 @@ export function serializeGetSchemaParams(params: GetSchemaParams): Uint8Array {
 export function serializeGetSchemaResults(results: GetSchemaResults): Uint8Array {
   const payloadSize = getSchemaPayloadSize(results.payload);
   const totalSize = 8 + payloadSize;
-  
+
   const buffer = new ArrayBuffer(totalSize);
   const bytes = new Uint8Array(buffer);
-  
+
   // Write payload
   writeSchemaPayload(bytes, 8, results.payload);
-  
+
   return bytes;
 }
 
@@ -577,44 +605,44 @@ export function serializeGetSchemaResults(results: GetSchemaResults): Uint8Array
  */
 export function serializeListSchemasResults(results: ListSchemasResults): Uint8Array {
   let totalSize = 16; // List pointer + padding
-  
+
   for (const schema of results.schemas) {
     totalSize += 32; // typeId (8) + displayName pointer + fileId (8) + fileName pointer + flags
     totalSize += align8(schema.displayName.length);
     totalSize += align8(schema.fileName.length);
   }
-  
+
   const buffer = new ArrayBuffer(totalSize);
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
-  
+
   // Write list pointer
   writePointer(bytes, 8, results.schemas.length);
   let offset = 16;
-  
+
   for (const schema of results.schemas) {
     // Write typeId
     view.setBigUint64(offset, schema.typeId, true);
     offset += 8;
-    
+
     // Write displayName
     const displayNameBytes = new TextEncoder().encode(schema.displayName);
     writePointer(bytes, offset, displayNameBytes.length);
     offset += 8;
     bytes.set(displayNameBytes, offset);
     offset += align8(displayNameBytes.length);
-    
+
     // Write fileId
     view.setBigUint64(offset, schema.fileId, true);
     offset += 8;
-    
+
     // Write fileName
     const fileNameBytes = new TextEncoder().encode(schema.fileName);
     writePointer(bytes, offset, fileNameBytes.length);
     offset += 8;
     bytes.set(fileNameBytes, offset);
     offset += align8(fileNameBytes.length);
-    
+
     // Write flags
     let flags = 0;
     if (schema.isInterface) flags |= 1;
@@ -623,6 +651,6 @@ export function serializeListSchemasResults(results: ListSchemasResults): Uint8A
     view.setUint8(offset, flags);
     offset += 8;
   }
-  
+
   return bytes;
 }

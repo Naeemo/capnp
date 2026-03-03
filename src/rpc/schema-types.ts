@@ -1,11 +1,11 @@
 /**
  * Phase 7: Dynamic Schema Transfer Protocol - Type Definitions
- * 
+ *
  * This module provides TypeScript types for the Dynamic Schema extension
  * to the Cap'n Proto RPC protocol.
  */
 
-import type { MessageTarget, Exception, Payload } from "./rpc-types";
+import type { Exception, MessageTarget, Payload } from './rpc-types';
 
 /**
  * Question ID for schema requests
@@ -23,7 +23,7 @@ export type SchemaAnswerId = number;
 export interface SchemaRequest {
   /** Question ID identifying this request */
   questionId: SchemaQuestionId;
-  
+
   /** Specifies which schema(s) to fetch */
   targetSchema: SchemaTarget;
 }
@@ -32,12 +32,12 @@ export interface SchemaRequest {
  * Schema target - specifies what schema information is being requested
  */
 export type SchemaTarget =
-  | { type: "allSchemas" }
-  | { type: "byTypeId"; typeId: bigint }
-  | { type: "byTypeName"; typeName: string }
-  | { type: "byFileId"; fileId: bigint }
-  | { type: "byFileName"; fileName: string }
-  | { type: "bootstrapInterface" };
+  | { type: 'allSchemas' }
+  | { type: 'byTypeId'; typeId: bigint }
+  | { type: 'byTypeName'; typeName: string }
+  | { type: 'byFileId'; fileId: bigint }
+  | { type: 'byFileName'; fileName: string }
+  | { type: 'bootstrapInterface' };
 
 /**
  * Schema response message - contains requested schema information or error
@@ -45,7 +45,7 @@ export type SchemaTarget =
 export interface SchemaResponse {
   /** Answer ID corresponding to the SchemaRequest */
   answerId: SchemaAnswerId;
-  
+
   /** Response result */
   result: SchemaResponseResult;
 }
@@ -54,8 +54,8 @@ export interface SchemaResponse {
  * Schema response result variants
  */
 export type SchemaResponseResult =
-  | { type: "success"; payload: SchemaPayload }
-  | { type: "exception"; exception: Exception };
+  | { type: 'success'; payload: SchemaPayload }
+  | { type: 'exception'; exception: Exception };
 
 /**
  * Schema payload containing serialized schema information
@@ -63,13 +63,13 @@ export type SchemaResponseResult =
 export interface SchemaPayload {
   /** Serialized schema nodes in Cap'n Proto binary format */
   schemaData: Uint8Array;
-  
+
   /** Format of the schema data */
   format: SchemaFormat;
-  
+
   /** Optional source information (doc comments, source locations) */
   sourceInfo?: Uint8Array;
-  
+
   /** List of imported schemas needed to understand the returned schema */
   dependencies: SchemaDependency[];
 }
@@ -80,10 +80,10 @@ export interface SchemaPayload {
 export enum SchemaFormat {
   /** Standard Cap'n Proto binary format (schema.capnp structs) */
   BINARY = 0,
-  
+
   /** JSON representation of the schema */
   JSON = 1,
-  
+
   /** Cap'n Proto schema language text format */
   CAPNP = 2,
 }
@@ -94,10 +94,10 @@ export enum SchemaFormat {
 export interface SchemaDependency {
   /** ID of the imported file */
   fileId: bigint;
-  
+
   /** Name/path of the imported file */
   fileName: string;
-  
+
   /** Optional hash of schema content for caching/versioning */
   schemaHash?: Uint8Array;
 }
@@ -108,16 +108,16 @@ export interface SchemaDependency {
 export interface AvailableSchema {
   /** Type ID */
   typeId: bigint;
-  
+
   /** Display name */
   displayName: string;
-  
+
   /** File ID */
   fileId: bigint;
-  
+
   /** File name */
   fileName: string;
-  
+
   /** Type flags */
   isInterface: boolean;
   isStruct: boolean;
@@ -132,7 +132,7 @@ export interface SchemaCapability {
    * Fetch schema information
    */
   getSchema(params: GetSchemaParams): Promise<GetSchemaResults>;
-  
+
   /**
    * List all available schemas
    */
@@ -145,7 +145,7 @@ export interface SchemaCapability {
 export interface GetSchemaParams {
   /** Schema target specification */
   target: SchemaTarget;
-  
+
   /** Desired format (defaults to binary) */
   format?: SchemaFormat;
 }
@@ -186,30 +186,30 @@ export interface SchemaType {
 }
 
 export type SchemaTypeKind =
-  | { type: "void" }
-  | { type: "bool" }
-  | { type: "int8" }
-  | { type: "int16" }
-  | { type: "int32" }
-  | { type: "int64" }
-  | { type: "uint8" }
-  | { type: "uint16" }
-  | { type: "uint32" }
-  | { type: "uint64" }
-  | { type: "float32" }
-  | { type: "float64" }
-  | { type: "text" }
-  | { type: "data" }
-  | { type: "list"; elementType: SchemaType }
-  | { type: "enum"; typeId: bigint; brand?: SchemaBrand }
-  | { type: "struct"; typeId: bigint; brand?: SchemaBrand }
-  | { type: "interface"; typeId: bigint; brand?: SchemaBrand }
-  | { type: "anyPointer"; constraint?: AnyPointerConstraint };
+  | { type: 'void' }
+  | { type: 'bool' }
+  | { type: 'int8' }
+  | { type: 'int16' }
+  | { type: 'int32' }
+  | { type: 'int64' }
+  | { type: 'uint8' }
+  | { type: 'uint16' }
+  | { type: 'uint32' }
+  | { type: 'uint64' }
+  | { type: 'float32' }
+  | { type: 'float64' }
+  | { type: 'text' }
+  | { type: 'data' }
+  | { type: 'list'; elementType: SchemaType }
+  | { type: 'enum'; typeId: bigint; brand?: SchemaBrand }
+  | { type: 'struct'; typeId: bigint; brand?: SchemaBrand }
+  | { type: 'interface'; typeId: bigint; brand?: SchemaBrand }
+  | { type: 'anyPointer'; constraint?: AnyPointerConstraint };
 
 export type AnyPointerConstraint =
-  | { type: "unconstrained"; kind: "anyKind" | "struct" | "list" | "capability" }
-  | { type: "parameter"; scopeId: bigint; parameterIndex: number }
-  | { type: "implicitMethodParameter"; parameterIndex: number };
+  | { type: 'unconstrained'; kind: 'anyKind' | 'struct' | 'list' | 'capability' }
+  | { type: 'parameter'; scopeId: bigint; parameterIndex: number }
+  | { type: 'implicitMethodParameter'; parameterIndex: number };
 
 /**
  * Brand for generic type parameters
@@ -223,9 +223,7 @@ export interface SchemaBrandScope {
   bindings: SchemaBrandBinding[];
 }
 
-export type SchemaBrandBinding =
-  | { type: "unbound" }
-  | { type: "type"; value: SchemaType };
+export type SchemaBrandBinding = { type: 'unbound' } | { type: 'type'; value: SchemaType };
 
 /**
  * Field definition (mirroring schema.capnp Field)
@@ -244,25 +242,25 @@ export interface SchemaField {
  * Value representation (mirroring schema.capnp Value)
  */
 export type SchemaValue =
-  | { type: "void" }
-  | { type: "bool"; value: boolean }
-  | { type: "int8"; value: number }
-  | { type: "int16"; value: number }
-  | { type: "int32"; value: number }
-  | { type: "int64"; value: bigint }
-  | { type: "uint8"; value: number }
-  | { type: "uint16"; value: number }
-  | { type: "uint32"; value: number }
-  | { type: "uint64"; value: bigint }
-  | { type: "float32"; value: number }
-  | { type: "float64"; value: number }
-  | { type: "text"; value: string }
-  | { type: "data"; value: Uint8Array }
-  | { type: "list"; value: unknown }
-  | { type: "enum"; value: number }
-  | { type: "struct"; value: unknown }
-  | { type: "interface" }
-  | { type: "anyPointer"; value: unknown };
+  | { type: 'void' }
+  | { type: 'bool'; value: boolean }
+  | { type: 'int8'; value: number }
+  | { type: 'int16'; value: number }
+  | { type: 'int32'; value: number }
+  | { type: 'int64'; value: bigint }
+  | { type: 'uint8'; value: number }
+  | { type: 'uint16'; value: number }
+  | { type: 'uint32'; value: number }
+  | { type: 'uint64'; value: bigint }
+  | { type: 'float32'; value: number }
+  | { type: 'float64'; value: number }
+  | { type: 'text'; value: string }
+  | { type: 'data'; value: Uint8Array }
+  | { type: 'list'; value: unknown }
+  | { type: 'enum'; value: number }
+  | { type: 'struct'; value: unknown }
+  | { type: 'interface' }
+  | { type: 'anyPointer'; value: unknown };
 
 /**
  * Method definition (mirroring schema.capnp Method)
@@ -295,7 +293,7 @@ export interface SchemaNode {
   nestedNodes: Array<{ name: string; id: bigint }>;
   annotations: SchemaAnnotation[];
   type: SchemaNodeType;
-  
+
   // Type-specific fields
   structInfo?: {
     dataWordCount: number;
@@ -306,21 +304,21 @@ export interface SchemaNode {
     discriminantOffset: number;
     fields: SchemaField[];
   };
-  
+
   enumInfo?: {
     enumerants: Array<{ name: string; codeOrder: number; annotations: SchemaAnnotation[] }>;
   };
-  
+
   interfaceInfo?: {
     methods: SchemaMethod[];
     superclasses: Array<{ id: bigint; brand: SchemaBrand }>;
   };
-  
+
   constInfo?: {
     type: SchemaType;
     value: SchemaValue;
   };
-  
+
   annotationInfo?: {
     type: SchemaType;
     targetsFile: boolean;
@@ -346,27 +344,27 @@ export interface SchemaRegistry {
    * Register a schema node
    */
   registerNode(node: SchemaNode): void;
-  
+
   /**
    * Get a schema node by ID
    */
   getNode(id: bigint): SchemaNode | undefined;
-  
+
   /**
    * Get a schema node by fully qualified name
    */
   getNodeByName(name: string): SchemaNode | undefined;
-  
+
   /**
    * Get all nodes in a file
    */
   getNodesByFile(fileId: bigint): SchemaNode[];
-  
+
   /**
    * Check if a node exists
    */
   hasNode(id: bigint): boolean;
-  
+
   /**
    * Clear all registered schemas
    */
@@ -381,12 +379,12 @@ export interface DynamicSchemaLoader {
    * Load schema from remote vat
    */
   loadSchema(target: SchemaTarget): Promise<SchemaPayload>;
-  
+
   /**
    * Parse binary schema data into SchemaNode objects
    */
   parseSchema(data: Uint8Array): SchemaNode[];
-  
+
   /**
    * Get the schema registry
    */

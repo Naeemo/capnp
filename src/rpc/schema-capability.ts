@@ -1,28 +1,28 @@
 /**
  * Phase 7: Schema Capability Implementation
- * 
+ *
  * Implements the SchemaCapability interface defined in rpc.capnp
  * Provides server-side schema serving and client-side schema fetching
  */
 
-import type { 
-  SchemaNode, 
-  SchemaTarget, 
-  SchemaPayload, 
-  GetSchemaParams,
-  GetSchemaResults,
-  ListSchemasResults,
-  AvailableSchema,
-} from "./schema-types.js";
-import { SchemaNodeType, SchemaFormat } from "./schema-types.js";
-import { 
-  serializeSchemaResponse, 
+import type { RpcConnection } from './rpc-connection.js';
+import { createSchemaRegistry, parseSchemaNodes } from './schema-parser.js';
+import {
   deserializeSchemaRequest,
   serializeGetSchemaResults,
   serializeListSchemasResults,
-} from "./schema-serializer.js";
-import type { RpcConnection } from "./rpc-connection.js";
-import { parseSchemaNodes, createSchemaRegistry } from "./schema-parser.js";
+  serializeSchemaResponse,
+} from './schema-serializer.js';
+import type {
+  AvailableSchema,
+  GetSchemaParams,
+  GetSchemaResults,
+  ListSchemasResults,
+  SchemaNode,
+  SchemaPayload,
+  SchemaTarget,
+} from './schema-types.js';
+import { SchemaFormat, SchemaNodeType } from './schema-types.js';
 
 // ============================================================================
 // Schema Capability Server
@@ -43,7 +43,7 @@ export class SchemaCapabilityServer {
   constructor(initialSchemas?: Map<bigint, SchemaNode>) {
     this.registry = new Map(initialSchemas);
     this.schemasByName = new Map();
-    
+
     // Build name index
     for (const schema of this.registry.values()) {
       this.schemasByName.set(schema.displayName, schema);
@@ -78,12 +78,12 @@ export class SchemaCapabilityServer {
    */
   async getSchema(params: GetSchemaParams): Promise<GetSchemaResults> {
     const { target, format = SchemaFormat.BINARY } = params;
-    
+
     let schemaData: Uint8Array;
     let dependencies: Array<{ fileId: bigint; fileName: string; schemaHash?: Uint8Array }> = [];
 
     switch (target.type) {
-      case "byTypeId": {
+      case 'byTypeId': {
         const node = this.registry.get(target.typeId);
         if (!node) {
           throw new Error(`Schema not found for type ID: ${target.typeId.toString(16)}`);
@@ -92,8 +92,8 @@ export class SchemaCapabilityServer {
         dependencies = this.collectDependencies(node);
         break;
       }
-      
-      case "byTypeName": {
+
+      case 'byTypeName': {
         const node = this.schemasByName.get(target.typeName);
         if (!node) {
           throw new Error(`Schema not found for type name: ${target.typeName}`);
@@ -102,39 +102,39 @@ export class SchemaCapabilityServer {
         dependencies = this.collectDependencies(node);
         break;
       }
-      
-      case "byFileId": {
+
+      case 'byFileId': {
         // Get all schemas in a file
         const nodes = this.getSchemasByFileId(target.fileId);
         schemaData = this.serializeSchemaNodes(nodes, format);
         break;
       }
-      
-      case "byFileName": {
+
+      case 'byFileName': {
         // Get all schemas in a file by name
         const nodes = this.getSchemasByFileName(target.fileName);
         schemaData = this.serializeSchemaNodes(nodes, format);
         break;
       }
-      
-      case "allSchemas": {
+
+      case 'allSchemas': {
         // Get all schemas
         const nodes = Array.from(this.registry.values());
         schemaData = this.serializeSchemaNodes(nodes, format);
         break;
       }
-      
-      case "bootstrapInterface": {
+
+      case 'bootstrapInterface': {
         // Get bootstrap interface schema (if available)
         const bootstrapSchema = this.findBootstrapSchema();
         if (!bootstrapSchema) {
-          throw new Error("Bootstrap interface schema not available");
+          throw new Error('Bootstrap interface schema not available');
         }
         schemaData = this.serializeSchemaNode(bootstrapSchema, format);
         dependencies = this.collectDependencies(bootstrapSchema);
         break;
       }
-      
+
       default:
         throw new Error(`Unsupported schema target type: ${(target as SchemaTarget).type}`);
     }
@@ -154,7 +154,7 @@ export class SchemaCapabilityServer {
    */
   async listAvailableSchemas(): Promise<ListSchemasResults> {
     const schemas: AvailableSchema[] = [];
-    
+
     for (const node of this.registry.values()) {
       schemas.push({
         typeId: node.id,
@@ -178,29 +178,29 @@ export class SchemaCapabilityServer {
   handleRequest(requestData: Uint8Array): Uint8Array {
     try {
       const request = deserializeSchemaRequest(requestData);
-      
-      const result = this.getSchema({
+
+      const _result = this.getSchema({
         target: request.targetSchema,
       });
-      
+
       // Since getSchema is async, we need to handle the promise
       // In a real implementation, this would be properly async
-      throw new Error("Async handling not implemented in handleRequest");
+      throw new Error('Async handling not implemented in handleRequest');
     } catch (error) {
       // Return error response
       const errorResponse = {
         answerId: 0,
         result: {
-          type: "exception" as const,
+          type: 'exception' as const,
           exception: {
-            reason: error instanceof Error ? error.message : "Unknown error",
-            type: "failed" as const,
+            reason: error instanceof Error ? error.message : 'Unknown error',
+            type: 'failed' as const,
             obsoleteIsCallersFault: false,
             obsoleteDurability: 0,
           },
         },
       };
-      
+
       return serializeSchemaResponse(errorResponse);
     }
   }
@@ -253,8 +253,8 @@ export class SchemaCapabilityServer {
     // Simplified binary serialization
     // In a full implementation, this would serialize to the actual Cap'n Proto format
     const encoder = new TextEncoder();
-    const json = JSON.stringify(nodes, (key, value) => {
-      if (typeof value === "bigint") {
+    const json = JSON.stringify(nodes, (_key, value) => {
+      if (typeof value === 'bigint') {
         return value.toString();
       }
       return value;
@@ -265,7 +265,7 @@ export class SchemaCapabilityServer {
   private serializeToJson(nodes: SchemaNode[]): Uint8Array {
     const encoder = new TextEncoder();
     const json = JSON.stringify({
-      nodes: nodes.map(node => ({
+      nodes: nodes.map((node) => ({
         id: node.id.toString(),
         displayName: node.displayName,
         displayNamePrefixLength: node.displayNamePrefixLength,
@@ -283,58 +283,79 @@ export class SchemaCapabilityServer {
     // Placeholder for actual Cap'n Proto schema language serialization
     // This would generate .capnp source code from the schema nodes
     const lines: string[] = [];
-    
+
     for (const node of nodes) {
       if (node.structInfo) {
         lines.push(`struct ${node.displayName} {`);
         for (const field of node.structInfo.fields) {
           lines.push(`  ${field.name} @${field.codeOrder} :${this.typeToCapnp(field.type)};`);
         }
-        lines.push("}");
+        lines.push('}');
       }
     }
-    
-    return new TextEncoder().encode(lines.join("\n"));
+
+    return new TextEncoder().encode(lines.join('\n'));
   }
 
   private typeToCapnp(type: { kind: { type: string } }): string {
     const kind = type.kind;
     switch (kind.type) {
-      case "void": return "Void";
-      case "bool": return "Bool";
-      case "int8": return "Int8";
-      case "int16": return "Int16";
-      case "int32": return "Int32";
-      case "int64": return "Int64";
-      case "uint8": return "UInt8";
-      case "uint16": return "UInt16";
-      case "uint32": return "UInt32";
-      case "uint64": return "UInt64";
-      case "float32": return "Float32";
-      case "float64": return "Float64";
-      case "text": return "Text";
-      case "data": return "Data";
-      case "list": return "List";
-      case "enum": return "UInt16";
-      case "struct": return "AnyPointer";
-      case "interface": return "Capability";
-      default: return "AnyPointer";
+      case 'void':
+        return 'Void';
+      case 'bool':
+        return 'Bool';
+      case 'int8':
+        return 'Int8';
+      case 'int16':
+        return 'Int16';
+      case 'int32':
+        return 'Int32';
+      case 'int64':
+        return 'Int64';
+      case 'uint8':
+        return 'UInt8';
+      case 'uint16':
+        return 'UInt16';
+      case 'uint32':
+        return 'UInt32';
+      case 'uint64':
+        return 'UInt64';
+      case 'float32':
+        return 'Float32';
+      case 'float64':
+        return 'Float64';
+      case 'text':
+        return 'Text';
+      case 'data':
+        return 'Data';
+      case 'list':
+        return 'List';
+      case 'enum':
+        return 'UInt16';
+      case 'struct':
+        return 'AnyPointer';
+      case 'interface':
+        return 'Capability';
+      default:
+        return 'AnyPointer';
     }
   }
 
-  private collectDependencies(_node: SchemaNode): Array<{ fileId: bigint; fileName: string; schemaHash?: Uint8Array }> {
+  private collectDependencies(
+    _node: SchemaNode
+  ): Array<{ fileId: bigint; fileName: string; schemaHash?: Uint8Array }> {
     // In a full implementation, this would analyze the schema and collect
     // all imported schema dependencies
     return [];
   }
 
   private getSchemasByFileId(fileId: bigint): SchemaNode[] {
-    return Array.from(this.registry.values()).filter(node => node.scopeId === fileId);
+    return Array.from(this.registry.values()).filter((node) => node.scopeId === fileId);
   }
 
   private getSchemasByFileName(fileName: string): SchemaNode[] {
     // Infer file name from display name prefix
-    return Array.from(this.registry.values()).filter(node => {
+    return Array.from(this.registry.values()).filter((node) => {
       const inferredFileName = this.inferFileName(node);
       return inferredFileName === fileName || node.displayName.startsWith(fileName);
     });
@@ -343,11 +364,11 @@ export class SchemaCapabilityServer {
   private inferFileName(node: SchemaNode): string {
     // Infer file name from display name
     // e.g., "foo.bar.MyStruct" -> "foo/bar.capnp"
-    const parts = node.displayName.split(".");
+    const parts = node.displayName.split('.');
     if (parts.length > 1) {
-      return parts.slice(0, -1).join("/") + ".capnp";
+      return `${parts.slice(0, -1).join('/')}.capnp`;
     }
-    return "unknown.capnp";
+    return 'unknown.capnp';
   }
 
   private findBootstrapSchema(): SchemaNode | undefined {
@@ -387,19 +408,22 @@ export class SchemaCapabilityClient {
    * @param format - The desired format (defaults to BINARY)
    * @returns The schema node
    */
-  async getSchema(target: SchemaTarget, format: SchemaFormat = SchemaFormat.BINARY): Promise<SchemaNode> {
+  async getSchema(
+    target: SchemaTarget,
+    format: SchemaFormat = SchemaFormat.BINARY
+  ): Promise<SchemaNode> {
     // Use the connection's getDynamicSchema method for type ID lookups
-    if (target.type === "byTypeId") {
+    if (target.type === 'byTypeId') {
       return this.connection.getDynamicSchema(target.typeId);
     }
 
     // For other target types, we need to use the schema capability interface
     // This is a simplified implementation
-    const params: GetSchemaParams = { target, format };
-    
+    const _params: GetSchemaParams = { target, format };
+
     // In a full implementation, this would make an RPC call to the schema capability
     // For now, we delegate to the connection's method
-    if (target.type === "byTypeName") {
+    if (target.type === 'byTypeName') {
       return this.connection.getDynamicSchemaByName(target.typeName);
     }
 
@@ -430,11 +454,11 @@ export class SchemaCapabilityClient {
    */
   async listAvailableSchemas(): Promise<AvailableSchema[]> {
     const schemas = await this.connection.listAvailableSchemas();
-    return schemas.map(s => ({
+    return schemas.map((s) => ({
       typeId: s.typeId,
       displayName: s.displayName,
       fileId: BigInt(0), // Not provided by connection method
-      fileName: "", // Not provided by connection method
+      fileName: '', // Not provided by connection method
       isInterface: false, // Not provided by connection method
       isStruct: true,
       isEnum: false,
@@ -448,7 +472,7 @@ export class SchemaCapabilityClient {
    */
   async getSchemas(typeIds: bigint[]): Promise<Map<bigint, SchemaNode>> {
     const results = new Map<bigint, SchemaNode>();
-    
+
     // Fetch schemas in parallel
     await Promise.all(
       typeIds.map(async (typeId) => {
@@ -460,7 +484,7 @@ export class SchemaCapabilityClient {
         }
       })
     );
-    
+
     return results;
   }
 

@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 import { generateFromRequest } from './generator.js';
 
@@ -29,7 +29,11 @@ struct Person {
 
     // 读取并生成代码
     const buffer = readFileSync(binFile);
-    const reader = CodeGeneratorRequestReader.fromBuffer(buffer);
+    const arrayBuffer = buffer.buffer.slice(
+      buffer.byteOffset,
+      buffer.byteOffset + buffer.byteLength
+    );
+    const reader = CodeGeneratorRequestReader.fromBuffer(arrayBuffer);
     const code = generateFromRequest(reader);
 
     // 验证生成的代码

@@ -17,13 +17,6 @@
 
 import type { ConnectionManager, VatId } from './connection-manager.js';
 import { AnswerTable, ExportTable, ImportTable, QuestionTable } from './four-tables.js';
-import { parseSchemaNodes, createSchemaRegistry } from './schema-parser.js';
-import type { SchemaNode, SchemaTarget, SchemaPayload, SchemaRegistry } from './schema-types.js';
-import { SchemaFormat } from './schema-types.js';
-import {
-  serializeSchemaRequest,
-  deserializeSchemaResponse,
-} from './schema-serializer.js';
 import type { Level3Handlers } from './level3-handlers.js';
 import type { Level4Handlers } from './level4-handlers.js';
 import {
@@ -55,6 +48,10 @@ import type {
   RpcMessage,
   ThirdPartyCapId,
 } from './rpc-types.js';
+import { createSchemaRegistry, parseSchemaNodes } from './schema-parser.js';
+import { deserializeSchemaResponse, serializeSchemaRequest } from './schema-serializer.js';
+import type { SchemaNode, SchemaPayload, SchemaRegistry, SchemaTarget } from './schema-types.js';
+import { SchemaFormat } from './schema-types.js';
 import type { RpcTransport } from './transport.js';
 
 export interface RpcConnectionOptions {
@@ -755,13 +752,13 @@ export class RpcConnection {
   /**
    * Get dynamic schema information for a type from the remote server.
    * This allows runtime discovery of schema information for types not known at compile time.
-   * 
+   *
    * Results are cached to avoid repeated network requests for the same type.
-   * 
+   *
    * @param typeId - The unique type ID of the schema to fetch
    * @returns The schema node for the requested type
    * @throws Error if the schema cannot be fetched or parsed
-   * 
+   *
    * @example
    * ```typescript
    * const schema = await connection.getDynamicSchema(0x1234567890abcdefn);
@@ -784,10 +781,10 @@ export class RpcConnection {
 
     // Fetch from remote
     const schemaPayload = await this.fetchSchemaFromRemote({ type: 'byTypeId', typeId });
-    
+
     // Parse the schema data
     const nodes = parseSchemaNodes(schemaPayload.schemaData);
-    
+
     // Register all parsed nodes
     for (const node of nodes) {
       this.schemaRegistry.registerNode(node);
@@ -805,7 +802,7 @@ export class RpcConnection {
 
   /**
    * Get dynamic schema by type name.
-   * 
+   *
    * @param typeName - The fully qualified type name (e.g., "foo.bar.MyStruct")
    * @returns The schema node for the requested type
    * @throws Error if the schema cannot be fetched or parsed
@@ -820,10 +817,10 @@ export class RpcConnection {
 
     // Fetch from remote
     const schemaPayload = await this.fetchSchemaFromRemote({ type: 'byTypeName', typeName });
-    
+
     // Parse the schema data
     const nodes = parseSchemaNodes(schemaPayload.schemaData);
-    
+
     // Register all parsed nodes
     for (const node of nodes) {
       this.schemaRegistry.registerNode(node);
@@ -842,7 +839,7 @@ export class RpcConnection {
   /**
    * Fetch schema information from the remote vat.
    * This is an internal method used by getDynamicSchema.
-   * 
+   *
    * @param target - The schema target specification
    * @returns The schema payload containing binary schema data
    * @throws Error if the request fails
@@ -890,18 +887,17 @@ export class RpcConnection {
 
     try {
       const result = await question.completionPromise;
-      
+
       // Parse the response
       if (result && typeof result === 'object' && 'content' in result) {
         const response = deserializeSchemaResponse((result as { content: Uint8Array }).content);
-        
+
         if (response.result.type === 'success') {
           return response.result.payload;
-        } else {
-          throw new Error(`Schema request failed: ${response.result.exception.reason}`);
         }
+        throw new Error(`Schema request failed: ${response.result.exception.reason}`);
       }
-      
+
       throw new Error('Invalid schema response format');
     } catch (error) {
       this.questions.remove(questionId);
@@ -912,7 +908,7 @@ export class RpcConnection {
   /**
    * Get the schema registry for this connection.
    * The registry contains all schemas that have been fetched or registered.
-   * 
+   *
    * @returns The schema registry
    */
   getSchemaRegistry(): SchemaRegistry {
@@ -922,7 +918,7 @@ export class RpcConnection {
   /**
    * Register a schema node locally.
    * This can be used to pre-populate the schema cache or add custom schemas.
-   * 
+   *
    * @param node - The schema node to register
    */
   registerSchema(node: SchemaNode): void {
@@ -940,7 +936,7 @@ export class RpcConnection {
 
   /**
    * Check if a schema is cached locally.
-   * 
+   *
    * @param typeId - The type ID to check
    * @returns True if the schema is in the cache
    */
@@ -951,7 +947,7 @@ export class RpcConnection {
   /**
    * Register a schema provider for serving schema requests.
    * This allows the connection to respond to schema requests from remote peers.
-   * 
+   *
    * @param provider - The schema capability server to register
    */
   registerSchemaProvider(provider: import('./schema-capability.js').SchemaCapabilityServer): void {
@@ -961,7 +957,7 @@ export class RpcConnection {
   /**
    * List all available schemas from the remote vat.
    * This requires the remote to support the schema listing capability.
-   * 
+   *
    * @returns Array of available schema information
    * @throws Error if the request fails or is not supported
    */
@@ -1003,22 +999,21 @@ export class RpcConnection {
 
     try {
       const result = await question.completionPromise;
-      
+
       if (result && typeof result === 'object' && 'content' in result) {
         const response = deserializeSchemaResponse((result as { content: Uint8Array }).content);
-        
+
         if (response.result.type === 'success') {
           // Parse the list of schemas from the payload
           const nodes = parseSchemaNodes(response.result.payload.schemaData);
-          return nodes.map(node => ({
+          return nodes.map((node) => ({
             typeId: node.id,
             displayName: node.displayName,
           }));
-        } else {
-          throw new Error(`List schemas failed: ${response.result.exception.reason}`);
         }
+        throw new Error(`List schemas failed: ${response.result.exception.reason}`);
       }
-      
+
       throw new Error('Invalid list schemas response format');
     } catch (error) {
       this.questions.remove(questionId);
