@@ -34,20 +34,21 @@ git push origin main
 
 ## 当前开发重点
 
-### P1: 文档完善 ✅ **已完成**
+### P2: Bug 修复 🚧 **进行中**
 
 **已完成**:
-- ✅ docs/index.md 文档入口
-- ✅ getting-started.md 快速入门
-- ✅ guides/rpc.md RPC 使用指南
-- ✅ guides/codegen.md 代码生成器文档
-- ✅ guides/dynamic-schema.md 动态 Schema 指南
-- ✅ guides/streaming.md 流控制指南
-- ✅ best-practices/performance.md 性能优化
-- ✅ best-practices/error-handling.md 错误处理
+- ✅ 边界检查：Segment/StructReader 越界保护
+- ✅ 12 个边界测试全部通过
+- ✅ 无效输入处理（空 buffer、畸形指针）
+
+**进行中**:
+- 🚧 MessageBuilder 内存管理
+- 🚧 RPC 连接错误处理
 
 **待完成**:
-- [ ] api/ 自动生成 API 参考（typedoc）
+- [ ] 内存泄漏检查
+- [ ] 连接断开检测
+- [ ] 超时机制
 
 ### P2: Bug 修复 🐛 **待开始**
 
