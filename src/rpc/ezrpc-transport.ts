@@ -50,14 +50,14 @@ export class EzRpcTransport implements RpcTransport {
   }
 
   get connected(): boolean {
-    return this._connected && this.socket?.readyState === 'open';
+    return this._connected && this.socket !== null && !this.socket.destroyed;
   }
 
   private doConnect(): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.socket?.destroy();
-        reject(new Error('Connection timeout'));
+        reject(new Error(`Connection timeout: failed to connect to ${this.host}:${this.port}`));
       }, this.options.connectTimeoutMs ?? 10000);
 
       this.socket = new net.Socket();
@@ -69,18 +69,32 @@ export class EzRpcTransport implements RpcTransport {
       });
 
       this.socket.on('data', (data: Buffer) => {
-        this.handleData(data);
+        try {
+          this.handleData(data);
+        } catch (err) {
+          this.onError?.(err instanceof Error ? err : new Error(String(err)));
+        }
       });
 
-      this.socket.on('close', () => {
+      this.socket.on('close', (hadError: boolean) => {
+        const wasConnected = this._connected;
         this._connected = false;
-        this.flushReceiveQueue(null);
-        this.onClose?.();
+        
+        // Reject pending receive calls
+        const error = hadError 
+          ? new Error('Connection closed with error')
+          : new Error('Connection closed');
+        this.flushReceiveQueueWithError(error);
+        
+        if (wasConnected) {
+          this.onClose?.(hadError ? error : undefined);
+        }
       });
 
       this.socket.on('error', (err: Error) => {
         clearTimeout(timeout);
         this._connected = false;
+        this.flushReceiveQueueWithError(err);
         this.onError?.(err);
         reject(err);
       });
@@ -142,8 +156,8 @@ export class EzRpcTransport implements RpcTransport {
   }
 
   async send(message: RpcMessage): Promise<void> {
-    if (!this.socket || this.socket.readyState !== 'open') {
-      throw new Error('Socket not connected');
+    if (!this.connected) {
+      throw new Error(`Cannot send: socket not connected to ${this.host}:${this.port}`);
     }
 
     const data = serializeRpcMessage(message);
@@ -151,7 +165,7 @@ export class EzRpcTransport implements RpcTransport {
     return new Promise((resolve, reject) => {
       this.socket!.write(Buffer.from(data), (err) => {
         if (err) {
-          reject(err);
+          reject(new Error(`Failed to send message: ${err.message}`));
         } else {
           resolve();
         }
@@ -160,16 +174,37 @@ export class EzRpcTransport implements RpcTransport {
   }
 
   async receive(): Promise<RpcMessage | null> {
+    // 先检查队列中的消息
     if (this.messageQueue.length > 0) {
       return this.messageQueue.shift()!;
     }
 
-    if (!this._connected) {
+    // 如果已断开连接，返回 null
+    if (!this.connected) {
       return null;
     }
 
+    // 等待下一条消息
     return new Promise((resolve, reject) => {
-      this.receiveQueue.push({ resolve, reject });
+      const timeoutId = setTimeout(() => {
+        // 从队列中移除自己
+        const index = this.receiveQueue.findIndex(item => item.resolve === resolve);
+        if (index !== -1) {
+          this.receiveQueue.splice(index, 1);
+        }
+        reject(new Error('Receive timeout'));
+      }, 30000); // 30 秒超时
+
+      this.receiveQueue.push({
+        resolve: (msg) => {
+          clearTimeout(timeoutId);
+          resolve(msg);
+        },
+        reject: (err) => {
+          clearTimeout(timeoutId);
+          reject(err);
+        },
+      });
     });
   }
 
@@ -179,6 +214,13 @@ export class EzRpcTransport implements RpcTransport {
     this.socket?.destroy();
     this.flushReceiveQueue(null);
     this.onClose?.(reason);
+  }
+
+  private flushReceiveQueueWithError(error: Error): void {
+    while (this.receiveQueue.length > 0) {
+      const { reject } = this.receiveQueue.shift()!;
+      reject(error);
+    }
   }
 
   private flushReceiveQueue(value: RpcMessage | null): void {
