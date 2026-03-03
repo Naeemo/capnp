@@ -12,7 +12,20 @@ const TEST_HOST = process.env.CAPNP_TEST_HOST || 'localhost';
 const TEST_PORT = Number.parseInt(process.env.CAPNP_TEST_PORT || '18080');
 const TEST_TIMEOUT = 15000;
 
-describe('C++ Interop - Protocol Basics', () => {
+// 检查 C++ 服务器是否可用
+async function isServerAvailable(): Promise<boolean> {
+  try {
+    const transport = await EzRpcTransport.connect(TEST_HOST, TEST_PORT, {
+      connectTimeoutMs: 1000,
+    });
+    transport.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+describe.skipIf(!(await isServerAvailable()))('C++ Interop - Protocol Basics', () => {
   let transport: EzRpcTransport | null = null;
 
   beforeAll(async () => {

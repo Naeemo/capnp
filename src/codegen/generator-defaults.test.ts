@@ -10,7 +10,17 @@ import { generateFromRequest } from './generator.js';
 
 const __dirname = new URL('.', import.meta.url).pathname;
 
-describe('Generator V3 - Default Values', () => {
+// 检查 capnp 是否可用
+function isCapnpAvailable(): boolean {
+  try {
+    execSync('capnp --version', { encoding: 'utf-8' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+describe.skipIf(!isCapnpAvailable())('Generator V3 - Default Values', () => {
   it('should generate code with default values', () => {
     const fs = require('node:fs');
     const path = require('node:path');

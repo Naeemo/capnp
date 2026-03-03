@@ -1,12 +1,22 @@
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeAll } from 'vitest';
 import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 import { generateFromRequest } from './generator.js';
 
 const __dirname = new URL('.', import.meta.url).pathname;
 
-describe('Generator V3', () => {
+// 检查 capnp 是否可用
+function isCapnpAvailable(): boolean {
+  try {
+    execSync('capnp --version', { encoding: 'utf-8' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+describe.skipIf(!isCapnpAvailable())('Generator V3', () => {
   it('should generate TypeScript from binary schema', () => {
     const fs = require('node:fs');
     const path = require('node:path');

@@ -5,7 +5,17 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CodeGeneratorRequestReader } from './schema-reader.js';
 
-describe('Schema Reader', () => {
+// 检查 capnp 是否可用
+function isCapnpAvailable(): boolean {
+  try {
+    execSync('capnp --version', { encoding: 'utf-8' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+describe.skipIf(!isCapnpAvailable())('Schema Reader', () => {
   it('should read binary schema file', () => {
     // 创建临时测试 schema
     const tmpDir = mkdtempSync(join(tmpdir(), 'capnp-test-'));
