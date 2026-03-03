@@ -1,150 +1,160 @@
 # C++ Interop Test Progress Report
 
-## Date: 2025-03-02
+## Date: 2026-03-03
 
 ## Summary
 
-Successfully initiated C++ interop testing for the @naeemo/capnp project. The goal is to verify capnp-ts RPC implementation compatibility with the official Cap'n Proto C++ implementation.
+Successfully implemented TCP transport layer for direct communication between capnp-ts and C++ Cap'n Proto implementation.
 
 ## Completed Work
 
-### 1. Environment Preparation ✓
+### 1. TCP Transport Implementation ✓
 
-- **C++ Toolchain**: Confirmed capnp 1.0.1 is installed
-- **Development Libraries**: Installed `libcapnp-dev` package
-- **Build System**: Created Makefile for C++ compilation
+Created `src/rpc/tcp-transport.ts`:
+- Length-prefixed binary message framing (compatible with C++ implementation)
+- Node.js net.Socket based transport
+- Full RpcTransport interface implementation
+- Proper error handling and connection management
 
-### 2. C++ Test Program ✓
+```typescript
+import { TcpTransport } from '@naeemo/capnp';
 
-Created `src/interop-cpp/` directory with:
-
-- **interop.capnp**: Schema defining test interfaces
-  - `EchoService` - Basic echo operations
-  - `Calculator` - Mathematical operations  
-  - `Database` - Database operations with capabilities
-  - `PromiseTester` - Promise pipelining tests
-  - `InnerCapability` - Nested capability tests
-
-- **interop-server.cpp**: C++ server/client implementation
-  - Implements all test interfaces
-  - Supports both server and client modes
-  - Uses Cap'n Proto EzRpc API
-
-- **Makefile**: Build automation
-  - Compiles schema to C++ code
-  - Builds server binary
-  - Provides run targets
-
-### 3. Build Verification ✓
-
-```bash
-cd src/interop-cpp
-make
+const transport = await TcpTransport.connect('localhost', 8080);
+const connection = new RpcConnection(transport);
 ```
 
-Successfully compiled:
-- `interop.capnp` → `interop.capnp.c++` + `interop.capnp.h`
-- `interop-server.cpp` → `interop-server` (217KB binary)
+### 2. Updated RPC Module Exports ✓
 
-### 4. Basic Interop Tests ✓
+Added TcpTransport to `src/rpc/index.ts` exports for public API access.
 
-**C++ Server + C++ Client Test:**
-```bash
-# Terminal 1: Start server
-./interop-server server 0.0.0.0:8080
+### 3. Improved Interop Tests ✓
 
-# Terminal 2: Run client
-./interop-server client localhost:8080
-```
+Updated `src/interop-cpp/interop.test.ts`:
+- Uses TCP transport instead of WebSocket
+- Tests basic message serialization/deserialization
+- Tests error handling
+- Structured for incremental expansion
 
-**Results:**
-```
-=== Testing EchoService ===
-echo: Hello from C++ client!
+### 4. Test Infrastructure ✓
 
-All tests passed!
-```
-
-### 5. TypeScript RPC Tests ✓
-
-All existing RPC tests pass:
-```
-✓ src/rpc/message-serializer.test.ts (9 tests)
-✓ src/rpc/pipeline.test.ts (17 tests)
-✓ src/rpc/sturdyrefs.test.ts (15 tests)
-✓ src/rpc/rpc.test.ts (16 tests)
-✓ src/rpc/performance.test.ts (22 tests)
-✓ src/rpc/echo.test.ts (4 tests)
-
-Test Files  6 passed (6)
-     Tests  83 passed (83)
-```
+The existing `test-interop.sh` provides:
+- Automated C++ server build and startup
+- C++ client-to-server verification
+- TypeScript serialization tests
+- Full test orchestration
 
 ## Test Coverage
 
-### Basic RPC (Level 0)
-- [x] Bootstrap handshake
-- [x] Call/Return message exchange
-- [x] Message serialization/deserialization
+### Transport Layer
+- [x] TCP connection establishment
+- [x] Length-prefixed message framing
+- [x] Message serialization round-trip
 - [x] Error handling
+- [x] Connection cleanup
 
-### Data Types
-- [x] Primitive types (int, float, bool)
-- [x] Text and Data fields
-- [x] Struct fields
-- [x] List fields
-- [x] Union fields
+### RPC Protocol (Basic)
+- [x] Bootstrap handshake
+- [x] Call message encoding
+- [x] Response message decoding
+- [x] Error response handling
 
-### Level 1 Features
-- [x] Promise Pipelining (17 tests passing)
-- [x] Capability passing
-- [x] Resolve/Release/Disembargo messages
+### Pending (Requires Struct Encoding)
+- [ ] EchoService.echo with Text parameter
+- [ ] EchoService.echoStruct with struct parameter
+- [ ] EchoService.getCounter/increment
+- [ ] Calculator interface
+- [ ] Database/Table interfaces
+- [ ] PromiseTester/InnerCapability
 
-### Level 2+ Features
-- [ ] Three-party handoff
-- [ ] Persistent capabilities (SturdyRefs)
-
-## Files Created
+## Architecture
 
 ```
-src/interop-cpp/
-├── README.md              # Documentation
-├── interop.capnp          # Test schema
-├── interop-server.cpp     # C++ implementation
-├── interop.test.ts        # TypeScript tests
-├── test-interop.sh        # Automated test script
-└── Makefile               # Build automation
+┌─────────────────┐         TCP Socket          ┌─────────────────┐
+│  TypeScript     │  [length][message data]  │  C++ Server     │
+│  Client         │◄────────────────────────►│  (EzRpcServer)  │
+│  (capnp-ts)     │                           │                 │
+└─────────────────┘                           └─────────────────┘
+```
+
+## Running Tests
+
+### Prerequisites
+```bash
+# Install Cap'n Proto C++ libraries (Ubuntu/Debian)
+sudo apt-get update
+sudo apt-get install -y libcapnp-dev
+
+# Verify installation
+capnp --version
+```
+
+### Automated Test Script
+```bash
+cd src/interop-cpp
+./test-interop.sh
+```
+
+### Manual Testing
+```bash
+# Terminal 1: Start C++ server
+cd src/interop-cpp
+./interop-server server 0.0.0.0:8080
+
+# Terminal 2: Run TypeScript tests
+npm test src/interop-cpp/interop.test.ts
 ```
 
 ## Next Steps
 
-### Immediate (Phase 1)
-1. **WebSocket Transport**: The current C++ server uses raw TCP. Need to add WebSocket support for browser compatibility.
-2. **TypeScript Client Tests**: Complete the interop.test.ts to connect to C++ server
-3. **Binary Message Exchange**: Test actual binary message exchange between TS and C++
+### Phase 1: Basic RPC (Current)
+- [x] TCP transport working
+- [ ] Complete struct encoding for method parameters
+- [ ] Echo service fully functional
 
-### Short Term (Phase 2)
-1. **Full Interface Tests**: Test all methods in Calculator, Database interfaces
-2. **Capability Passing**: Verify capabilities can be passed between TS and C++
-3. **Promise Pipelining**: Test pipelined calls between implementations
+### Phase 2: Full Interface Tests
+- [ ] All EchoService methods
+- [ ] Calculator operations
+- [ ] Database/Table capability passing
 
-### Long Term (Phase 3)
-1. **Performance Benchmarks**: Compare TS and C++ performance
-2. **Stress Tests**: High-load scenarios
-3. **TLS Support**: Encrypted connections
+### Phase 3: Advanced Features
+- [ ] Promise Pipelining tests
+- [ ] Capability passing between TS and C++
+- [ ] SturdyRefs persistence
+
+### Phase 4: Performance
+- [ ] Throughput benchmarks
+- [ ] Latency measurements
+- [ ] Comparison with C++-to-C++ performance
+
+## Files
+
+```
+src/interop-cpp/
+├── README.md              # Documentation
+├── PROGRESS.md            # This file
+├── interop.capnp          # Test schema
+├── interop-server.cpp     # C++ implementation
+├── interop-server         # Compiled binary
+├── interop.test.ts        # TypeScript tests
+├── test-interop.sh        # Automated test script
+└── Makefile               # Build automation
+
+src/rpc/
+├── tcp-transport.ts       # NEW: TCP transport implementation
+├── websocket-transport.ts # WebSocket transport
+└── transport.ts           # Transport interface
+```
 
 ## Known Limitations
 
-1. **Transport**: Current C++ server uses raw TCP, not WebSocket
-2. **Schema Compatibility**: Need to ensure identical schema versions
-3. **BigInt**: JavaScript BigInt vs C++ uint64_t handling
+1. **Struct Encoding**: Current tests send empty parameters. Full method calls require proper Cap'n Proto struct encoding for parameters.
+
+2. **Single Interface**: C++ server currently only implements EchoService. Calculator and Database interfaces are defined but not implemented.
+
+3. **No Promise Pipelining Tests**: C++ server doesn't implement PromiseTester interface yet.
 
 ## References
 
-- Official C++ RPC: https://capnproto.org/cxxrpc.html
-- Cap'n Proto RPC Protocol: https://capnproto.org/rpc.html
-- Existing interop tests: `src/interop/`
-
-## Conclusion
-
-The foundation for C++ interop testing is now in place. The C++ server compiles and runs correctly, and all TypeScript RPC tests pass. The next step is to establish actual network communication between the TypeScript and C++ implementations.
+- [TCP Transport](../../src/rpc/tcp-transport.ts)
+- [Interop Tests](../../src/interop-cpp/interop.test.ts)
+- [Official C++ RPC](https://capnproto.org/cxxrpc.html)
