@@ -1,4 +1,4 @@
-// Phase 2 互操作测试数据生成器
+// 互操作测试数据生成器
 // 使用官方 Cap'n Proto C++ 库生成测试数据
 
 #include <capnp/message.h>
@@ -11,7 +11,7 @@
 #include <vector>
 #include <cstring>
 
-#include "test-schema-phase2.capnp.h"
+#include "test-schema-extended.capnp.h"
 
 using namespace capnp;
 

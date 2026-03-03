@@ -1,4 +1,4 @@
-# Makefile for Phase 2 interop test data generation
+# Makefile for interop test data generation
 
 CXX = g++
 CXXFLAGS = -std=c++17 -I/usr/local/include -I.
@@ -6,16 +6,16 @@ LDFLAGS = -lcapnp -lkj
 
 .PHONY: all clean generate
 
-all: generate-phase2
+all: generate-test-data
 
-generate-phase2: generate-phase2.cpp test-schema-phase2.capnp.h
-	$(CXX) $(CXXFLAGS) -o $@ generate-phase2.cpp $(LDFLAGS)
+generate-test-data: generate-test-data.cpp test-schema-extended.capnp.h
+	$(CXX) $(CXXFLAGS) -o $@ generate-test-data.cpp $(LDFLAGS)
 
-test-schema-phase2.capnp.h: test-schema-phase2.capnp
-	capnp compile -oc++ test-schema-phase2.capnp
+test-schema-extended.capnp.h: test-schema-extended.capnp
+	capnp compile -oc++ test-schema-extended.capnp
 
-generate: generate-phase2
-	./generate-phase2
+generate: generate-test-data
+	./generate-test-data
 
 clean:
-	rm -f generate-phase2 test-schema-phase2.capnp.h test-schema-phase2.capnp.c++
+	rm -f generate-test-data test-schema-extended.capnp.h test-schema-extended.capnp.c++
