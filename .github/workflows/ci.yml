@@ -19,15 +19,12 @@ jobs:
         sudo apt-get install -y capnproto
     - uses: actions/setup-node@v4
       with:
-        node-version: '20'
-    - uses: pnpm/action-setup@v2
-      with:
-        version: 9
-    - run: pnpm install
-    - run: pnpm run typecheck
-    - run: pnpm run lint
-    - run: pnpm run build
-    - run: pnpm test
+        node-version: '22'
+    - run: npm install
+    - run: npm run typecheck
+    - run: npm run lint
+    - run: npm run build
+    - run: npm test
 
   publish:
     needs: test
@@ -41,13 +38,10 @@ jobs:
         sudo apt-get install -y capnproto
     - uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
         registry-url: 'https://registry.npmjs.org'
-    - uses: pnpm/action-setup@v2
-      with:
-        version: 9
-    - run: pnpm install
-    - run: pnpm run build
+    - run: npm install
+    - run: npm run build
     - run: npm publish --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
