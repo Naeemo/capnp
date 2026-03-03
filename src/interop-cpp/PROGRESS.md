@@ -43,20 +43,27 @@ The existing `test-interop.sh` provides:
 - TypeScript serialization tests
 - Full test orchestration
 
-## Test Coverage
+## Current Issue: Message Format Compatibility
 
-### Transport Layer
-- [x] TCP connection establishment
-- [x] Length-prefixed message framing
-- [x] Message serialization round-trip
-- [x] Error handling
-- [x] Connection cleanup
+**Status**: 🐛 Investigating
 
-### RPC Protocol (Basic)
-- [x] Bootstrap handshake
-- [x] Call message encoding
-- [x] Response message decoding
-- [x] Error response handling
+**Problem**: C++ EzRpc server does not respond to TypeScript Bootstrap messages, but works fine with C++ client.
+
+**Observations**:
+1. TCP connection establishes successfully
+2. TypeScript can serialize/deserialize RPC messages correctly (verified via round-trip tests)
+3. C++ client can communicate with C++ server successfully
+4. TypeScript messages are sent but C++ server does not respond (connection eventually times out)
+
+**Hypotheses**:
+1. EzRpc may use additional transport-layer wrapping not documented in public specs
+2. KJ async I/O may require specific message framing
+3. There may be a version mismatch in RPC protocol
+
+**Next Steps**:
+1. Capture network traffic between C++ client and server to analyze message format
+2. Compare hex dumps of C++ vs TypeScript serialized messages
+3. Review EzRpc/KJ source code for transport implementation details
 
 ### Pending (Requires Struct Encoding)
 - [ ] EchoService.echo with Text parameter
