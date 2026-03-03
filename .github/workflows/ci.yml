@@ -20,11 +20,14 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: '22'
-    - run: npm install
-    - run: npm run typecheck
-    - run: npm run lint
-    - run: npm run build
-    - run: npm test
+    - uses: pnpm/action-setup@v2
+      with:
+        version: 9
+    - run: pnpm install
+    - run: pnpm run typecheck
+    - run: pnpm run lint
+    - run: pnpm run build
+    - run: pnpm test
 
   publish:
     needs: test
@@ -40,8 +43,11 @@ jobs:
       with:
         node-version: '22'
         registry-url: 'https://registry.npmjs.org'
-    - run: npm install
-    - run: npm run build
-    - run: npm publish --access public
+    - uses: pnpm/action-setup@v2
+      with:
+        version: 9
+    - run: pnpm install
+    - run: pnpm run build
+    - run: pnpm publish --access public --no-git-checks
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
