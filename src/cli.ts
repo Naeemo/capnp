@@ -447,26 +447,26 @@ async function runInteractiveMode(inputFile: string): Promise<void> {
 
     if (structs.length > 0) {
       console.log('\n🏗️  Structs:');
-      structs.sort().forEach((name) => {
+      for (const name of structs.sort()) {
         const info = typeIndex.get(name)!;
         console.log(`   ${name.padEnd(30)} (0x${info.id.toString(16)})`);
-      });
+      }
     }
 
     if (interfaces.length > 0) {
       console.log('\n🔌 Interfaces:');
-      interfaces.sort().forEach((name) => {
+      for (const name of interfaces.sort()) {
         const info = typeIndex.get(name)!;
         console.log(`   ${name.padEnd(30)} (0x${info.id.toString(16)})`);
-      });
+      }
     }
 
     if (enums.length > 0) {
       console.log('\n📊 Enums:');
-      enums.sort().forEach((name) => {
+      for (const name of enums.sort()) {
         const info = typeIndex.get(name)!;
         console.log(`   ${name.padEnd(30)} (0x${info.id.toString(16)})`);
-      });
+      }
     }
 
     console.log(`\n${'─'.repeat(60)}`);
