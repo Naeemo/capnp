@@ -1,6 +1,7 @@
 # @naeemo/capnp 路线图
 
 > 基于官方 Cap'n Proto 路线图和 TypeScript 实现特性的开发规划。
+> **当前优先级**: 1. 文档完善 → 2. Bug 修复 → 3. 性能测试
 
 ## 已实现 ✅
 
@@ -44,89 +45,77 @@
 - [x] DynamicReader/DynamicWriter
 - [x] Schema Registry
 
-### Phase 7: 性能优化
+### Phase 7: 性能优化（基础）
 - [x] MemoryPool
 - [x] MultiSegmentMessageBuilder
 - [x] Zero-copy views
 
----
-
-## 开发中 🚧
-
-### C++ 互操作测试
-- [ ] 启动 C++ 参考服务器
-- [ ] 跨语言兼容性测试
-- [ ] 性能对比基准测试
-
-### 文档完善
-- [ ] RPC 使用指南
-- [ ] 动态 Schema 教程
-- [ ] 流控制 API 文档
-- [ ] 最佳实践指南
+### Phase 8: C++ 互操作
+- [x] Node.js ↔ C++ 协议兼容（EzRpcTransport）
+- [x] Bootstrap 握手测试
+- [x] Call/Return 消息测试
 
 ---
 
-## 计划中 📋
+## 当前优先级 🔥
 
-### 兼容性增强
+### P1: 文档完善 🚧 **进行中**
+目标：降低使用门槛，为 v1.0 做准备
 
-参考官方路线图（https://capnproto.org/roadmap.html）：
+- [ ] **快速入门指南** - 5 分钟上手
+- [ ] **RPC 使用指南** - Promise Pipelining、SturdyRefs、Capability 传递
+- [ ] **代码生成器文档** - CLI 使用、生成代码结构说明
+- [ ] **动态 Schema 教程** - 运行时 schema 获取和使用
+- [ ] **API 参考** - 自动生成（typedoc）
+- [ ] **最佳实践** - 性能优化建议、常见陷阱
 
-#### 语言特性（官方规划中）
-- [ ] **Inline lists** - 固定长度内联列表
-- [ ] **Type aliases** - typedef 支持
-- [ ] **Doc comments** - 从 schema 提取文档注释
-- [ ] **Encapsulated types** - 封装类型包装器
-- [ ] **Maps** - 基于封装类型的 Map 支持
+### P2: Bug 修复 & 稳定性 🐛 **待开始**
+目标：提高鲁棒性，处理边界情况
 
-#### RPC 协议特性（官方规划中）
-- [ ] **Dynamic schema transmission** - 运行时 Schema 获取（已部分实现）
-- [ ] **UDP transport** - UDP 传输层
-- [ ] **Encrypted transport** - 基于 libsodium/Noise 的加密传输
-- [ ] **Capability-based auth** - 基于能力的认证（非 PKI）
+- [ ] **无效输入处理** - 畸形消息、越界访问
+- [ ] **多段消息边界** - 复杂分段场景测试
+- [ ] **内存泄漏检查** - 长期使用场景
+- [ ] **错误信息优化** - 更清晰的错误提示
+- [ ] **连接断开处理** - 网络异常恢复
 
-#### 工具（官方规划中）
-- [ ] **Schema compatibility checker** - Schema 兼容性检查
-- [ ] **RPC debugger** - RPC 调试工具
+### P3: 性能测试 📊 **待开始**
+目标：建立性能基准，发现优化点
 
-### TypeScript 特定功能
-
-- [ ] **JSON 编解码器** - Cap'n Proto <-> JSON 转换
-- [ ] **浏览器兼容性优化** - 更好的浏览器支持
-- [ ] **WebSocket 传输优化** - 连接复用、心跳机制
-- [ ] **TypeScript 装饰器** - 可选的装饰器 API
-
----
-
-## 待评估 🤔
-
-以下功能需要评估是否有必要在 TS 实现中支持：
-
-- **Shared memory RPC** - 共享内存 RPC（主要面向 C++ 进程间通信）
-- **POCS (Plain Old C Structs)** - 传统内存分配风格 API（TS 中必要性低）
-- **ORM interface** - 远程存储对象接口
-- **mmap-friendly mutable storage** - 可修改的 mmap 存储格式
+- [ ] **序列化性能** - 与 JSON/MessagePack 对比
+- [ ] **RPC 延迟测试** - 本地/远程调用延迟
+- [ ] **C++ 对比测试** - 与官方实现性能对比
+- [ ] **内存使用分析** - 堆内存、GC 压力
+- [ ] **吞吐量测试** - 高并发场景
 
 ---
 
-## 质量保障（Pre-1.0）
+## 后续计划 📋
 
-参考官方 1.0 前必须完成的事项：
+### 浏览器支持
+- [ ] WebSocket-to-TCP 代理
+- [ ] 浏览器端互操作测试
 
-- [ ] **扩大测试覆盖** - 无效输入处理测试
-- [ ] **性能审查** - 详细性能分析和优化
-- [ ] **安全审查** - 恶意输入处理安全性
+### 工具增强
+- [ ] JSON 编解码器
+- [ ] Schema 兼容性检查器
+- [ ] RPC 调试工具
+
+### 高级功能（待评估）
+- [ ] UDP 传输
+- [ ] 加密传输
+- [ ] 浏览器原生 WebSocket 支持
 
 ---
 
 ## 版本规划
 
-| 版本 | 目标日期 | 主要特性 |
-|------|----------|----------|
-| v0.5.1 | - | Bug 修复、C++ 互操作测试 |
-| v0.6.0 | - | 文档完善、JSON 编解码器 |
-| v0.7.0 | - | 加密传输、UDP 支持 |
-| v1.0.0 | - | 稳定 API、完整文档、质量保障 |
+| 版本 | 目标 | 主要特性 |
+|------|------|----------|
+| v0.5.2 | 文档 | 完整文档、API 参考 |
+| v0.5.3 | 稳定 | Bug 修复、稳定性提升 |
+| v0.6.0 | 性能 | 性能基准、优化 |
+| v0.7.0 | 生态 | 浏览器支持、工具链 |
+| v1.0.0 | 成熟 | 稳定 API、生产就绪 |
 
 ---
 

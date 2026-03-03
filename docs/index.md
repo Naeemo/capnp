@@ -1,55 +1,46 @@
-# @naeemo/capnp
+# @naeemo/capnp 文档
 
-A pure TypeScript implementation of Cap'n Proto, featuring zero-copy deserialization and full interoperability with the official C++ implementation.
+## 快速开始
 
-## Features
+- [快速入门](./getting-started.md) - 5 分钟上手
+- [安装指南](./installation.md)
 
-- 🚀 **Zero-Copy Deserialization** - Read data directly from buffers without parsing
-- 🔧 **Pure TypeScript** - No WASM or native dependencies
-- ✅ **Official Compatible** - Tested against official C++ implementation
-- 📦 **Schema Code Generation** - Generate TypeScript types from `.capnp` schemas
-- ⚡ **High Performance** - 1.4μs serialization, 0.6μs deserialization
+## 核心概念
 
-## Installation
+- [Cap'n Proto 简介](./concepts/intro.md)
+- [序列化基础](./concepts/serialization.md)
+- [RPC 协议](./concepts/rpc.md)
 
-```bash
-npm install @naeemo/capnp
-```
+## 使用指南
 
-## Quick Start
+- [代码生成](./guides/codegen.md) - 从 schema 生成 TypeScript
+- [RPC 使用](./guides/rpc.md) - 远程调用、Promise Pipelining
+- [动态 Schema](./guides/dynamic-schema.md) - 运行时 schema 处理
+- [流控制](./guides/streaming.md) - Stream、Bulk、Realtime API
 
-### Code Generation
+## API 参考
 
-Generate TypeScript types from your Cap'n Proto schema:
+- [Core API](./api/core.md) - 序列化核心
+- [RPC API](./api/rpc.md) - RPC 层
+- [Codegen API](./api/codegen.md) - 代码生成
 
-```bash
-npx @naeemo/capnp gen schema.capnp -o types.ts
-```
+## 最佳实践
 
-### Basic Usage
+- [性能优化](./best-practices/performance.md)
+- [错误处理](./best-practices/error-handling.md)
+- [调试技巧](./best-practices/debugging.md)
 
-```typescript
-import { MessageBuilder, MessageReader } from '@naeemo/capnp';
-import { PersonBuilder, PersonReader } from './types';
+## 示例
 
-// Build a message
-const builder = new MessageBuilder();
-const person = PersonBuilder.create(builder);
-person.setName('John');
-person.setAge(30);
-const buffer = builder.toArrayBuffer();
+- [基本使用](../examples/basic.ts)
+- [RPC 示例](../examples/echo-service/)
+- [Promise Pipelining](../examples/promise-pipelining.ts)
 
-// Read a message
-const reader = new MessageReader(buffer);
-const p = new PersonReader(reader.getRoot(2, 1));
-console.log(p.name); // "John"
-```
+## 迁移指南
 
-## Documentation
+- [从 protobuf 迁移](./migration/protobuf.md)
 
-- [Quick Start Guide](./quickstart)
-- [Changelog](./changelog)
+## 参考
 
-## License
-
-MIT License © 2024-2026 Naeemo
+- [Cap'n Proto 官方文档](https://capnproto.org/)
+- [GitHub 仓库](https://github.com/Naeemo/capnp)
