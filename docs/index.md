@@ -18,6 +18,11 @@
 - [动态 Schema](./guides/dynamic-schema.md) - 运行时 schema 处理
 - [流控制](./guides/streaming.md) - Stream、Bulk、Realtime API
 
+## 最佳实践
+
+- [性能优化](./best-practices/performance.md) - 优化技巧和陷阱
+- [错误处理](./best-practices/error-handling.md) - 健壮的错误处理模式
+
 ## API 参考
 
 - [Core API](./api/core.md) - 序列化核心

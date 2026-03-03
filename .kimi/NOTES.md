@@ -34,7 +34,7 @@ git push origin main
 
 ## 当前开发重点
 
-### P1: 文档完善 🚧 **进行中**
+### P1: 文档完善 ✅ **已完成**
 
 **已完成**:
 - ✅ docs/index.md 文档入口
@@ -42,12 +42,12 @@ git push origin main
 - ✅ guides/rpc.md RPC 使用指南
 - ✅ guides/codegen.md 代码生成器文档
 - ✅ guides/dynamic-schema.md 动态 Schema 指南
+- ✅ guides/streaming.md 流控制指南
+- ✅ best-practices/performance.md 性能优化
+- ✅ best-practices/error-handling.md 错误处理
 
 **待完成**:
-- [ ] guides/streaming.md 流控制指南
-- [ ] best-practices/performance.md 性能优化
-- [ ] best-practices/error-handling.md 错误处理
-- [ ] api/ 自动生成 API 参考
+- [ ] api/ 自动生成 API 参考（typedoc）
 
 ### P2: Bug 修复 🐛 **待开始**
 
