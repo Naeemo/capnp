@@ -50,11 +50,17 @@
     "rolldown": "1.0.0-rc.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "vite": "^7.3.1",
     "vitepress": "^1.6.4",
     "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "pnpm@9.15.0"
+  "packageManager": "pnpm@9.15.0",
+  "pnpm": {
+    "overrides": {
+      "esbuild": ">=0.25.0"
+    }
+  }
 }
