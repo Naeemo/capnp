@@ -1,6 +1,6 @@
 {
   "name": "@naeemo/capnp",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Pure TypeScript Cap'n Proto implementation with RPC support",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -16,7 +16,7 @@
   "files": ["dist", "README.md", "README.zh.md", "LICENSE"],
   "bin": {
     "capnp": "./dist/cli.js",
-    "capnp-ts-codegen": "./dist/codegen/cli-v3.js"
+    "capnp-ts-codegen": "./dist/cli.js"
   },
   "scripts": {
     "build": "rolldown -c rolldown.config.ts",

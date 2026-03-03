@@ -10,6 +10,7 @@ import {
   type SchemaTarget,
   type SchemaPayload,
 } from "./schema-types.js";
+import type { ExceptionType } from "./rpc-types.js";
 import {
   serializeSchemaRequest,
   deserializeSchemaRequest,
@@ -131,7 +132,7 @@ describe("SchemaResponse Serialization", () => {
         type: "exception",
         exception: {
           reason: "Schema not found",
-          type: 1, // failed
+          type: 1 as unknown as ExceptionType, // failed
           obsoleteIsCallersFault: false,
           obsoleteDurability: 0,
         },

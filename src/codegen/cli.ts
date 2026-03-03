@@ -412,10 +412,10 @@ async function runInteractiveMode(inputFile: string): Promise<void> {
       const shortName = displayName.split('.').pop() || displayName;
       
       let kind = 'unknown';
-      if (node.isStruct()) kind = 'struct';
-      else if (node.isInterface()) kind = 'interface';
-      else if (node.isEnum()) kind = 'enum';
-      else if (node.isConst()) kind = 'const';
+      if (node.isStruct) kind = 'struct';
+      else if (node.isInterface) kind = 'interface';
+      else if (node.isEnum) kind = 'enum';
+      else if (node.isConst) kind = 'const';
       
       typeIndex.set(shortName, { id, displayName, kind, node });
       typeIndex.set(displayName, { id, displayName, kind, node });

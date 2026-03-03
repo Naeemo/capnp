@@ -16,11 +16,11 @@
 | WebSocket 传输 | ✅ 完成 | - |
 | C++ 互操作 | ✅ 完成 | 与官方 C++ 实现兼容 |
 | **Streaming API** | **✅ 完成** | **Bulk/Realtime (官方路线图中)** |
-| **Dynamic Schema** | **🚧 进行中** | **Phase 7: Schema 传输协议** |
+| **Dynamic Schema** | **✅ 完成** | **Phase 7: Schema 传输协议** |
 
 ### 测试统计
-- **361+ 测试通过**
-- **v0.4.0 已发布到 npm**
+- **420+ 测试通过**
+- **v0.5.0 已发布到 npm**
 
 ---
 
@@ -30,8 +30,8 @@
 
 | 功能 | 官方状态 | 我们的状态 | 优先级 | 说明 |
 |------|---------|-----------|--------|------|
-| **Dynamic Schema** | 计划中 | 🚧 **进行中** | P1 | 运行时获取 schema，对动态语言很重要。允许 Python 等应用从 RPC 服务器直接获取 schema，无需本地副本 |
-| **UDP Transport** | 计划中 | ❌ 未实现 | P2 | 零往返三方握手，实时通信。支持真正的零拷贝和更低延迟 |
+| **Dynamic Schema** | 计划中 | ✅ **已完成** | P1 | 运行时获取 schema，对动态语言很重要。允许 Python 等应用从 RPC 服务器直接获取 schema，无需本地副本 |
+| **UDP Transport** | 计划中 | 🚧 **进行中** | P2 | 零往返三方握手，实时通信。支持真正的零拷贝和更低延迟 |
 | **加密传输** | 计划中 | ❌ 未实现 | P2 | Noise Protocol + libsodium。基于能力授权（非 PKI），支持零往返三方握手 |
 
 ### 🟡 中优先级（性能与工具）
@@ -55,7 +55,7 @@
 
 ## 🎯 Phase 7: Dynamic Schema（建议 2-3周）
 
-**状态**: 🚧 第一步已完成（Schema 传输协议定义）
+**状态**: ✅ **已完成**
 
 **目标**: 实现运行时 schema 获取和解析
 
@@ -80,29 +80,34 @@
    - 实现了 CodeGeneratorRequest 解析
    - 提供了 createSchemaRegistry() 工厂函数
 
-**待完成**:
-1. 🔄 **Dynamic Schema 解析增强**
-   - 完善 schema 二进制解析器
-   - 支持所有 schema.capnp 节点类型
-   - 处理 generics 和 brands
+5. ✅ **Dynamic Reader/Writer**
+   - 创建了 `dynamic-reader.ts` 用于运行时读取消息
+   - 创建了 `dynamic-writer.ts` 用于运行时写入消息
+   - 支持所有基本类型、列表、嵌套结构、union 等
 
-2. 🔄 **动态 Reader/Writer 生成**
-   - 基于解析的 schema 动态创建消息 reader
-   - 动态创建消息 writer
-   - 支持动态字段访问
+6. ✅ **Schema Capability 实现**
+   - 实现了 `SchemaCapabilityServer` 用于服务端提供 schema
+   - 实现了 `SchemaCapabilityClient` 用于客户端获取 schema
+   - 集成了 `RpcConnection.registerSchemaProvider()` 方法
 
-3. 🔄 **工具支持**
-   - `capnp-ts-codegen --dynamic` 模式
-   - 交互式 schema 浏览器
+7. ✅ **端到端测试**
+   - 创建了 `dynamic-schema-e2e.test.ts` 完整测试套件
+   - 测试了简单类型、嵌套结构、列表、union、enum 等
+   - 测试了错误处理、缓存机制、性能场景
 
 **使用场景**:
 ```typescript
 // 从远程服务器获取 schema
-const schema = await connection.getDynamicSchema();
+const schema = await connection.getDynamicSchema(BigInt("0x1234567890abcdef"));
 
 // 动态解析消息
-const reader = schema.parseMessage(buffer);
-console.log(reader.getField('name'));
+const reader = createDynamicReader(schema, buffer);
+console.log(reader.get("name"));
+
+// 动态创建消息
+const writer = createDynamicWriter(schema);
+writer.set("name", "Alice");
+const buffer = writer.toBuffer();
 ```
 
 ---
@@ -162,7 +167,7 @@ console.log(reader.getField('name'));
 | v0.2.0 | 2026-03-02 | V3 代码生成器 |
 | v0.3.0 | 2026-03-02 | Level 0-2 RPC |
 | **v0.4.0** | **2026-03-02** | **Level 3-4 RPC + Streaming** |
-| v0.5.0 | TBD | Dynamic Schema |
+| **v0.5.0** | **2026-03-03** | **Dynamic Schema ✅** |
 | v0.6.0 | TBD | UDP Transport |
 | v0.7.0 | TBD | 加密传输 |
 | v1.0.0 | TBD | 完整官方协议支持 |

@@ -1,295 +1,415 @@
-# Cap'n Proto RPC - Phase 5
+# Cap'n Proto RPC - Phase 7: Dynamic Schema Transfer Protocol
 
-Flow Control and Realtime Communication: Bulk/Realtime API with stream management.
+Dynamic Schema Transfer Protocol: Runtime schema discovery and dynamic message reading/writing.
 
 ## Overview
 
-This module implements Phase 5 features of Cap'n Proto RPC:
+This module implements Phase 7 features of Cap'n Proto RPC:
 
-- **Stream Abstraction**: Unified stream interface with flow control
-- **Bulk API**: High-volume data transfer with backpressure
-- **Realtime API**: Low-latency communication with prioritization
-- **Stream Management**: Lifecycle management for multiple concurrent streams
-- **Streaming RPC Connection**: Extended connection with streaming capabilities
+- **Dynamic Schema Types**: TypeScript definitions for schema metadata
+- **Schema Parser**: Runtime parsing of schema binary data
+- **Schema Serializer**: Serialization/deserialization of schema RPC messages
+- **Dynamic Reader**: Runtime message reading without compile-time code generation
+- **Dynamic Writer**: Runtime message writing without compile-time code generation
+- **Schema Capability**: RPC interface for fetching schema from remote vats
 
 ## Features
 
-### 1. Stream Abstraction (`stream.ts`)
+### 1. Schema Types (`schema-types.ts`)
 
-Bidirectional streaming with flow control:
+Complete TypeScript definitions for schema metadata:
 
 ```typescript
-import { Stream, StreamPriority } from '@naeemo/capnp';
+import type { SchemaNode, SchemaField, SchemaType } from '@naeemo/capnp';
 
-const stream = new Stream({
-  streamId: 1,
-  direction: 'bidirectional',
-  priority: StreamPriority.HIGH,
-  flowControl: {
-    initialWindowSize: 65536,  // 64KB
-    maxWindowSize: 1048576,    // 1MB
+const schema: SchemaNode = {
+  id: BigInt("0x1234567890abcdef"),
+  displayName: "myapp.Person",
+  type: SchemaNodeType.STRUCT,
+  structInfo: {
+    dataWordCount: 2,
+    pointerCount: 2,
+    fields: [
+      { name: "name", offset: 0, type: { kind: { type: "text" } }, ... },
+      { name: "age", offset: 32, type: { kind: { type: "uint32" } }, ... },
+    ],
   },
-});
-
-await stream.open();
-await stream.send(data);
-const chunk = await stream.receive();
-await stream.close();
+};
 ```
 
-**Key Features:**
-- Flow control window management
-- Backpressure handling
-- Progress notifications
-- Priority levels (CRITICAL, HIGH, NORMAL, LOW, BACKGROUND)
+### 2. Schema Parser (`schema-parser.ts`)
 
-### 2. Bulk API (`bulk.ts`)
-
-High-volume data transfer:
+Parse schema binary data into SchemaNode objects:
 
 ```typescript
-import { BulkTransferManager, createBulkTransferManager } from '@naeemo/capnp';
+import { parseSchemaNodes, createSchemaRegistry } from '@naeemo/capnp';
 
-const manager = createBulkTransferManager();
+// Parse schema from binary data
+const nodes = parseSchemaNodes(schemaBinaryData);
 
-const transfer = manager.createTransfer('upload', {
-  id: 'file-1',
-  name: 'video.mp4',
-  totalSize: 100 * 1024 * 1024, // 100MB
-});
+// Create a registry for managing schemas
+const registry = createSchemaRegistry();
+for (const node of nodes) {
+  registry.registerNode(node);
+}
 
-transfer.setDataSource(fileStream);
-
-await transfer.start();
+// Look up schemas
+const personSchema = registry.getNodeByName("myapp.Person");
 ```
 
-**Key Features:**
-- Chunked transfer (16KB default)
-- Concurrent chunk management (8 in-flight default)
-- Chunk acknowledgment with timeout
-- Backpressure handling
-- Progress tracking
+### 3. Dynamic Reader (`dynamic-reader.ts`)
 
-### 3. Realtime API (`realtime.ts`)
-
-Low-latency communication:
+Read Cap'n Proto messages at runtime using schema information:
 
 ```typescript
-import { RealtimeStreamManager, DropPolicy, MessagePriority } from '@naeemo/capnp';
+import { createDynamicReader, dumpDynamicReader } from '@naeemo/capnp';
 
-const manager = new RealtimeStreamManager();
+// Create a dynamic reader from schema and buffer
+const reader = createDynamicReader(schema, messageBuffer);
 
-const rtStream = manager.createStream(baseStream, {
-  targetLatencyMs: 50,
-  maxLatencyMs: 200,
-  dropPolicy: DropPolicy.DROP_STALE,
-  adaptiveBitrate: true,
-});
+// Access fields by name
+const name = reader.get("name") as string;
+const age = reader.get("age") as number;
 
-rtStream.start();
-rtStream.sendMessage(data, MessagePriority.HIGH, { critical: true });
+// Get all field names
+const fields = reader.getFieldNames();
+
+// Dump all fields for debugging
+const dump = dumpDynamicReader(reader);
+console.log(dump); // { name: "Alice", age: 30, ... }
 ```
 
-**Key Features:**
-- Priority message queue (5 levels)
-- Drop policies: NEVER, DROP_OLDEST, DROP_NEWEST, DROP_LOW_PRIORITY, DROP_STALE
-- Jitter buffer management
-- Bandwidth adaptation
-- Latency tracking
+### 4. Dynamic Writer (`dynamic-writer.ts`)
 
-### 4. Stream Management (`stream-manager.ts`)
-
-Unified stream lifecycle management:
+Write Cap'n Proto messages at runtime using schema information:
 
 ```typescript
-import { StreamManager, StreamType, createStreamManager } from '@naeemo/capnp';
+import { createDynamicWriter, serializeDynamic } from '@naeemo/capnp';
 
-const manager = createStreamManager({
-  maxStreams: 100,
-  idleTimeoutMs: 300000,
+// Create a dynamic writer
+const writer = createDynamicWriter(schema);
+
+// Set fields by name
+writer.set("name", "Alice");
+writer.set("age", 30);
+writer.setText("email", "alice@example.com");
+
+// Set multiple fields at once
+writer.setFields({
+  name: "Bob",
+  age: 25,
 });
 
-// Create different stream types
-const standardStream = manager.createStream({ type: StreamType.STANDARD });
-const bulkStream = manager.createBulkStream('upload', metadata);
-const realtimeStream = manager.createRealtimeStream(config);
+// Initialize and set list fields
+const listWriter = writer.initList("tags", 3);
+listWriter.setAll(["developer", "typescript", "capnp"]);
 
-// Get statistics
-const stats = manager.getStatistics();
+// Serialize to buffer
+const buffer = writer.toBuffer();
 ```
 
-### 5. Streaming RPC Connection (`streaming-connection.ts`)
+### 5. Schema Capability (`schema-capability.ts`)
 
-Extended connection with streaming:
+RPC interface for fetching schema from remote vats:
 
 ```typescript
-import { StreamingRpcConnection } from '@naeemo/capnp';
+import { 
+  SchemaCapabilityServer, 
+  SchemaCapabilityClient 
+} from '@naeemo/capnp';
 
-const conn = new StreamingRpcConnection(transport, {
-  enableStreaming: true,
-  localCapabilities: {
-    bulkTransfer: true,
-    realtimeStreams: true,
+// Server-side: Serve schemas to clients
+const registry = new Map<bigint, SchemaNode>();
+registry.set(schema.id, schema);
+
+const server = new SchemaCapabilityServer(registry);
+connection.registerSchemaProvider(server);
+
+// Client-side: Fetch schemas from server
+const client = new SchemaCapabilityClient(connection);
+
+// Fetch by type ID
+const schema = await client.getSchemaById(BigInt("0x1234567890abcdef"));
+
+// Fetch by type name
+const schemaByName = await client.getSchemaByName("myapp.Person");
+
+// List all available schemas
+const schemas = await client.listAvailableSchemas();
+```
+
+### 6. RpcConnection Integration (`rpc-connection.ts`)
+
+Built-in schema fetching and caching:
+
+```typescript
+import { RpcConnection } from '@naeemo/capnp';
+
+const connection = new RpcConnection(transport);
+
+// Fetch schema from remote (with caching)
+const schema = await connection.getDynamicSchema(BigInt("0x1234567890abcdef"));
+
+// Fetch by name
+const schemaByName = await connection.getDynamicSchemaByName("myapp.Person");
+
+// Check if schema is cached
+if (connection.hasCachedSchema(typeId)) {
+  console.log("Schema is cached");
+}
+
+// Clear cache if needed
+connection.clearSchemaCache();
+
+// Get the schema registry
+const registry = connection.getSchemaRegistry();
+```
+
+## Supported Types
+
+### Primitive Types
+- `void` - No data
+- `bool` - Boolean
+- `int8`, `int16`, `int32`, `int64` - Signed integers
+- `uint8`, `uint16`, `uint32`, `uint64` - Unsigned integers
+- `float32`, `float64` - Floating point
+- `text` - UTF-8 string
+- `data` - Raw bytes
+
+### Complex Types
+- `list<T>` - Lists of any type
+- `struct` - Nested structures
+- `enum` - Enumerations (stored as uint16)
+- `interface` - Capabilities (limited support)
+- `union` - Discriminated unions
+
+## Usage Examples
+
+### Complete E2E Example
+
+```typescript
+import { 
+  RpcConnection, 
+  createDynamicWriter, 
+  createDynamicReader,
+  SchemaCapabilityServer,
+  SchemaCapabilityClient,
+} from '@naeemo/capnp';
+
+// Define schema (normally fetched from server)
+const personSchema: SchemaNode = {
+  id: BigInt("0x1234567890abcdef"),
+  displayName: "example.Person",
+  type: SchemaNodeType.STRUCT,
+  structInfo: {
+    dataWordCount: 1,
+    pointerCount: 2,
+    fields: [
+      { name: "id", offset: 0, type: { kind: { type: "uint32" } }, ... },
+      { name: "name", offset: 64, type: { kind: { type: "text" } }, ... },
+      { name: "email", offset: 128, type: { kind: { type: "text" } }, ... },
+    ],
   },
+};
+
+// Server setup
+const serverRegistry = new Map<bigint, SchemaNode>();
+serverRegistry.set(personSchema.id, personSchema);
+
+const serverConnection = new RpcConnection(serverTransport);
+const schemaServer = new SchemaCapabilityServer(serverRegistry);
+serverConnection.registerSchemaProvider(schemaServer);
+
+// Client setup
+const clientConnection = new RpcConnection(clientTransport);
+const schemaClient = new SchemaCapabilityClient(clientConnection);
+
+// Client fetches schema dynamically
+const schema = await schemaClient.getSchemaById(personSchema.id);
+
+// Client creates and sends a message
+const writer = createDynamicWriter(schema);
+writer.set("id", 1);
+writer.setText("name", "Alice");
+writer.setText("email", "alice@example.com");
+
+const messageBuffer = writer.toBuffer();
+await clientConnection.call(target, interfaceId, methodId, {
+  content: new Uint8Array(messageBuffer),
+  capTable: [],
 });
 
-// Create streams
-const bulkStream = conn.createBulkTransfer('upload', metadata);
-const rtStream = conn.createRealtimeStream(config);
+// Server receives and reads the message
+const reader = createDynamicReader(schema, receivedBuffer);
+console.log(reader.get("name")); // "Alice"
+console.log(reader.get("email")); // "alice@example.com"
+```
+
+### Working with Lists
+
+```typescript
+// Schema with list field
+const schema: SchemaNode = {
+  // ...
+  structInfo: {
+    fields: [
+      { 
+        name: "scores", 
+        type: { kind: { type: "list", elementType: { kind: { type: "int32" } } } },
+        ...
+      },
+    ],
+  },
+};
+
+// Writing
+const writer = createDynamicWriter(schema);
+const listWriter = writer.initList("scores", 5);
+listWriter.setAll([100, 95, 87, 92, 88]);
+
+// Reading
+const reader = createDynamicReader(schema, buffer);
+const scores = reader.getList("scores") as number[];
+console.log(scores); // [100, 95, 87, 92, 88]
+```
+
+### Working with Unions
+
+```typescript
+// Schema with union
+const schema: SchemaNode = {
+  // ...
+  structInfo: {
+    discriminantCount: 2,
+    discriminantOffset: 0,
+    fields: [
+      { name: "textValue", discriminantValue: 0, offset: 64, type: { kind: { type: "text" } }, ... },
+      { name: "intValue", discriminantValue: 1, offset: 16, type: { kind: { type: "int32" } }, ... },
+    ],
+  },
+};
+
+// Writing (selects textValue variant)
+const writer = createDynamicWriter(schema);
+writer.setText("textValue", "Hello");
+
+// Reading
+const reader = createDynamicReader(schema, buffer);
+// Access union fields based on discriminant
+```
+
+### Working with Nested Structs
+
+```typescript
+// Address schema
+const addressSchema: SchemaNode = {
+  id: BigInt("0xaaa"),
+  displayName: "Address",
+  type: SchemaNodeType.STRUCT,
+  structInfo: {
+    fields: [
+      { name: "street", type: { kind: { type: "text" } }, ... },
+      { name: "city", type: { kind: { type: "text" } }, ... },
+    ],
+  },
+};
+
+// Person schema with nested address
+const personSchema: SchemaNode = {
+  // ...
+  structInfo: {
+    fields: [
+      { name: "name", type: { kind: { type: "text" } }, ... },
+      { name: "address", type: { kind: { type: "struct", typeId: addressSchema.id } }, ... },
+    ],
+  },
+};
+
+// Writing nested struct
+const writer = createDynamicWriter(personSchema);
+writer.setText("name", "Alice");
+const addressWriter = writer.initStruct("address");
+addressWriter.setText("street", "123 Main St");
+addressWriter.setText("city", "NYC");
 ```
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    StreamingRpcConnection                            │
+│                    Dynamic Schema Architecture                       │
 ├─────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌─────────────────────────────────────────┐   │
-│  │   RpcConnection │  │           StreamManager                 │   │
-│  │   (Base)        │  │  ┌─────────┐ ┌─────────┐ ┌──────────┐  │   │
-│  │                 │  │  │ Stream  │ │ Bulk    │ │ Realtime │  │   │
-│  │                 │  │  │ (Std)   │ │ Transfer│ │ Stream   │  │   │
-│  └─────────────────┘  │  └─────────┘ └─────────┘ └──────────┘  │   │
-│                       └─────────────────────────────────────────┘   │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐  │
+│  │  SchemaCapability│  │  Dynamic Reader │  │  Dynamic Writer     │  │
+│  │  Server/Client   │  │                 │  │                     │  │
+│  └────────┬────────┘  └────────┬────────┘  └──────────┬──────────┘  │
+│           │                    │                      │              │
+│           ▼                    ▼                      ▼              │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │                    Schema Registry                           │    │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │    │
+│  │  │ SchemaNode  │  │ SchemaField │  │ SchemaType          │  │    │
+│  │  │ (metadata)  │  │ (field def) │  │ (type definition)   │  │    │
+│  │  └─────────────┘  └─────────────┘  └─────────────────────┘  │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│           │                                                          │
+│           ▼                                                          │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │                    Schema Parser                             │    │
+│  │         (parseSchemaNodes, createSchemaRegistry)             │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│           │                                                          │
+│           ▼                                                          │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │              Schema Serializer (RPC messages)                │    │
+│  └─────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-## Performance Characteristics
-
-### Bulk Transfer
-- **Chunk Size**: 16KB default, configurable
-- **Max Concurrent**: 8 chunks in-flight default
-- **Window Size**: 64KB initial, up to 1MB max
-- **Timeout**: 30 seconds for chunk acknowledgment
-
-### Realtime Stream
-- **Target Latency**: 50ms default
-- **Max Latency**: 200ms default
-- **Jitter Buffer**: 30ms default
-- **Queue Size**: 1000 messages max
-- **Bandwidth Window**: 1 second measurement window
-
-## Usage Examples
-
-### File Upload with Progress
-
-```typescript
-const transfer = conn.createBulkTransfer('upload', {
-  id: 'upload-1',
-  name: 'large-file.zip',
-  totalSize: file.size,
-}, {
-  enableProgress: true,
-  progressInterval: 65536, // Report every 64KB
-}, {
-  onProgress: (progress) => {
-    console.log(`Progress: ${progress.percentage?.toFixed(1)}%`);
-    console.log(`Rate: ${(progress.transferRate! / 1024 / 1024).toFixed(2)} MB/s`);
-  },
-  onComplete: () => console.log('Upload complete!'),
-});
-
-transfer.setDataSource(file.stream());
-await transfer.start();
-```
-
-### Realtime Audio Streaming
-
-```typescript
-const audioStream = conn.createRealtimeStream({
-  targetLatencyMs: 30,
-  dropPolicy: DropPolicy.DROP_STALE,
-  adaptiveBitrate: true,
-}, {
-  onMessage: (msg) => {
-    // Play audio frame
-    audioContext.decodeAudioData(msg.data.buffer, (buffer) => {
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContext.destination);
-      source.start();
-    });
-  },
-  onBandwidthAdapt: (bitrate) => {
-    // Adjust encoder bitrate
-    encoder.setBitrate(bitrate);
-  },
-});
-
-audioStream.start();
-
-// Send audio frames
-audioRecorder.ondataavailable = (e) => {
-  audioStream.sendMessage(
-    new Uint8Array(e.data),
-    MessagePriority.HIGH,
-    { critical: true }
-  );
-};
-```
-
-### Video Streaming with Adaptive Quality
-
-```typescript
-const videoStream = conn.createRealtimeStream({
-  targetLatencyMs: 50,
-  maxLatencyMs: 150,
-  adaptiveBitrate: true,
-  minBitrate: 100000,  // 100 Kbps
-  maxBitrate: 5000000, // 5 Mbps
-});
-
-videoStream.start();
-
-// Encode and send video frames
-setInterval(() => {
-  const frame = captureVideoFrame();
-  const encoded = encodeVideoFrame(frame, currentQuality);
-  
-  const success = videoStream.sendMessage(
-    encoded,
-    MessagePriority.HIGH
-  );
-  
-  if (!success) {
-    // Frame dropped, reduce quality
-    currentQuality = Math.max(0.3, currentQuality * 0.9);
-  }
-}, 1000 / 30); // 30 FPS
 ```
 
 ## Testing
 
 ```bash
-# Run stream tests
-npm test -- src/rpc/stream.test.ts
+# Run dynamic schema tests
+npm test -- src/rpc/dynamic-schema-e2e.test.ts
 
-# Run bulk tests
-npm test -- src/rpc/bulk.test.ts
+# Run dynamic reader tests
+npm test -- src/rpc/dynamic-reader.test.ts
 
-# Run realtime tests
-npm test -- src/rpc/realtime.test.ts
+# Run dynamic writer tests
+npm test -- src/rpc/dynamic-writer.test.ts
+
+# Run schema parser tests
+npm test -- src/rpc/schema.test.ts
 
 # Run all RPC tests
 npm test -- src/rpc/
 ```
 
-## API Reference
+## Performance Considerations
 
-See individual module files for detailed API documentation:
-- `stream.ts` - Stream abstraction
-- `bulk.ts` - Bulk transfer API
-- `realtime.ts` - Realtime communication API
-- `stream-manager.ts` - Stream lifecycle management
-- `streaming-connection.ts` - Streaming RPC connection
+- **Schema Caching**: Schemas are cached by default to avoid repeated network requests
+- **Lazy Parsing**: Schema parsing is done only when needed
+- **Field Cache**: Dynamic readers cache field lookups for faster access
+- **Binary Format**: Schema serialization uses binary format by default for efficiency
 
-## Progress
+## Error Handling
 
-See `PHASE5_PROGRESS.md` for detailed implementation progress.
+```typescript
+try {
+  const schema = await connection.getDynamicSchema(typeId);
+} catch (error) {
+  if (error.message.includes("not found")) {
+    console.error("Schema not found on remote server");
+  } else if (error.message.includes("not running")) {
+    console.error("Connection is not established");
+  } else {
+    console.error("Failed to fetch schema:", error);
+  }
+}
+```
 
 ## References
 
+- [Cap'n Proto Schema Language](https://capnproto.org/language.html)
 - [Cap'n Proto RPC Protocol](https://capnproto.org/rpc.html)
-- [TCP Flow Control](https://tools.ietf.org/html/rfc5681)
-- [Adaptive Bitrate Streaming](https://en.wikipedia.org/wiki/Adaptive_bitrate_streaming)
-- [Jitter Buffer Management](https://tools.ietf.org/html/rfc3550#section-8)
+- [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp) - Official schema definitions

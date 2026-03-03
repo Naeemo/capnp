@@ -98,6 +98,7 @@ export class RpcConnection {
   private schemaCache: Map<bigint, SchemaNode> = new Map();
   private schemaRegistry: SchemaRegistry = createSchemaRegistry();
   private schemaQuestionIdCounter = 1000000; // Separate counter for schema requests
+  private schemaProvider?: import('./schema-capability.js').SchemaCapabilityServer;
 
   constructor(transport: RpcTransport, options: RpcConnectionOptions = {}) {
     this.transport = transport;
@@ -945,6 +946,16 @@ export class RpcConnection {
    */
   hasCachedSchema(typeId: bigint): boolean {
     return this.schemaCache.has(typeId) || this.schemaRegistry.hasNode(typeId);
+  }
+
+  /**
+   * Register a schema provider for serving schema requests.
+   * This allows the connection to respond to schema requests from remote peers.
+   * 
+   * @param provider - The schema capability server to register
+   */
+  registerSchemaProvider(provider: import('./schema-capability.js').SchemaCapabilityServer): void {
+    this.schemaProvider = provider;
   }
 
   /**

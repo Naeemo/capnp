@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0] - 2026-03-03
+
+### Added
+- **Phase 7: Dynamic Schema** - Runtime dynamic schema fetching and usage
+  - Schema transport protocol (SchemaRequest/SchemaResponse)
+  - Runtime schema parser (CodeGeneratorRequest parsing)
+  - Dynamic Reader - read messages at runtime
+  - Dynamic Writer - write messages at runtime
+  - Schema Capability implementation (server provider and client fetcher)
+  - Schema caching mechanism
+  - End-to-end test suite
+- **420+ tests passing** (up from 360+)
+
+### Milestone
+🎉 **Phase 7 Dynamic Schema completed!** Supports runtime dynamic schema fetching and parsing, laying the foundation for dynamic language bindings and universal clients.
+
 ## [0.4.0] - 2026-03-02
 
 ### Added
@@ -68,6 +84,7 @@ First TypeScript implementation with full official RPC protocol support.
 - CLI: `npx @naeemo/capnp gen schema.capnp -o types.ts`
 - 133 tests passing
 
+[0.5.0]: https://github.com/Naeemo/capnp/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Naeemo/capnp/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Naeemo/capnp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Naeemo/capnp/releases/tag/v0.2.0

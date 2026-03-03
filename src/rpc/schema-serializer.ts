@@ -467,12 +467,12 @@ function writeException(bytes: Uint8Array, offset: number, exception: Exception)
   let currentOffset = offset + 8 + align8(reasonBytes.length);
 
   // Write type (aligned to 8 bytes)
-  view.setUint16(currentOffset, exception.type as number, true);
+  view.setUint16(currentOffset, exception.type as unknown as number, true);
   currentOffset += 8;
 
   // Write deprecated fields (aligned to 8 bytes)
   view.setUint8(currentOffset, exception.obsoleteIsCallersFault ? 1 : 0);
-  view.setUint16(currentOffset + 1, exception.obsoleteDurability ?? 0, true);
+  view.setUint16(currentOffset + 1, (exception.obsoleteDurability ?? 0) as unknown as number, true);
   currentOffset += 8;
 
   return currentOffset;
@@ -491,7 +491,7 @@ function readException(data: Uint8Array, offset: number): { value: Exception; ne
   let currentOffset = offset + 8 + align8(reasonLen);
 
   // Read type (aligned to 8 bytes)
-  const type = view.getUint16(currentOffset, true) as ExceptionType;
+  const type = view.getUint16(currentOffset, true) as unknown as ExceptionType;
   currentOffset += 8;
 
   // Read deprecated fields (aligned to 8 bytes)

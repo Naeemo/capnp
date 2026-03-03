@@ -317,3 +317,9 @@ export {
   type DynamicWriter,
   type DynamicListWriter,
 } from './dynamic-writer.js';
+
+// Phase 7: Schema Capability (NEW)
+export {
+  SchemaCapabilityServer,
+  SchemaCapabilityClient,
+} from './schema-capability.js';
