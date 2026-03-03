@@ -34,6 +34,21 @@ git push origin main
 
 ## 当前开发重点
 
+### P1: 文档完善 ✅ **已完成**
+
+**已完成**:
+- ✅ docs/index.md 文档入口
+- ✅ getting-started.md 快速入门
+- ✅ guides/rpc.md RPC 使用指南
+- ✅ guides/codegen.md 代码生成器文档
+- ✅ guides/dynamic-schema.md 动态 Schema 指南
+- ✅ guides/streaming.md 流控制指南
+- ✅ best-practices/performance.md 性能优化
+- ✅ best-practices/error-handling.md 错误处理
+
+**待完成**:
+- [ ] api/ 自动生成 API 参考（typedoc）- 低优先级
+
 ### P2: Bug 修复 ✅ **已完成**
 
 **已完成**:
@@ -47,46 +62,48 @@ git push origin main
 - EzRpcTransport 错误处理完善
 - 越界访问返回默认值而非崩溃
 
-**待评估（如果需要）**:
-- [ ] MessageBuilder 内存管理（复杂，可能影响性能）
-- [ ] 错误上下文信息增强
+### P3: 性能测试 ✅ **已完成**
 
-### P2: Bug 修复 🐛 **待开始**
+**已完成**:
+- ✅ 基础性能测试（10个场景）
+- ✅ 与 JSON 对比测试
+- ✅ docs/benchmarks.md 性能报告
 
-**方向**:
-- 无效输入处理
-- 多段消息边界情况
-- 内存泄漏检查
-- 错误信息优化
-
-### P3: 性能测试 📊 **待开始**
-
-**方向**:
-- 序列化性能基准
-- RPC 延迟测试
-- 与 C++ 对比测试
-- 内存使用分析
+**关键数据**:
+- 反序列化: 1-3μs (85万 ops/sec)
+- vs JSON: 小数据量 JSON 快，大数据量 Capnp 优势明显
+- 414个测试全部通过
 
 ---
 
-## C++ 互操作 ✅ **已完成**
+## 今日成果 (2026-03-03)
 
-**状态**: Node.js ↔ C++ 协议兼容已完成
-**关键实现**: `src/rpc/ezrpc-transport.ts`
+**代码**: 8 commits, 修复边界检查、RPC错误处理
+**文档**: 8篇核心文档完成
+**测试**: 12个新边界测试，414个总测试通过
+**性能**: 完整基准测试和对比报告
+
+---
+
+## 下一步
+
+**可选方向**:
+1. **API 参考生成** - typedoc 自动生成
+2. **浏览器支持** - WebSocket-to-TCP 代理
+3. **JSON 编解码器** - Capnp <-> JSON 转换
+4. **更多示例** - 实际应用场景
 
 ---
 
 ## 快速参考
 
 ```bash
-# 启动 C++ 测试服务器
-export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-cd src/interop-cpp
-./interop-server server 0.0.0.0:18080
+# 运行测试
+npm test
 
-# 运行互操作测试
-CAPNP_TEST_HOST=localhost CAPNP_TEST_PORT=18080 \
-  npx vitest run src/interop-cpp/interop.test.ts
+# 运行性能测试
+npx tsx src/bench/benchmark.ts
+npx tsx src/bench/comparison.ts
 
 # 提交进度
 git add -A && git commit -m "wip: ..." && git push
