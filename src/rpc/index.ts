@@ -77,6 +77,7 @@ export type {
 export type { RpcTransport, WebSocketTransportOptions } from './transport.js';
 export { WebSocketTransport } from './websocket-transport.js';
 export { TcpTransport } from './tcp-transport.js';
+export { EzRpcTransport } from './ezrpc-transport.js';
 
 // Four Tables
 export {
