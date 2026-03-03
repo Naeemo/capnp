@@ -111,7 +111,7 @@ export class EzRpcTransport implements RpcTransport {
     if (this.pendingBuffer.length > 0) {
       this.pendingBuffer = Buffer.concat([this.pendingBuffer, data]);
     } else {
-      this.pendingBuffer = data;
+      this.pendingBuffer = Buffer.from(data);
     }
 
     // Try to parse messages from the buffer

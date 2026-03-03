@@ -17,11 +17,11 @@ interface BenchmarkResult {
   opsPerSecond: number;
 }
 
-function runBenchmark(
+function runBenchmark<T>(
   name: string,
-  serialize: () => unknown,
-  deserialize: (data: unknown) => unknown,
-  getSize: (data: unknown) => number,
+  serialize: () => T,
+  deserialize: (data: T) => unknown,
+  getSize: (data: T) => number,
   iterations = 10000
 ): BenchmarkResult {
   // 预热
@@ -32,7 +32,7 @@ function runBenchmark(
 
   // 测试序列化
   const serializeStart = nowUs();
-  const samples: unknown[] = [];
+  const samples: T[] = [];
   for (let i = 0; i < iterations; i++) {
     samples.push(serialize());
   }
@@ -123,7 +123,7 @@ function capnpSerialize(): ArrayBuffer {
   return builder.toArrayBuffer();
 }
 
-function capnpDeserialize(buffer: ArrayBuffer): void {
+function capnpDeserialize(buffer: ArrayBuffer): boolean {
   const reader = new MessageReader(buffer);
   const root = reader.getRoot(3, 4);
   
@@ -144,6 +144,7 @@ function capnpDeserialize(buffer: ArrayBuffer): void {
     metadata.getText(0);
     metadata.getText(1);
   }
+  return true;
 }
 
 // ========== JSON ==========
@@ -152,8 +153,9 @@ function jsonSerialize(): string {
   return JSON.stringify(testData);
 }
 
-function jsonDeserialize(data: string): void {
+function jsonDeserialize(data: string): boolean {
   JSON.parse(data);
+  return true;
 }
 
 // ========== 运行测试 ==========
