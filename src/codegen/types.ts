@@ -9,6 +9,8 @@ export interface StructSchema {
   pointerCount: number;
   fields: Field[];
   isGroup?: boolean;
+  /** Documentation comment from schema */
+  docComment?: string;
 }
 
 export interface Field {
@@ -17,6 +19,8 @@ export interface Field {
   offset: number;
   isOptional: boolean;
   defaultValue?: unknown;
+  /** Documentation comment from schema */
+  docComment?: string;
 
   // For list types
   elementType?: string;
