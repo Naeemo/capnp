@@ -30,6 +30,7 @@ export default defineConfig({
               { text: 'Examples', link: '/examples' },
               { text: 'RPC Guide', link: '/rpc-guide' },
               { text: 'Performance', link: '/performance' },
+              { text: 'WebSocket Proxy', link: '/guides/websocket-proxy' },
               { text: 'Changelog', link: '/changelog' },
             ],
           },

@@ -14,6 +14,7 @@ Cap'n Proto 的纯 TypeScript 实现，支持零拷贝反序列化和完整的 R
 - [RPC 使用](./guides/rpc.md) - 远程调用、Promise Pipelining
 - [动态 Schema](./guides/dynamic-schema.md) - 运行时 schema 处理
 - [流控制](./guides/streaming.md) - Stream、Bulk、Realtime API
+- [WebSocket 代理](./guides/websocket-proxy.md) - 浏览器到 TCP 桥接
 
 ## 最佳实践
 

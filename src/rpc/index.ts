@@ -325,3 +325,9 @@ export {
   SchemaCapabilityServer,
   SchemaCapabilityClient,
 } from './schema-capability.js';
+
+// WebSocket-to-TCP Proxy (NEW in v0.6.0)
+export {
+  CapnpWebSocketProxy,
+  type ProxyOptions,
+} from '../proxy/websocket-proxy.js';

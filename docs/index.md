@@ -13,6 +13,7 @@ A pure TypeScript implementation of Cap'n Proto with zero-copy deserialization a
 - [RPC Usage](./guides/rpc.md) - Remote calls, Promise Pipelining
 - [Dynamic Schema](./guides/dynamic-schema.md) - Runtime schema handling
 - [Streaming](./guides/streaming.md) - Stream, Bulk, Realtime API
+- [WebSocket Proxy](./guides/websocket-proxy.md) - Browser to TCP bridge
 
 ## Best Practices
 
