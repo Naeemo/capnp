@@ -1,45 +1,45 @@
-# Code Generation Guide
+# 代码生成器使用指南
 
-@naeemo/capnp includes a powerful code generator that generates TypeScript type definitions and helper classes from `.capnp` schema files.
+@naeemo/capnp 包含强大的代码生成器，可以从 `.capnp` schema 文件生成 TypeScript 类型定义和辅助类。
 
-## Installation
+## 安装
 
-The code generator is included in the main package:
+代码生成器包含在主包中：
 
 ```bash
 npm install @naeemo/capnp
 ```
 
-## Basic Usage
+## 基本使用
 
-### Generate Single File
+### 生成单个文件
 
 ```bash
 npx capnp-ts-codegen schema.capnp -o output.ts
 ```
 
-### Generate to Directory
+### 生成到目录
 
 ```bash
 npx capnp-ts-codegen schema.capnp -d ./generated/
 ```
 
-### Specify Runtime Path
+### 指定运行时路径
 
-If your project uses a non-standard runtime path:
+如果你的项目使用了非标准路径的运行时：
 
 ```bash
 npx capnp-ts-codegen schema.capnp -o types.ts -r ../my-runtime
 ```
 
-## Generated Content
+## 生成内容
 
-For each struct, the generator creates:
+对于每个 struct，生成器会创建：
 
-### 1. TypeScript Interface
+### 1. TypeScript 接口
 
 ```typescript
-// For type definitions
+// 用于类型定义
 interface Person {
   id: number;
   name: string;
@@ -47,10 +47,10 @@ interface Person {
 }
 ```
 
-### 2. Reader Class
+### 2. Reader 类
 
 ```typescript
-// For reading serialized messages
+// 用于读取已序列化的消息
 class PersonReader {
   getId(): number;
   getName(): string;
@@ -59,10 +59,10 @@ class PersonReader {
 }
 ```
 
-### 3. Builder Class
+### 3. Builder 类
 
 ```typescript
-// For building new messages
+// 用于构建新消息
 class PersonBuilder {
   setId(value: number): void;
   setName(value: string): void;
@@ -71,9 +71,9 @@ class PersonBuilder {
 }
 ```
 
-## Complete Example
+## 完整示例
 
-### Schema Definition
+### Schema 定义
 
 ```capnp
 @0x9876543210abcdef;
@@ -108,13 +108,13 @@ struct Person {
 }
 ```
 
-### Generate Code
+### 生成代码
 
 ```bash
 npx capnp-ts-codegen addressbook.capnp -o addressbook.ts
 ```
 
-### Use Generated Code
+### 使用生成的代码
 
 ```typescript
 import { MessageBuilder, MessageReader } from '@naeemo/capnp';
@@ -125,13 +125,13 @@ import {
   PersonReader 
 } from './addressbook.js';
 
-// Build message
+// 构建消息
 const message = new MessageBuilder();
 const addressBook = message.initRoot(AddressBookBuilder);
 
 const people = addressBook.initPeople(2);
 
-// First person
+// 第一个人
 const person1 = people.get(0);
 person1.setId(1);
 person1.setName('Alice');
@@ -139,23 +139,23 @@ person1.setEmail('alice@example.com');
 person1.initPhones(1).get(0).setNumber('555-1234');
 person1.getEmployment().setEmployer('TechCorp');
 
-// Second person (using union)
+// 第二个人（使用 union）
 const person2 = people.get(1);
 person2.setId(2);
 person2.setName('Bob');
 person2.getEmployment().setSelfEmployed();
 
-// Serialize
+// 序列化
 const data = message.toArrayBuffer();
 
-// Read message
+// 读取消息
 const reader = new MessageReader(new Uint8Array(data));
 const book = reader.getRoot(AddressBookReader);
 
 for (const person of book.getPeople()) {
   console.log(person.getName());
   
-  // Handle union
+  // 处理 union
   const employment = person.getEmployment();
   switch (employment.which()) {
     case Person.Employment.EMPLOYER:
@@ -169,7 +169,7 @@ for (const person of book.getPeople()) {
 }
 ```
 
-## Supported Cap'n Proto Features
+## 支持的 Cap'n Proto 特性
 
 ### Structs
 
@@ -193,7 +193,7 @@ struct Shape {
 }
 ```
 
-Generated code includes a `which()` method to check union state.
+生成代码会包含 `which()` 方法来检查 union 的当前状态。
 
 ### Groups
 
@@ -208,7 +208,7 @@ struct Person {
 }
 ```
 
-Group fields are generated as part of the struct.
+Group 的字段会作为 struct 的一部分生成。
 
 ### Lists
 
@@ -229,9 +229,9 @@ enum Status {
 }
 ```
 
-Generates TypeScript enum and type guards.
+生成 TypeScript 枚举和类型守卫。
 
-### Interfaces (RPC)
+### Interfaces（RPC）
 
 ```capnp
 interface Calculator {
@@ -240,24 +240,24 @@ interface Calculator {
 }
 ```
 
-Generates Server interface and Client class.
+生成 Server 接口和 Client 类。
 
-## CLI Options
+## CLI 选项
 
 ```
 Usage: capnp-ts-codegen [options] <schema.capnp>
 
 Options:
-  -o, --output <file>      Output file path
-  -d, --directory <dir>    Output directory (generates multiple files)
-  -r, --runtime <path>     Runtime import path (default: @naeemo/capnp)
-  --no-types               Don't generate TypeScript type definitions
-  --no-readers             Don't generate Reader classes
-  --no-builders            Don't generate Builder classes
-  -h, --help              Show help
+  -o, --output <file>      输出文件路径
+  -d, --directory <dir>    输出目录（生成多个文件）
+  -r, --runtime <path>     运行时导入路径（默认: @naeemo/capnp）
+  --no-types               不生成 TypeScript 类型定义
+  --no-readers             不生成 Reader 类
+  --no-builders            不生成 Builder 类
+  -h, --help              显示帮助信息
 ```
 
-## Integration with Build Tools
+## 与构建工具集成
 
 ### Vite
 
@@ -281,7 +281,7 @@ export default defineConfig({
 });
 ```
 
-### Script Approach
+### 脚本方式
 
 ```json
 // package.json
@@ -293,27 +293,27 @@ export default defineConfig({
 }
 ```
 
-## Best Practices
+## 最佳实践
 
-1. **Commit generated code to version control** or **regenerate in CI**
-2. **Use `.capnp.ts` suffix** to distinguish generated files
-3. **Don't manually modify generated code** - will be overwritten
-4. **Use `import type`** when only types are needed
+1. **将生成的代码提交到版本控制** 或 **在 CI 中重新生成**
+2. **使用 `.capnp.ts` 后缀** 区分生成的文件
+3. **不要手动修改生成的代码** - 会被覆盖
+4. **使用 `import type`** 当只需要类型时
 
 ```typescript
-// Good
+// 好的做法
 import type { Person } from './person.capnp.js';
 import { PersonReader, PersonBuilder } from './person.capnp.js';
 
-// Avoid
-import { Person } from './person.capnp.js';  // If not used as type
+// 避免
+import { Person } from './person.capnp.js';  // 如果不是用作类型
 ```
 
-## Troubleshooting
+## 故障排除
 
 ### "capnp: command not found"
 
-Ensure official capnp tool is installed:
+确保安装了官方 capnp 工具：
 
 ```bash
 # macOS
@@ -325,16 +325,16 @@ apt-get install capnp
 
 ### "Cannot find module"
 
-Ensure using `.js` extension for imports (ESM requirement):
+确保使用 `.js` 扩展名导入（ESM 要求）：
 
 ```typescript
 import { Person } from './person.capnp.js';  // ✅
 import { Person } from './person.capnp';      // ❌
 ```
 
-### Type Errors
+### 类型错误
 
-Ensure `tsconfig.json` has strict mode enabled:
+确保 `tsconfig.json` 启用了严格模式：
 
 ```json
 {

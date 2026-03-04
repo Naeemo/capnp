@@ -1,154 +1,154 @@
-# Performance Benchmark Report
+# 性能基准报告
 
-## Test Environment
+## 测试环境
 
-- **CPU**: Cloud Server (Intel/AMD x64)
+- **CPU**: 云服务器 (Intel/AMD x64)
 - **Node.js**: v22.22.0
-- **Test Date**: 2026-03-03
+- **测试时间**: 2026-03-03
 
-## Core Performance Data
+## 核心性能数据
 
-### Serialization/Deserialization Speed
+### 序列化/反序列化速度
 
-| Operation | Time (μs) | ops/sec |
-|-----------|-----------|---------|
-| Simple struct serialize | 2.46 | 405,952 |
-| Simple struct deserialize | 1.17 | 854,843 |
-| Text field serialize | 2.95 | 339,065 |
-| Text field deserialize | 2.87 | 348,967 |
-| Nested struct serialize | 2.34 | 428,045 |
-| Nested struct deserialize | 1.42 | 705,061 |
-| Small list(100) serialize | 3.00 | 333,874 |
-| Small list(100) deserialize | 2.25 | 444,295 |
-| Large list(10000) serialize | 109.3 | 9,149 |
-| Large list(10000) deserialize | 155.7 | 6,422 |
+| 操作 | 时间 (μs) | ops/sec |
+|------|-----------|---------|
+| 简单结构序列化 | 2.46 | 405,952 |
+| 简单结构反序列化 | 1.17 | 854,843 |
+| 文本字段序列化 | 2.95 | 339,065 |
+| 文本字段反序列化 | 2.87 | 348,967 |
+| 嵌套结构序列化 | 2.34 | 428,045 |
+| 嵌套结构反序列化 | 1.42 | 705,061 |
+| 小列表(100)序列化 | 3.00 | 333,874 |
+| 小列表(100)反序列化 | 2.25 | 444,295 |
+| 大列表(10000)序列化 | 109.3 | 9,149 |
+| 大列表(10000)反序列化 | 155.7 | 6,422 |
 
-### Comparison with JSON (Complex Object)
+### 与 JSON 对比（复杂对象）
 
-| Metric | Cap'n Proto | JSON | Difference |
-|--------|-------------|------|------------|
-| Serialize time | 5.55 μs | 0.85 μs | JSON 6.5x faster |
-| Deserialize time | 3.40 μs | 1.14 μs | JSON 3x faster |
-| Data size | 216 bytes | 176 bytes | JSON 22% smaller |
-| Total throughput | 111,745 ops/s | 503,850 ops/s | JSON 4.5x higher |
+| 指标 | Cap'n Proto | JSON | 差异 |
+|------|-------------|------|------|
+| 序列化时间 | 5.55 μs | 0.85 μs | JSON 快 6.5x |
+| 反序列化时间 | 3.40 μs | 1.14 μs | JSON 快 3x |
+| 数据大小 | 216 bytes | 176 bytes | JSON 小 22% |
+| 总吞吐量 | 111,745 ops/s | 503,850 ops/s | JSON 高 4.5x |
 
-## Key Findings
+## 关键发现
 
-### 1. Deserialization Advantage
+### 1. 反序列化优势
 
-Cap'n Proto deserialization (1-3 μs) is very fast because **no parsing is needed**, just offset calculation.
+Cap'n Proto 反序列化（1-3 μs）非常快，因为**不需要解析**，只是计算偏移。
 
 ```typescript
-// JSON: Need to parse text, build object tree
+// JSON: 需要解析文本，构建对象树
 JSON.parse(data);  // 1.14 μs
 
-// Cap'n Proto: Direct offset calculation
-reader.getInt32(0);  // Nearly zero overhead
+// Cap'n Proto: 直接计算偏移
+reader.getInt32(0);  // 几乎零开销
 ```
 
-### 2. Large Data Scenarios
+### 2. 大数据量场景
 
-When data size increases, Cap'n Proto advantages emerge:
+当数据量增加时，Cap'n Proto 优势显现：
 
-| Data Size | Capnp Serialize | JSON Serialize | Ratio |
-|-----------|-----------------|----------------|-------|
+| 数据大小 | Capnp 序列化 | JSON 序列化 | 比例 |
+|----------|-------------|-------------|------|
 | 1KB | 2.5 μs | 1.2 μs | 0.5x |
 | 10KB | 8.2 μs | 12.5 μs | **1.5x** |
 | 100KB | 65 μs | 180 μs | **2.8x** |
 | 1MB | 580 μs | 2,100 μs | **3.6x** |
 
-### 3. Memory Efficiency
+### 3. 内存效率
 
-Cap'n Proto uses **zero-copy** reading:
+Cap'n Proto 使用**零拷贝**读取：
 
 ```typescript
-// JSON: Creates new objects, copies all data
-const obj = JSON.parse(data);  // Allocates ~3x data size
+// JSON: 创建新对象，拷贝所有数据
+const obj = JSON.parse(data);  // 分配约 3 倍数据大小的内存
 
-// Cap'n Proto: Just references original buffer
-const reader = new MessageReader(data);  // No copy
-const name = reader.getName();  // Points to buffer offset
+// Cap'n Proto: 只是引用原始 buffer
+const reader = new MessageReader(data);  // 不拷贝
+const name = reader.getName();  // 指向 buffer 偏移
 ```
 
-## RPC Performance
+## RPC 性能
 
-### Local RPC Calls
+### 本地 RPC 调用
 
-| Scenario | Calls/sec | Latency |
-|----------|-----------|---------|
-| Simple call | 105,000 | 9.5 μs |
-| Pipeline (3 chained) | 98,000 | 10.2 μs |
-| With large payload | 45,000 | 22 μs |
+| 场景 | 调用/秒 | 延迟 |
+|------|---------|------|
+| 简单调用 | 105,000 | 9.5 μs |
+| Pipeline (3 链式) | 98,000 | 10.2 μs |
+| 大负载 | 45,000 | 22 μs |
 
-### Streaming Performance
+### 流性能
 
-| Mode | Throughput | CPU Usage |
-|------|------------|-----------|
+| 模式 | 吞吐量 | CPU 使用率 |
+|------|--------|-----------|
 | Raw TCP | 1,100 MB/s | 15% |
 | WebSocket | 850 MB/s | 22% |
 | Stream API | 920 MB/s | 18% |
 | Bulk API | 980 MB/s | 12% |
 
-## Optimization Recommendations
+## 优化建议
 
-### Small Data (< 1KB)
+### 小数据 (< 1KB)
 
-JSON is faster for small data. Consider:
-- Using JSON for simple config/transmission
-- Using Cap'n Proto for complex structures
+JSON 对小数据更快。考虑：
+- 使用 JSON 进行简单配置/传输
+- 使用 Cap'n Proto 进行复杂结构
 
-### Medium Data (1KB - 100KB)
+### 中数据 (1KB - 100KB)
 
-Comparable performance. Choose based on:
-- Need schema evolution → Cap'n Proto
-- Human readability → JSON
-- Type safety → Cap'n Proto
+性能相当。根据以下选择：
+- 需要 schema 演进 → Cap'n Proto
+- 人类可读 → JSON
+- 类型安全 → Cap'n Proto
 
-### Large Data (> 100KB)
+### 大数据 (> 100KB)
 
-**Cap'n Proto is significantly better**:
-- 3-5x faster serialization
-- Near-zero deserialization cost
-- Smaller memory footprint
+**Cap'n Proto 明显更好**：
+- 序列化快 3-5 倍
+- 反序列化成本接近零
+- 内存占用更小
 
-## Comparison with Official C++ Implementation
+## 与官方 C++ 实现对比
 
-Based on [capnproto-rust benchmarks](https://dwrensha.github.io/capnproto-rust/2013/11/16/benchmark.html):
+基于 [capnproto-rust 基准测试](https://dwrensha.github.io/capnproto-rust/2013/11/16/benchmark.html)：
 
-| Implementation | Relative Speed |
-|----------------|----------------|
-| Official C++ | 1.0x (baseline) |
+| 实现 | 相对速度 |
+|------|----------|
+| 官方 C++ | 1.0x (基准) |
 | capnproto-rust | 0.8x |
 | @naeemo/capnp | 0.6x |
 
-TypeScript implementation is about 60% of C++ performance, which is acceptable considering JavaScript VM overhead.
+TypeScript 实现约为 C++ 性能的 60%，考虑到 JavaScript VM 开销，这是可接受的。
 
-## Conclusion
+## 结论
 
-### When to Use Cap'n Proto
+### 何时使用 Cap'n Proto
 
-✅ **Recommended**:
-- Large data serialization
-- High-frequency RPC
-- Zero-copy requirements
-- Cross-language compatibility
-- Schema evolution needs
+✅ **推荐**：
+- 大数据序列化
+- 高频 RPC
+- 零拷贝需求
+- 跨语言兼容性
+- Schema 演进需求
 
-⚠️ **Not Recommended**:
-- Very small data (< 100 bytes)
-- Human-readable requirements
-- Simple JSON compatibility needs
+⚠️ **不推荐**：
+- 极小数据 (< 100 bytes)
+- 人类可读需求
+- 简单 JSON 兼容需求
 
-### Performance Summary
+### 性能总结
 
-| Aspect | Rating | Notes |
-|--------|--------|-------|
-| Serialization | ⭐⭐⭐⭐ | Fast, especially for large data |
-| Deserialization | ⭐⭐⭐⭐⭐ | Zero-copy, extremely fast |
-| RPC | ⭐⭐⭐⭐⭐ | Pipeline support is excellent |
-| Streaming | ⭐⭐⭐⭐ | Good throughput |
-| Memory | ⭐⭐⭐⭐⭐ | Zero-copy is a big win |
+| 方面 | 评分 | 备注 |
+|------|------|-------|
+| 序列化 | ⭐⭐⭐⭐ | 快，特别是大数据 |
+| 反序列化 | ⭐⭐⭐⭐⭐ | 零拷贝，极快 |
+| RPC | ⭐⭐⭐⭐⭐ | Pipeline 支持优秀 |
+| 流 | ⭐⭐⭐⭐ | 吞吐量好 |
+| 内存 | ⭐⭐⭐⭐⭐ | 零拷贝是大优势 |
 
 ---
 
-*Test data generated by `src/bench/benchmark.ts` and `src/bench/comparison.ts`*
+*测试数据由 `src/bench/benchmark.ts` 和 `src/bench/comparison.ts` 生成*
