@@ -27,7 +27,7 @@ export default defineConfig([
   },
   // CLI
   {
-    input: 'src/cli.ts',
+    input: 'src/cli-unified.ts',
     output: {
       file: 'dist/cli.js',
       format: 'esm',
