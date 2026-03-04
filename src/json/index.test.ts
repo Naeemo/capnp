@@ -1,12 +1,12 @@
 /**
- * Tests for JSON Codec
+ * Tests for JSON Codec (bidirectional)
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { StructReader } from '../core/index.js';
+import { MessageBuilder, MessageReader, StructBuilder, type StructReader } from '../core/index.js';
 import type { SchemaNode } from '../rpc/schema-types.js';
 import { SchemaNodeType } from '../rpc/schema-types.js';
-import { CapnpToJson, type JsonCodecOptions } from './index.js';
+import { CapnpToJson, JsonToCapnp, fromJson, parse, stringify, toJson } from './index.js';
 
 // Test schema for a simple Person struct
 const personSchema: SchemaNode = {
@@ -162,6 +162,128 @@ describe('JSON Codec', () => {
     });
   });
 
+  describe('JsonToCapnp', () => {
+    it("should convert JSON to Cap'n Proto message", () => {
+      const registry = new Map<bigint, SchemaNode>();
+      registry.set(personSchema.id, personSchema);
+
+      const json = {
+        id: 42,
+        age: 25,
+        isActive: true,
+        name: 'John Doe',
+        email: 'john@example.com',
+      };
+
+      const converter = new JsonToCapnp(registry, {});
+      const message = converter.convertToMessage(json, personSchema);
+
+      expect(message).toBeDefined();
+      expect(message.toArrayBuffer).toBeDefined();
+    });
+
+    it('should round-trip convert correctly', () => {
+      // Create a message
+      const builder = new MessageBuilder();
+      const structBuilder = builder.initRoot(2, 2);
+      structBuilder.setUint32(0, 42);
+      structBuilder.setUint8(4, 25);
+      structBuilder.setBool(40, true);
+      structBuilder.setText(0, 'John Doe');
+      structBuilder.setText(1, 'john@example.com');
+
+      // Convert to JSON
+      const registry = new Map<bigint, SchemaNode>();
+      registry.set(personSchema.id, personSchema);
+
+      const toJsonConverter = new CapnpToJson(registry, {});
+      const buffer = builder.toArrayBuffer();
+      const reader = new MessageReader(buffer).getRoot(2, 2);
+      const json = toJsonConverter.convert(reader, personSchema);
+
+      // Convert back to Cap'n Proto
+      const fromJsonConverter = new JsonToCapnp(registry, {});
+      const newMessage = fromJsonConverter.convertToMessage(json, personSchema);
+
+      // Read back and verify
+      const newReader = new MessageReader(newMessage.toArrayBuffer()).getRoot(2, 2);
+      expect(newReader.getUint32(0)).toBe(42);
+      expect(newReader.getUint8(4)).toBe(25);
+      expect(newReader.getBool(40)).toBe(true);
+      expect(newReader.getText(0)).toBe('John Doe');
+      expect(newReader.getText(1)).toBe('john@example.com');
+    });
+
+    it('should handle camelCase field names', () => {
+      const registry = new Map<bigint, SchemaNode>();
+      registry.set(personSchema.id, personSchema);
+
+      const json = {
+        isActive: true, // camelCase
+      };
+
+      const converter = new JsonToCapnp(registry, {});
+      const message = converter.convertToMessage(json, personSchema);
+
+      const reader = new MessageReader(message.toArrayBuffer()).getRoot(2, 2);
+      expect(reader.getBool(40)).toBe(true);
+    });
+
+    it('should handle int64 as string', () => {
+      const registry = new Map<bigint, SchemaNode>();
+      const schema: SchemaNode = {
+        id: 0x123n,
+        displayName: 'Int64Test',
+        displayNamePrefixLength: 0,
+        scopeId: 0n,
+        type: SchemaNodeType.STRUCT,
+        nestedNodes: [],
+        annotations: [],
+        structInfo: {
+          dataWordCount: 1,
+          pointerCount: 0,
+          preferredListEncoding: 0,
+          isGroup: false,
+          discriminantCount: 0,
+          discriminantOffset: 0,
+          fields: [
+            {
+              name: 'value',
+              codeOrder: 0,
+              discriminantValue: 0xffff,
+              offset: 0,
+              type: { kind: { type: 'int64' as const } },
+              hadExplicitDefault: false,
+            },
+          ],
+        },
+      };
+      registry.set(schema.id, schema);
+
+      const json = {
+        value: '9223372036854775807', // int64 as string
+      };
+
+      const converter = new JsonToCapnp(registry, {});
+      const message = converter.convertToMessage(json, schema);
+
+      const reader = new MessageReader(message.toArrayBuffer()).getRoot(1, 0);
+      expect(reader.getInt64(0)).toBe(9223372036854775807n);
+    });
+
+    it('should parse JSON string', () => {
+      const registry = new Map<bigint, SchemaNode>();
+      registry.set(personSchema.id, personSchema);
+
+      const jsonString = '{"id": 42, "name": "Test"}';
+
+      const converter = new JsonToCapnp(registry, {});
+      const message = converter.parse(jsonString, personSchema);
+
+      expect(message).toBeDefined();
+    });
+  });
+
   describe('type conversions', () => {
     it('should convert int64 to string in JSON', () => {
       const registry = new Map<bigint, SchemaNode>();
@@ -181,7 +303,14 @@ describe('JSON Codec', () => {
           discriminantCount: 0,
           discriminantOffset: 0,
           fields: [
-            { name: 'value', codeOrder: 0, discriminantValue: 0xffff, offset: 0, type: { kind: { type: 'int64' as const } }, hadExplicitDefault: false },
+            {
+              name: 'value',
+              codeOrder: 0,
+              discriminantValue: 0xffff,
+              offset: 0,
+              type: { kind: { type: 'int64' as const } },
+              hadExplicitDefault: false,
+            },
           ],
         },
       };
@@ -212,7 +341,14 @@ describe('JSON Codec', () => {
           discriminantCount: 0,
           discriminantOffset: 0,
           fields: [
-            { name: 'value', codeOrder: 0, discriminantValue: 0xffff, offset: 0, type: { kind: { type: 'uint64' as const } }, hadExplicitDefault: false },
+            {
+              name: 'value',
+              codeOrder: 0,
+              discriminantValue: 0xffff,
+              offset: 0,
+              type: { kind: { type: 'uint64' as const } },
+              hadExplicitDefault: false,
+            },
           ],
         },
       };
@@ -243,22 +379,36 @@ describe('JSON Codec', () => {
           discriminantCount: 0,
           discriminantOffset: 0,
           fields: [
-            { name: 'float32', codeOrder: 0, discriminantValue: 0xffff, offset: 0, type: { kind: { type: 'float32' as const } }, hadExplicitDefault: false },
-            { name: 'float64', codeOrder: 1, discriminantValue: 0xffff, offset: 8, type: { kind: { type: 'float64' as const } }, hadExplicitDefault: false },
+            {
+              name: 'float32',
+              codeOrder: 0,
+              discriminantValue: 0xffff,
+              offset: 0,
+              type: { kind: { type: 'float32' as const } },
+              hadExplicitDefault: false,
+            },
+            {
+              name: 'float64',
+              codeOrder: 1,
+              discriminantValue: 0xffff,
+              offset: 8,
+              type: { kind: { type: 'float64' as const } },
+              hadExplicitDefault: false,
+            },
           ],
         },
       };
       registry.set(schema.id, schema);
 
       const mockReader = createMockReader({
-        float32_0: 3.14159,
-        float64_8: 2.718281828,
+        float32_0: Math.PI,
+        float64_8: Math.E,
       });
       const converter = new CapnpToJson(registry, {});
       const json = converter.convert(mockReader, schema);
 
-      expect((json as Record<string, unknown>).float32).toBe(3.14159);
-      expect((json as Record<string, unknown>).float64).toBe(2.718281828);
+      expect((json as Record<string, unknown>).float32).toBe(Math.PI);
+      expect((json as Record<string, unknown>).float64).toBe(Math.E);
     });
   });
 
@@ -323,7 +473,7 @@ describe('JSON Codec', () => {
   });
 
   describe('error handling', () => {
-    it('should throw error for non-struct schema', () => {
+    it('should throw error for non-struct schema (CapnpToJson)', () => {
       const enumSchema: SchemaNode = {
         id: 0x123n,
         displayName: 'TestEnum',
@@ -347,6 +497,85 @@ describe('JSON Codec', () => {
       expect(() => converter.convert({} as StructReader, enumSchema)).toThrow(
         'Cannot convert non-struct type to JSON'
       );
+    });
+
+    it('should throw error for non-struct schema (JsonToCapnp)', () => {
+      const enumSchema: SchemaNode = {
+        id: 0x123n,
+        displayName: 'TestEnum',
+        displayNamePrefixLength: 0,
+        scopeId: 0n,
+        type: SchemaNodeType.ENUM,
+        nestedNodes: [],
+        annotations: [],
+        enumInfo: {
+          enumerants: [
+            { name: 'A', codeOrder: 0, annotations: [] },
+            { name: 'B', codeOrder: 1, annotations: [] },
+          ],
+        },
+      };
+
+      const registry = new Map<bigint, SchemaNode>();
+      registry.set(enumSchema.id, enumSchema);
+
+      const converter = new JsonToCapnp(registry, {});
+      expect(() => converter.convertToMessage({}, enumSchema)).toThrow(
+        'Cannot convert to non-struct type'
+      );
+    });
+
+    it('should throw error for non-object JSON', () => {
+      const registry = new Map<bigint, SchemaNode>();
+      registry.set(personSchema.id, personSchema);
+
+      const converter = new JsonToCapnp(registry, {});
+      expect(() => converter.convertToMessage('not an object', personSchema)).toThrow(
+        'JSON value must be an object'
+      );
+    });
+  });
+
+  describe('utility functions', () => {
+    it('should export toJson helper', () => {
+      const builder = new MessageBuilder();
+      const structBuilder = builder.initRoot(2, 2);
+      structBuilder.setUint32(0, 42);
+      structBuilder.setText(0, 'Test');
+
+      const reader = new MessageReader(builder.toArrayBuffer()).getRoot(2, 2);
+      const json = toJson(reader, personSchema);
+
+      expect((json as Record<string, unknown>).id).toBe(42);
+      expect((json as Record<string, unknown>).name).toBe('Test');
+    });
+
+    it('should export stringify helper', () => {
+      const builder = new MessageBuilder();
+      const structBuilder = builder.initRoot(2, 2);
+      structBuilder.setUint32(0, 42);
+
+      const reader = new MessageReader(builder.toArrayBuffer()).getRoot(2, 2);
+      const json = stringify(reader, personSchema, { pretty: true });
+
+      expect(typeof json).toBe('string');
+      expect(JSON.parse(json)).toBeDefined();
+    });
+
+    it('should export fromJson helper', () => {
+      const json = { id: 42, name: 'Test' };
+      const message = fromJson(json, personSchema);
+
+      expect(message).toBeDefined();
+      expect(message.toArrayBuffer).toBeDefined();
+    });
+
+    it('should export parse helper', () => {
+      const jsonString = '{"id": 42, "name": "Test"}';
+      const message = parse(jsonString, personSchema);
+
+      expect(message).toBeDefined();
+      expect(message.toArrayBuffer).toBeDefined();
     });
   });
 });
