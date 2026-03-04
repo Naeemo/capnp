@@ -53,6 +53,8 @@ import { deserializeSchemaResponse, serializeSchemaRequest } from './schema-seri
 import type { SchemaNode, SchemaPayload, SchemaRegistry, SchemaTarget } from './schema-types.js';
 import { SchemaFormat } from './schema-types.js';
 import type { RpcTransport } from './transport.js';
+import { isDebugEnabled, getDebugOptions } from '../debug/config.js';
+import { createDebugLogger } from '../debug/index.js';
 
 export interface RpcConnectionOptions {
   /** Bootstrap capability to expose to the peer */
@@ -65,11 +67,16 @@ export interface RpcConnectionOptions {
   level3Handlers?: Level3Handlers;
   /** Level 4 message handlers */
   level4Handlers?: Level4Handlers;
+  /** Enable debug logging for this connection */
+  debug?: boolean;
 }
 
 export class RpcConnection {
   private transport: RpcTransport;
   private options: RpcConnectionOptions;
+
+  // Debug logger
+  private debugLogger = createDebugLogger();
 
   // The Four Tables
   private questions = new QuestionTable();
@@ -101,6 +108,14 @@ export class RpcConnection {
     this.transport = transport;
     this.options = options;
     this.level3Handlers = options.level3Handlers;
+
+    // Initialize debug logging
+    const debugEnabled = options.debug ?? isDebugEnabled();
+    if (debugEnabled) {
+      this.debugLogger.enable();
+      this.debugLogger.setConfig(getDebugOptions());
+      this.debugLogger.log('RPC connection created');
+    }
 
     // Set up transport event handlers
     this.transport.onClose = (reason) => {
@@ -149,7 +164,7 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(bootstrapMsg);
+    await this.sendWithLogging(bootstrapMsg);
 
     // Wait for the bootstrap response
     await question.completionPromise;
@@ -188,7 +203,7 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(callMsg);
+    await this.sendWithLogging(callMsg);
 
     // Wait for the call to complete
     return question.completionPromise;
@@ -221,7 +236,7 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(callMsg);
+    await this.sendWithLogging(callMsg);
 
     // Return a pipeline client immediately without waiting
     return createPipelineClient({
@@ -244,7 +259,7 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(finishMsg);
+    await this.sendWithLogging(finishMsg);
     this.questions.markFinishSent(questionId);
     this.questions.remove(questionId);
   }
@@ -259,7 +274,7 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(releaseMsg);
+    await this.sendWithLogging(releaseMsg);
   }
 
   /** Send a resolve message to indicate a promise has resolved */
@@ -272,7 +287,7 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(resolveMsg);
+    await this.sendWithLogging(resolveMsg);
   }
 
   /** Send a resolve message indicating a promise was broken */
@@ -288,19 +303,19 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(resolveMsg);
+    await this.sendWithLogging(resolveMsg);
   }
 
   /** Send a return message (internal use) */
   async sendReturn(ret: Return): Promise<void> {
     const returnMsg: RpcMessage = { type: 'return', return: ret };
-    await this.transport.send(returnMsg);
+    await this.sendWithLogging(returnMsg);
   }
 
   /** Send a disembargo message (internal use) */
   async sendDisembargo(disembargo: Disembargo): Promise<void> {
     const disembargoMsg: RpcMessage = { type: 'disembargo', disembargo };
-    await this.transport.send(disembargoMsg);
+    await this.sendWithLogging(disembargoMsg);
   }
 
   /** Internal method: Create a new question (used by pipeline) */
@@ -312,7 +327,7 @@ export class RpcConnection {
   /** Internal method: Send a call message (used by pipeline) */
   async sendCall(call: Call): Promise<void> {
     const callMsg: RpcMessage = { type: 'call', call };
-    await this.transport.send(callMsg);
+    await this.sendWithLogging(callMsg);
   }
 
   /** Internal method: Wait for an answer (used by pipeline) */
@@ -328,7 +343,7 @@ export class RpcConnection {
   private async messageLoop(): Promise<void> {
     while (this.running) {
       try {
-        const message = await this.transport.receive();
+        const message = await this.receiveWithLogging();
 
         if (message === null) {
           // Connection closed
@@ -413,7 +428,7 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(returnMsg);
+    await this.sendWithLogging(returnMsg);
     this.answers.markReturnSent(bootstrap.questionId);
   }
 
@@ -441,7 +456,7 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(returnMsg);
+    await this.sendWithLogging(returnMsg);
     this.answers.markReturnSent(call.questionId);
   }
 
@@ -542,7 +557,7 @@ export class RpcConnection {
           context: { type: 'receiverLoopback', embargoId: context.embargoId },
         },
       };
-      await this.transport.send(echoMsg);
+      await this.sendWithLogging(echoMsg);
     }
     // For other contexts (accept, provide), more complex handling is needed
   }
@@ -632,7 +647,7 @@ export class RpcConnection {
       type: 'unimplemented',
       message: originalMessage,
     };
-    await this.transport.send(msg);
+    await this.sendWithLogging(msg);
   }
 
   /** Send return exception (helper) */
@@ -652,7 +667,7 @@ export class RpcConnection {
         },
       },
     };
-    await this.transport.send(returnMsg);
+    await this.sendWithLogging(returnMsg);
   }
 
   // ========================================================================================
@@ -878,7 +893,7 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(schemaRequestMsg);
+    await this.sendWithLogging(schemaRequestMsg);
 
     // Wait for response
     const question = this.questions.create();
@@ -992,7 +1007,7 @@ export class RpcConnection {
       },
     };
 
-    await this.transport.send(listRequestMsg);
+    await this.sendWithLogging(listRequestMsg);
 
     const question = this.questions.create();
     (question as { id: number }).id = questionId;
@@ -1019,5 +1034,22 @@ export class RpcConnection {
       this.questions.remove(questionId);
       throw error;
     }
+  }
+
+  /** Send a message with debug logging */
+  private async sendWithLogging(message: RpcMessage): Promise<void> {
+    if (this.debugLogger.isEnabled()) {
+      this.debugLogger.log(`[RPC:SEND] ${message.type}`);
+    }
+    await this.transport.send(message);
+  }
+
+  /** Receive a message with debug logging */
+  private async receiveWithLogging(): Promise<RpcMessage | null> {
+    const message = await this.transport.receive();
+    if (message !== null && this.debugLogger.isEnabled()) {
+      this.debugLogger.log(`[RPC:RECV] ${message.type}`);
+    }
+    return message;
   }
 }

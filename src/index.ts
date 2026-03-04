@@ -2,6 +2,14 @@
  * Cap'n Proto TypeScript - Pure TS Implementation
  */
 
+// Debug Configuration
+export {
+  enableDebug,
+  disableDebug,
+  isDebugEnabled,
+  type DebugOptions,
+} from './debug/config.js';
+
 // Core
 export { MessageReader, StructReader } from './core/message-reader.js';
 export { MessageBuilder, StructBuilder } from './core/message-builder.js';
