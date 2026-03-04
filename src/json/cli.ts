@@ -8,30 +8,36 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { MessageReader } from '../core/index.js';
 import type { SchemaNode } from '../rpc/schema-types.js';
+import { SchemaNodeType } from '../rpc/schema-types.js';
 import { CapnpToJson } from './index.js';
 
 function printUsage() {
   console.log(`
-Cap'n Proto JSON Codec
+Cap'n Proto JSON Codec v0.7.0
 
 Usage: capnp-json <command> [options]
 
 Commands:
   to-json     Convert Cap'n Proto binary to JSON
-  from-json   Convert JSON to Cap'n Proto binary
 
 Options:
-  -i, --input    Input file path
-  -o, --output   Output file path
-  -s, --schema   Schema file path (JSON format)
-  -p, --pretty   Pretty print JSON output
-  --preserve-names  Preserve original field names (don't convert to camelCase)
-  --include-nulls   Include null fields in JSON output
+  -i, --input     Input file path (required)
+  -o, --output    Output file path (default: stdout)
+  -s, --schema    Schema file path (JSON format, required)
+  -p, --pretty    Pretty print JSON output
+  --preserve-names   Preserve original field names (don't convert to camelCase)
+  --include-nulls    Include null fields in JSON output
+  -h, --help      Show this help
 
 Examples:
-  capnp-json to-json -i data.bin -o data.json -s schema.json
-  capnp-json from-json -i data.json -o data.bin -s schema.json
-  capnp-json to-json -i data.bin -o - -s schema.json -p
+  # Convert binary to JSON
+  capnp-json to-json -i data.bin -s schema.json -o data.json
+  
+  # Pretty print to stdout
+  capnp-json to-json -i data.bin -s schema.json -p
+  
+  # Preserve field names
+  capnp-json to-json -i data.bin -s schema.json --preserve-names
 `);
 }
 
@@ -51,7 +57,6 @@ function parseArgs(args: string[]) {
 
     switch (arg) {
       case 'to-json':
-      case 'from-json':
         options.command = arg;
         break;
       case '-i':
@@ -86,6 +91,23 @@ function parseArgs(args: string[]) {
   return options;
 }
 
+function loadSchema(schemaPath: string): SchemaNode {
+  const schemaJson = readFileSync(schemaPath, 'utf-8');
+  const schema = JSON.parse(schemaJson) as SchemaNode;
+
+  // Convert string ID to bigint if needed
+  if (typeof schema.id === 'string') {
+    schema.id = BigInt(schema.id);
+  }
+
+  // Validate it's a struct schema
+  if (schema.type !== SchemaNodeType.STRUCT) {
+    throw new Error(`Schema must be a struct type, got: ${schema.type}`);
+  }
+
+  return schema;
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -103,27 +125,56 @@ async function main() {
   }
 
   if (!options.input) {
-    console.error('Error: No input file specified');
+    console.error('Error: No input file specified (use -i)');
+    process.exit(1);
+  }
+
+  if (!options.schema) {
+    console.error('Error: No schema file specified (use -s)');
     process.exit(1);
   }
 
   if (options.command === 'to-json') {
     try {
+      // Load schema
+      const schema = loadSchema(options.schema);
+
       // Read binary input
       const buffer = readFileSync(options.input);
-      const _reader = new MessageReader(buffer);
+      const messageReader = new MessageReader(buffer);
 
-      // TODO: Load schema from file
-      // For now, output raw hex dump
-      console.log('JSON conversion requires schema support');
-      console.log('Input file size:', buffer.length, 'bytes');
-      console.log('First 32 bytes:', buffer.slice(0, 32).toString('hex'));
+      // Get root struct
+      const structReader = messageReader.getRoot(
+        schema.structInfo?.dataWordCount ?? 0,
+        schema.structInfo?.pointerCount ?? 0
+      );
+
+      // Convert to JSON
+      const schemaRegistry = new Map<bigint, SchemaNode>();
+      schemaRegistry.set(schema.id, schema);
+
+      const converter = new CapnpToJson(schemaRegistry, {
+        pretty: options.pretty,
+        preserveFieldNames: options.preserveNames,
+        includeNulls: options.includeNulls,
+      });
+
+      const json = converter.stringify(structReader, schema);
+
+      // Output
+      if (options.output && options.output !== '-') {
+        writeFileSync(options.output, json);
+        console.error(`Written to ${options.output}`);
+      } else {
+        console.log(json);
+      }
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error:', err instanceof Error ? err.message : err);
       process.exit(1);
     }
-  } else if (options.command === 'from-json') {
-    console.log('from-json not yet implemented');
+  } else {
+    console.error(`Error: Unknown command: ${options.command}`);
+    printUsage();
     process.exit(1);
   }
 }
