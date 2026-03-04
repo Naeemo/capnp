@@ -2,10 +2,10 @@
  * Tests for WebSocket-to-TCP Proxy
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { CapnpWebSocketProxy } from '../proxy/websocket-proxy.js';
+import { type Server, type Socket, createServer } from 'node:net';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import { createServer, Server, Socket } from 'net';
+import { CapnpWebSocketProxy } from '../proxy/websocket-proxy.js';
 
 describe('CapnpWebSocketProxy', () => {
   let proxy: CapnpWebSocketProxy;
@@ -16,7 +16,7 @@ describe('CapnpWebSocketProxy', () => {
   beforeAll(async () => {
     // Create a mock TCP server (simulates C++ Cap'n Proto service)
     mockTcpServer = createServer();
-    
+
     await new Promise<void>((resolve) => {
       mockTcpServer.listen(0, '127.0.0.1', () => {
         const addr = mockTcpServer.address() as { port: number };
@@ -89,7 +89,7 @@ describe('CapnpWebSocketProxy', () => {
 
     // Connect WebSocket client
     const ws = new WebSocket(`ws://127.0.0.1:${WS_PORT}`);
-    
+
     await new Promise<void>((resolve, reject) => {
       ws.on('open', resolve);
       ws.on('error', (err) => reject(new Error(`WebSocket error: ${err.message}`)));
@@ -120,7 +120,7 @@ describe('CapnpWebSocketProxy', () => {
     });
 
     const ws = new WebSocket(`ws://127.0.0.1:${WS_PORT}`);
-    
+
     await new Promise<void>((resolve, reject) => {
       ws.on('open', resolve);
       ws.on('error', (err) => reject(new Error(`WebSocket error: ${err.message}`)));
@@ -129,12 +129,12 @@ describe('CapnpWebSocketProxy', () => {
 
     // Send some data
     ws.send(Buffer.from([0x01, 0x02]));
-    
+
     await new Promise<void>((resolve) => setTimeout(resolve, 200));
 
     const stats = proxy.getAllStats();
     expect(stats.length).toBeGreaterThan(0);
-    
+
     const firstStats = stats[0];
     expect(firstStats.wsMessagesIn).toBeGreaterThan(0);
     expect(firstStats.tcpBytesOut).toBeGreaterThan(0);
@@ -145,7 +145,7 @@ describe('CapnpWebSocketProxy', () => {
 
   it('should handle large messages', async () => {
     const largeData = Buffer.alloc(1024 * 1024); // 1MB
-    largeData.fill(0xAB);
+    largeData.fill(0xab);
     let receivedSize = 0;
 
     mockTcpServer.once('connection', (socket: Socket) => {
@@ -155,7 +155,7 @@ describe('CapnpWebSocketProxy', () => {
     });
 
     const ws = new WebSocket(`ws://127.0.0.1:${WS_PORT}`);
-    
+
     await new Promise<void>((resolve, reject) => {
       ws.on('open', resolve);
       ws.on('error', (err) => reject(new Error(`WebSocket error: ${err.message}`)));
@@ -179,7 +179,7 @@ describe('CapnpWebSocketProxy', () => {
     });
 
     const ws = new WebSocket(`ws://127.0.0.1:${WS_PORT}`);
-    
+
     await new Promise<void>((resolve, reject) => {
       ws.on('open', resolve);
       ws.on('error', (err) => reject(new Error(`WebSocket error: ${err.message}`)));
@@ -190,7 +190,7 @@ describe('CapnpWebSocketProxy', () => {
 
     // Close WebSocket
     ws.close();
-    
+
     await new Promise<void>((resolve) => setTimeout(resolve, 100));
 
     expect(proxy.getConnectionCount()).toBe(0);

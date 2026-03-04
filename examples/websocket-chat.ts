@@ -1,6 +1,6 @@
 /**
  * WebSocket RPC 示例
- * 
+ *
  * 展示如何在浏览器和 Node.js 之间使用 WebSocket 传输 Cap'n Proto RPC
  */
 
@@ -14,20 +14,20 @@ class ChatServiceImpl implements ChatService.Server {
 
   async join(params: { username: string }, context: { client: ChatService.Client }) {
     this.clients.set(params.username, context.client);
-    
+
     // 广播用户加入
     for (const [name, client] of this.clients) {
       if (name !== params.username) {
         await client.onUserJoined({ username: params.username });
       }
     }
-    
+
     return { roomId: 'general' };
   }
 
   async sendMessage(params: { text: string; username: string }) {
     // 广播消息给所有客户端
-    for (const [name, client] of this.clients) {
+    for (const [_name, client] of this.clients) {
       await client.onMessage({
         username: params.username,
         text: params.text,
@@ -57,7 +57,7 @@ async function startServer() {
 
 async function startClient() {
   const ws = new WebSocket('ws://localhost:8080');
-  
+
   await new Promise((resolve) => {
     ws.onopen = resolve;
   });
@@ -81,9 +81,9 @@ async function startClient() {
   await chat.join({ username: 'Alice' }, { client: clientImpl });
 
   // 发送消息
-  await chat.sendMessage({ 
-    username: 'Alice', 
-    text: 'Hello everyone!' 
+  await chat.sendMessage({
+    username: 'Alice',
+    text: 'Hello everyone!',
   });
 }
 

@@ -1,14 +1,14 @@
 /**
  * WebSocket-to-TCP Proxy for Cap'n Proto
- * 
+ *
  * Allows browsers to connect to native Cap'n Proto services (C++, etc.)
  * via WebSocket. Handles the protocol bridging between WebSocket (browser)
  * and raw TCP (Cap'n Proto services).
  */
 
-import { WebSocketServer, WebSocket } from 'ws';
-import { Socket, createConnection } from 'net';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
+import { type Socket, createConnection } from 'node:net';
+import { WebSocket, WebSocketServer } from 'ws';
 
 export interface ProxyOptions {
   /** WebSocket server port */
@@ -77,7 +77,7 @@ class ProxyConnection extends EventEmitter {
 
   private connectToTarget(): void {
     const timeout = this.options.connectionTimeout ?? 30000;
-    
+
     this.tcpSocket = createConnection({
       host: this.options.targetHost,
       port: this.options.targetPort,
@@ -114,12 +114,12 @@ class ProxyConnection extends EventEmitter {
     if (this.closed) return;
 
     // Handle both single Buffer and Buffer[]
-    const buffer = Buffer.isBuffer(data) 
-      ? data 
-      : Array.isArray(data) 
+    const buffer = Buffer.isBuffer(data)
+      ? data
+      : Array.isArray(data)
         ? Buffer.concat(data)
         : Buffer.from(data);
-    
+
     const maxSize = this.options.maxMessageSize ?? 16 * 1024 * 1024;
     if (buffer.length > maxSize) {
       this.log(`Message too large: ${buffer.length} bytes`);
@@ -152,7 +152,7 @@ class ProxyConnection extends EventEmitter {
 
   private log(...args: unknown[]): void {
     if (this.options.debug) {
-      console.log(`[ProxyConnection]`, ...args);
+      console.log('[ProxyConnection]', ...args);
     }
   }
 
@@ -166,7 +166,7 @@ class ProxyConnection extends EventEmitter {
 
     this.ws.close();
     this.tcpSocket?.destroy();
-    
+
     this.emit('closed');
   }
 }
@@ -212,7 +212,7 @@ export class CapnpWebSocketProxy extends EventEmitter {
 
   private log(...args: unknown[]): void {
     if (this.options.debug) {
-      console.log(`[CapnpWebSocketProxy]`, ...args);
+      console.log('[CapnpWebSocketProxy]', ...args);
     }
   }
 
@@ -221,7 +221,7 @@ export class CapnpWebSocketProxy extends EventEmitter {
   }
 
   getAllStats(): ConnectionStats[] {
-    return Array.from(this.connections.values()).map(c => c.getStats());
+    return Array.from(this.connections.values()).map((c) => c.getStats());
   }
 
   close(): Promise<void> {
@@ -244,7 +244,7 @@ export class CapnpWebSocketProxy extends EventEmitter {
 // CLI entry point
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
-  
+
   // Parse CLI arguments
   let wsPort = 8080;
   let targetHost = 'localhost';
@@ -255,14 +255,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     switch (args[i]) {
       case '--ws-port':
       case '-p':
-        wsPort = parseInt(args[++i], 10);
+        wsPort = Number.parseInt(args[++i], 10);
         break;
       case '--target':
-      case '-t':
+      case '-t': {
         const [host, port] = args[++i].split(':');
         targetHost = host;
-        targetPort = parseInt(port, 10);
+        targetPort = Number.parseInt(port, 10);
         break;
+      }
       case '--debug':
       case '-d':
         debug = true;
@@ -294,7 +295,7 @@ Example:
     debug,
   });
 
-  console.log(`WebSocket-to-TCP Proxy started`);
+  console.log('WebSocket-to-TCP Proxy started');
   console.log(`  WebSocket: ws://localhost:${wsPort}`);
   console.log(`  Target:    ${targetHost}:${targetPort}`);
 
