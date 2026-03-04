@@ -98,8 +98,9 @@ describe('CapnpWebSocketProxy', () => {
 
     // Wait for data
     receivedData = await new Promise<Buffer>((resolve) => {
-      ws.on('message', (data) => {
-        resolve(Buffer.isBuffer(data) ? data : Buffer.from(data));
+      ws.on('message', (data: WebSocket.RawData) => {
+        const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
+        resolve(buf);
       });
       setTimeout(() => resolve(Buffer.alloc(0)), 1000);
     });

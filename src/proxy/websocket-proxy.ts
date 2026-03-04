@@ -110,10 +110,15 @@ class ProxyConnection extends EventEmitter {
     });
   }
 
-  private handleWebSocketMessage(data: Buffer | ArrayBuffer): void {
+  private handleWebSocketMessage(data: WebSocket.RawData): void {
     if (this.closed) return;
 
-    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    // Handle both single Buffer and Buffer[]
+    const buffer = Buffer.isBuffer(data) 
+      ? data 
+      : Array.isArray(data) 
+        ? Buffer.concat(data)
+        : Buffer.from(data);
     
     const maxSize = this.options.maxMessageSize ?? 16 * 1024 * 1024;
     if (buffer.length > maxSize) {
