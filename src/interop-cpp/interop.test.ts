@@ -1,6 +1,6 @@
 /**
  * C++ Interop Tests using EzRpcTransport
- * 
+ *
  * Tests capnp-ts RPC implementation against official C++ EzRpc implementation.
  */
 
@@ -60,7 +60,7 @@ describe.skipIf(!(await isServerAvailable()))('C++ Interop - Protocol Basics', (
 
       expect(response).not.toBeNull();
       expect(response?.type).toBe('return');
-      
+
       if (response?.type === 'return') {
         expect(response.return.answerId).toBe(0);
         expect(response.return.result?.type).toBe('results');
@@ -90,11 +90,11 @@ describe.skipIf(!(await isServerAvailable()))('C++ Interop - Protocol Basics', (
       };
 
       await transport!.send(callMsg);
-      
+
       // Use timeout to handle cases where server doesn't respond
       const response = await Promise.race([
         transport!.receive(),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
       ]);
 
       expect(response).not.toBeNull();
@@ -126,10 +126,10 @@ describe.skipIf(!(await isServerAvailable()))('C++ Interop - Protocol Basics', (
       };
 
       await transport!.send(callMsg);
-      
+
       const response = await Promise.race([
         transport!.receive(),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
       ]);
 
       if (response) {

@@ -236,13 +236,13 @@ export class StructReader {
     const bitInByte = bitOffset % 8;
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查：确保在 data section 内
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset >= dataSectionEnd) {
       return false; // 越界返回默认值
     }
-    
+
     const byte = segment.dataView.getUint8(dataOffset);
     return (byte & (1 << bitInByte)) !== 0;
   }
@@ -253,13 +253,13 @@ export class StructReader {
   getInt8(byteOffset: number): number {
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset >= dataSectionEnd) {
       return 0;
     }
-    
+
     return segment.dataView.getInt8(dataOffset);
   }
 
@@ -269,13 +269,13 @@ export class StructReader {
   getInt16(byteOffset: number): number {
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset + 2 > dataSectionEnd) {
       return 0;
     }
-    
+
     return segment.dataView.getInt16(dataOffset, true);
   }
 
@@ -285,13 +285,13 @@ export class StructReader {
   getInt32(byteOffset: number): number {
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset + 4 > dataSectionEnd) {
       return 0;
     }
-    
+
     return segment.dataView.getInt32(dataOffset, true);
   }
 
@@ -301,13 +301,13 @@ export class StructReader {
   getInt64(byteOffset: number): bigint {
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset + 8 > dataSectionEnd) {
       return BigInt(0);
     }
-    
+
     const low = BigInt(segment.dataView.getUint32(dataOffset, true));
     const high = BigInt(segment.dataView.getInt32(dataOffset + 4, true));
     return (high << BigInt(32)) | low;
@@ -319,13 +319,13 @@ export class StructReader {
   getUint8(byteOffset: number): number {
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset >= dataSectionEnd) {
       return 0;
     }
-    
+
     return segment.dataView.getUint8(dataOffset);
   }
 
@@ -335,13 +335,13 @@ export class StructReader {
   getUint16(byteOffset: number): number {
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset + 2 > dataSectionEnd) {
       return 0;
     }
-    
+
     return segment.dataView.getUint16(dataOffset, true);
   }
 
@@ -351,13 +351,13 @@ export class StructReader {
   getUint32(byteOffset: number): number {
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset + 4 > dataSectionEnd) {
       return 0;
     }
-    
+
     return segment.dataView.getUint32(dataOffset, true);
   }
 
@@ -367,13 +367,13 @@ export class StructReader {
   getUint64(byteOffset: number): bigint {
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset + 8 > dataSectionEnd) {
       return BigInt(0);
     }
-    
+
     const low = BigInt(segment.dataView.getUint32(dataOffset, true));
     const high = BigInt(segment.dataView.getUint32(dataOffset + 4, true));
     return (high << BigInt(32)) | low;
@@ -385,13 +385,13 @@ export class StructReader {
   getFloat32(byteOffset: number): number {
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset + 4 > dataSectionEnd) {
       return 0;
     }
-    
+
     return segment.dataView.getFloat32(dataOffset, true);
   }
 
@@ -401,13 +401,13 @@ export class StructReader {
   getFloat64(byteOffset: number): number {
     const segment = this.message.getSegment(this.segmentIndex)!;
     const dataOffset = this.wordOffset * WORD_SIZE + byteOffset;
-    
+
     // 边界检查
     const dataSectionEnd = this.wordOffset * WORD_SIZE + this.dataWords * WORD_SIZE;
     if (dataOffset < 0 || dataOffset + 8 > dataSectionEnd) {
       return 0;
     }
-    
+
     return segment.dataView.getFloat64(dataOffset, true);
   }
 
@@ -491,7 +491,7 @@ export class StructReader {
       if (targetOffset < 0 || targetOffset >= segment.wordCount) {
         return undefined;
       }
-      
+
       try {
         const tagWord = segment.getWord(targetOffset);
         // Tag word: elementCount (32 bits) | dataWords (16 bits) | pointerCount (16 bits)

@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { describe, expect, it, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { CodeGeneratorRequestReader } from '../schema/schema-reader.js';
 import { generateFromRequest } from './generator.js';
 

@@ -79,13 +79,13 @@ export class EzRpcTransport implements RpcTransport {
       this.socket.on('close', (hadError: boolean) => {
         const wasConnected = this._connected;
         this._connected = false;
-        
+
         // Reject pending receive calls
-        const error = hadError 
+        const error = hadError
           ? new Error('Connection closed with error')
           : new Error('Connection closed');
         this.flushReceiveQueueWithError(error);
-        
+
         if (wasConnected) {
           this.onClose?.(hadError ? error : undefined);
         }
@@ -106,7 +106,7 @@ export class EzRpcTransport implements RpcTransport {
   private handleData(data: Buffer): void {
     // For EzRpc, we assume each 'data' event contains exactly one message
     // This is how KJ async I/O typically works
-    
+
     // If we have pending data, append it
     if (this.pendingBuffer.length > 0) {
       this.pendingBuffer = Buffer.concat([this.pendingBuffer, data]);
@@ -119,7 +119,7 @@ export class EzRpcTransport implements RpcTransport {
     while (this.pendingBuffer.length >= 8) {
       const segmentCount = this.pendingBuffer.readUInt32LE(0) + 1;
       const firstSegmentSize = this.pendingBuffer.readUInt32LE(4);
-      
+
       // Calculate total message size
       // Header: 8 bytes
       // Segment sizes: (segmentCount - 1) * 4 bytes (if segmentCount > 1)
@@ -128,10 +128,10 @@ export class EzRpcTransport implements RpcTransport {
       if (segmentCount > 1) {
         headerSize += (segmentCount - 1) * 4;
       }
-      
+
       // For now, assume single segment
       const messageSize = headerSize + firstSegmentSize * 8;
-      
+
       if (this.pendingBuffer.length < messageSize) {
         // Not enough data yet
         break;
@@ -188,7 +188,7 @@ export class EzRpcTransport implements RpcTransport {
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         // 从队列中移除自己
-        const index = this.receiveQueue.findIndex(item => item.resolve === resolve);
+        const index = this.receiveQueue.findIndex((item) => item.resolve === resolve);
         if (index !== -1) {
           this.receiveQueue.splice(index, 1);
         }
