@@ -140,7 +140,7 @@ describe.skipIf(!(await isServerAvailable()))('C++ Interop - Protocol Basics', (
   });
 });
 
-describe('C++ Interop - RPC Connection', () => {
+describe.skipIf(!(await isServerAvailable()))('C++ Interop - RPC Connection', () => {
   let connection: RpcConnection | null = null;
   let transport: EzRpcTransport | null = null;
 
