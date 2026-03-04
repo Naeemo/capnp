@@ -58,9 +58,9 @@ const BROWSER_STYLES = {
  * Check if running in Node.js environment
  */
 function isNode(): boolean {
-  return typeof process !== 'undefined' && 
-         process.versions != null && 
-         process.versions.node != null;
+  return (
+    typeof process !== 'undefined' && process.versions != null && process.versions.node != null
+  );
 }
 
 /**
@@ -79,30 +79,26 @@ function isPrintable(byte: number): boolean {
 
 /**
  * Format binary data as hex + ASCII (like hexdump -C)
- * 
+ *
  * Output format:
  * 00000000: 00 00 00 00 02 00 00 00  │........│
- * 
+ *
  * @param data - The binary data to format
  * @param maxBytes - Maximum number of bytes to format
  * @param useColors - Whether to include ANSI colors
  * @returns Array of formatted lines
  */
-export function formatHexDump(
-  data: Uint8Array, 
-  maxBytes: number = 1024,
-  useColors: boolean = false
-): string[] {
+export function formatHexDump(data: Uint8Array, maxBytes = 1024, useColors = false): string[] {
   const lines: string[] = [];
   const bytesToFormat = Math.min(data.length, maxBytes);
   const bytesPerLine = 16;
-  
+
   for (let offset = 0; offset < bytesToFormat; offset += bytesPerLine) {
     const chunk = data.slice(offset, Math.min(offset + bytesPerLine, bytesToFormat));
-    
+
     // Address prefix
     let line = `${byteToHex((offset >> 24) & 0xff)}${byteToHex((offset >> 16) & 0xff)}${byteToHex((offset >> 8) & 0xff)}${byteToHex(offset & 0xff)}: `;
-    
+
     // Hex bytes
     const hexParts: string[] = [];
     for (let i = 0; i < bytesPerLine; i++) {
@@ -117,16 +113,16 @@ export function formatHexDump(
       }
     }
     line += hexParts.join(' ');
-    
+
     // ASCII representation with delimiter
     let ascii = ' │';
     for (let i = 0; i < chunk.length; i++) {
       ascii += isPrintable(chunk[i]) ? String.fromCharCode(chunk[i]) : '.';
     }
     ascii += '│';
-    
+
     line += ascii;
-    
+
     // Add ANSI colors if enabled (dim the hex/ascii parts)
     if (useColors && isNode()) {
       // Find where hex starts (after address)
@@ -134,19 +130,25 @@ export function formatHexDump(
       const delimiterIndex = line.indexOf('│');
       const hexPart = line.slice(hexStart, delimiterIndex);
       const asciiPart = line.slice(delimiterIndex);
-      line = line.slice(0, hexStart) + ANSI_COLORS.gray + hexPart + ANSI_COLORS.reset + 
-             ANSI_COLORS.dim + asciiPart + ANSI_COLORS.reset;
+      line =
+        line.slice(0, hexStart) +
+        ANSI_COLORS.gray +
+        hexPart +
+        ANSI_COLORS.reset +
+        ANSI_COLORS.dim +
+        asciiPart +
+        ANSI_COLORS.reset;
     }
-    
+
     lines.push(line);
   }
-  
+
   // Add truncation indicator if data was truncated
   if (data.length > maxBytes) {
     const remaining = data.length - maxBytes;
     lines.push(`... (${remaining} more bytes)`);
   }
-  
+
   return lines;
 }
 
@@ -155,7 +157,7 @@ export function formatHexDump(
  */
 export class DebugLogger {
   private config: DebugConfig;
-  
+
   /**
    * Create a new DebugLogger instance
    * @param config - Partial configuration to override defaults
@@ -163,7 +165,7 @@ export class DebugLogger {
   constructor(config: Partial<DebugConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
-  
+
   /**
    * Update the logger configuration
    * @param config - Partial configuration to merge
@@ -171,35 +173,35 @@ export class DebugLogger {
   setConfig(config: Partial<DebugConfig>): void {
     this.config = { ...this.config, ...config };
   }
-  
+
   /**
    * Get current configuration
    */
   getConfig(): DebugConfig {
     return { ...this.config };
   }
-  
+
   /**
    * Check if debugging is enabled
    */
   isEnabled(): boolean {
     return this.config.enabled;
   }
-  
+
   /**
    * Enable debug logging
    */
   enable(): void {
     this.config.enabled = true;
   }
-  
+
   /**
    * Disable debug logging
    */
   disable(): void {
     this.config.enabled = false;
   }
-  
+
   /**
    * Format the header for a log message
    * @param direction - 'send' or 'recv'
@@ -208,24 +210,24 @@ export class DebugLogger {
    */
   private formatHeader(direction: 'send' | 'recv', byteLength: number): string {
     const prefix = direction === 'send' ? 'CAPNP:SEND' : 'CAPNP:RECV';
-    const directionStr = direction === 'send' ? 'SEND' : 'RECV';
-    
+    const _directionStr = direction === 'send' ? 'SEND' : 'RECV';
+
     if (isNode() && this.config.colors) {
       const color = direction === 'send' ? ANSI_COLORS.green : ANSI_COLORS.blue;
       return `${color}[${prefix}]${ANSI_COLORS.reset} ${byteLength} bytes`;
     }
-    
+
     return `[${prefix}] ${byteLength} bytes`;
   }
-  
+
   /**
    * Log a Cap'n Proto message
-   * 
+   *
    * Output format:
    * [CAPNP:SEND] 64 bytes
    * 00000000: 00 00 00 00 02 00 00 00  │........│
    * → { messageType: 'Bootstrap', ... }
-   * 
+   *
    * @param direction - 'send' for outgoing, 'recv' for incoming
    * @param data - The raw binary message data
    * @param parsed - Optional parsed message object to display
@@ -234,27 +236,27 @@ export class DebugLogger {
     if (!this.config.enabled) {
       return;
     }
-    
+
     const isNodeEnv = isNode();
     const useColors = this.config.colors;
-    
+
     // Format and log header
     const header = this.formatHeader(direction, data.length);
-    
+
     // Format hex dump
     const hexLines = formatHexDump(data, this.config.maxBytesToLog, useColors);
-    
+
     if (isNodeEnv) {
       // Node.js output with ANSI colors
       console.log(header);
       for (const line of hexLines) {
         console.log(line);
       }
-      
+
       if (parsed !== undefined) {
         const arrow = useColors ? `${ANSI_COLORS.gray}→${ANSI_COLORS.reset}` : '→';
         const parsedStr = JSON.stringify(parsed, null, 2);
-        const coloredParsed = useColors 
+        const coloredParsed = useColors
           ? `${ANSI_COLORS.cyan}${parsedStr}${ANSI_COLORS.reset}`
           : parsedStr;
         console.log(`${arrow} ${coloredParsed}`);
@@ -263,13 +265,16 @@ export class DebugLogger {
       // Browser output with CSS
       if (useColors) {
         const style = direction === 'send' ? BROWSER_STYLES.send : BROWSER_STYLES.recv;
-        console.log(`%c[CAPNP:${direction.toUpperCase()}]%c ${data.length} bytes`, 
-          style, 'color: inherit;');
-        
+        console.log(
+          `%c[CAPNP:${direction.toUpperCase()}]%c ${data.length} bytes`,
+          style,
+          'color: inherit;'
+        );
+
         for (const line of hexLines) {
           console.log(`%c${line}`, BROWSER_STYLES.hex);
         }
-        
+
         if (parsed !== undefined) {
           console.log('%c→%c %o', BROWSER_STYLES.arrow, BROWSER_STYLES.parsed, parsed);
         }
@@ -284,7 +289,7 @@ export class DebugLogger {
       }
     }
   }
-  
+
   /**
    * Log a generic debug message (only if enabled)
    * @param message - Message to log
@@ -294,14 +299,14 @@ export class DebugLogger {
     if (!this.config.enabled) {
       return;
     }
-    
+
     if (isNode() && this.config.colors) {
       console.log(`${ANSI_COLORS.gray}[CAPNP:DEBUG]${ANSI_COLORS.reset} ${message}`, ...args);
     } else {
       console.log(`[CAPNP:DEBUG] ${message}`, ...args);
     }
   }
-  
+
   /**
    * Log an error message (always shown if debug is enabled)
    * @param message - Error message
@@ -311,7 +316,7 @@ export class DebugLogger {
     if (!this.config.enabled) {
       return;
     }
-    
+
     if (isNode() && this.config.colors) {
       console.error(`${ANSI_COLORS.red}[CAPNP:ERROR]${ANSI_COLORS.reset} ${message}`, error ?? '');
     } else {

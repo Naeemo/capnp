@@ -15,6 +15,8 @@
  * - Integrated with ConnectionManager for multi-vat scenarios
  */
 
+import { getDebugOptions, isDebugEnabled } from '../debug/config.js';
+import { createDebugLogger } from '../debug/index.js';
 import type { ConnectionManager, VatId } from './connection-manager.js';
 import { AnswerTable, ExportTable, ImportTable, QuestionTable } from './four-tables.js';
 import type { Level3Handlers } from './level3-handlers.js';
@@ -53,8 +55,6 @@ import { deserializeSchemaResponse, serializeSchemaRequest } from './schema-seri
 import type { SchemaNode, SchemaPayload, SchemaRegistry, SchemaTarget } from './schema-types.js';
 import { SchemaFormat } from './schema-types.js';
 import type { RpcTransport } from './transport.js';
-import { isDebugEnabled, getDebugOptions } from '../debug/config.js';
-import { createDebugLogger } from '../debug/index.js';
 
 export interface RpcConnectionOptions {
   /** Bootstrap capability to expose to the peer */

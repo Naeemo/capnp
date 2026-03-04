@@ -1,11 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DebugConfig } from './index';
-import { 
-  DebugLogger, 
-  formatHexDump, 
-  createDebugLogger,
-  debug 
-} from './index';
+import { DebugLogger, createDebugLogger, debug, formatHexDump } from './index';
 
 describe('formatHexDump', () => {
   it('should format empty data', () => {
@@ -33,7 +28,7 @@ describe('formatHexDump', () => {
     const result = formatHexDump(data);
     expect(result).toHaveLength(1);
     // Should have proper spacing after 8 bytes
-    expect(result[0]).toMatch(/41 41 41 41 41 41 41 41  41 41 41 41 41 41 41 41/);
+    expect(result[0]).toMatch(/41 41 41 41 41 41 41 41 {2}41 41 41 41 41 41 41 41/);
   });
 
   it('should wrap to multiple lines', () => {
@@ -187,7 +182,7 @@ describe('DebugLogger', () => {
       const data = new Uint8Array([0x01, 0x02]);
       const parsed = { messageType: 'Bootstrap', id: 1 };
       logger.logMessage('send', data, parsed);
-      
+
       const calls = consoleLogSpy.mock.calls;
       const lastCall = calls[calls.length - 1];
       expect(lastCall[0]).toContain('→');
@@ -198,7 +193,7 @@ describe('DebugLogger', () => {
       logger.setConfig({ maxBytesToLog: 16 });
       const data = new Uint8Array(100);
       logger.logMessage('send', data);
-      
+
       const calls = consoleLogSpy.mock.calls;
       const lastCall = calls[calls.length - 1];
       expect(lastCall[0]).toContain('more bytes');
@@ -215,9 +210,7 @@ describe('DebugLogger', () => {
   describe('log', () => {
     it('should log debug message when enabled', () => {
       logger.log('test message');
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[CAPNP:DEBUG]')
-      );
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('[CAPNP:DEBUG]'));
     });
 
     it('should not log when disabled', () => {
@@ -299,24 +292,36 @@ describe('integration', () => {
   it('should produce expected output format for send', () => {
     // Create a realistic Cap'n Proto-like message
     const data = new Uint8Array([
-      0x00, 0x00, 0x00, 0x00, // First word
-      0x02, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, // Second word
-      0x01, 0x00, 0x00, 0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00, // First word
+      0x02,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00, // Second word
+      0x01,
+      0x00,
+      0x00,
+      0x00,
     ]);
-    
+
     logger.logMessage('send', data, { messageType: 'Bootstrap', questionId: 1 });
-    
+
     const calls = consoleLogSpy.mock.calls;
-    
+
     // Check header
     expect(calls[0][0]).toContain('[CAPNP:SEND]');
     expect(calls[0][0]).toContain('16 bytes');
-    
+
     // Check hex dump
     expect(calls[1][0]).toContain('00000000:');
     expect(calls[1][0]).toContain('│');
-    
+
     // Check parsed output
     const lastCall = calls[calls.length - 1];
     expect(lastCall[0]).toContain('→');
@@ -325,9 +330,9 @@ describe('integration', () => {
 
   it('should produce expected output format for recv', () => {
     const data = new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00]);
-    
+
     logger.logMessage('recv', data);
-    
+
     const calls = consoleLogSpy.mock.calls;
     expect(calls[0][0]).toContain('[CAPNP:RECV]');
     expect(calls[0][0]).toContain('8 bytes');
@@ -336,11 +341,11 @@ describe('integration', () => {
   it('should handle large messages with truncation', () => {
     const data = new Uint8Array(200);
     logger.logMessage('send', data);
-    
+
     const calls = consoleLogSpy.mock.calls;
     // Should have header + hex lines + truncation message
     expect(calls.length).toBeGreaterThan(2);
-    
+
     // Last call should indicate truncation
     const lastCall = calls[calls.length - 1];
     expect(lastCall[0]).toContain('more bytes');

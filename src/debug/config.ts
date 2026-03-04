@@ -1,6 +1,6 @@
 /**
  * Global Debug Configuration for Cap'n Proto TypeScript
- * 
+ *
  * Provides runtime debug controls and logging configuration.
  */
 
@@ -27,7 +27,7 @@ interface DebugState {
 /**
  * Global debug state
  */
-let debugState: DebugState = {
+const debugState: DebugState = {
   enabled: false,
   options: {
     colors: true,
@@ -40,9 +40,9 @@ let debugState: DebugState = {
  * Check if running in Node.js environment
  */
 function isNode(): boolean {
-  return typeof process !== 'undefined' && 
-         process.versions != null && 
-         process.versions.node != null;
+  return (
+    typeof process !== 'undefined' && process.versions != null && process.versions.node != null
+  );
 }
 
 /**
@@ -51,7 +51,7 @@ function isNode(): boolean {
 function checkEnvVar(): boolean {
   if (isNode()) {
     try {
-      const envValue = process.env['CAPNP_DEBUG'];
+      const envValue = process.env.CAPNP_DEBUG;
       return envValue === '1' || envValue === 'true';
     } catch {
       // Environment access failed, assume false
@@ -68,7 +68,7 @@ if (checkEnvVar()) {
 
 /**
  * Enable debug mode with optional configuration
- * 
+ *
  * @param options - Debug configuration options
  * @example
  * ```typescript
@@ -87,7 +87,7 @@ export function enableDebug(options?: DebugOptions): void {
 
 /**
  * Disable debug mode
- * 
+ *
  * @example
  * ```typescript
  * disableDebug();
@@ -99,7 +99,7 @@ export function disableDebug(): void {
 
 /**
  * Check if debug mode is currently enabled
- * 
+ *
  * @returns True if debug mode is enabled
  * @example
  * ```typescript
@@ -126,17 +126,17 @@ export function getDebugOptions(): Readonly<Required<DebugOptions>> {
  */
 export function matchesFilter(messageType: string, peer?: string): boolean {
   const { filter } = debugState.options;
-  
+
   if (!filter || filter === '') {
     return true;
   }
-  
+
   const target = peer ? `${messageType}:${peer}` : messageType;
-  
+
   if (filter instanceof RegExp) {
     return filter.test(target);
   }
-  
+
   return target.includes(filter);
 }
 
@@ -148,9 +148,9 @@ export function formatBytes(data: Uint8Array, maxBytes?: number): string {
   const limit = maxBytes ?? debugState.options.maxBytes;
   const slice = data.length > limit ? data.slice(0, limit) : data;
   const hex = Array.from(slice)
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join(' ');
-  
+
   if (data.length > limit) {
     return `${hex}... (${data.length} bytes total)`;
   }
