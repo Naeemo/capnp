@@ -105,7 +105,7 @@ describe('CapnpWebSocketProxy', () => {
         } else if (Array.isArray(data)) {
           buf = Buffer.concat(data);
         } else {
-          buf = Buffer.from(data);
+          buf = Buffer.from(data as ArrayBuffer);
         }
         resolve(buf);
       });
