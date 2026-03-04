@@ -32,6 +32,13 @@ export type JsonValue =
   | { [key: string]: JsonValue };
 
 // ============================================================================
+// Base64 Helpers
+// ============================================================================
+
+const bytesToBase64 = (bytes: Uint8Array): string => Buffer.from(bytes).toString('base64');
+const base64ToBytes = (base64: string): Uint8Array => Buffer.from(base64, 'base64');
+
+// ============================================================================
 // Cap'n Proto to JSON
 // ============================================================================
 
@@ -88,12 +95,14 @@ export class CapnpToJson {
     // Check if pointer field is null (text field returns empty string if not set)
     if (this.isPointerType(type.kind.type)) {
       const pointerIndex = field.codeOrder;
-      const text = reader.getText(pointerIndex);
-      // Simple heuristic: if text is empty, field might be null
-      // This isn't perfect but works for most cases
-      if (type.kind.type === 'text' && text === '') {
-        // Could be null or empty string - return empty string
-        return '';
+      if (type.kind.type === 'text') {
+        const text = reader.getText(pointerIndex);
+        // Simple heuristic: if text is empty, field might be null
+        // This isn't perfect but works for most cases
+        if (text === '') {
+          // Could be null or empty string - return empty string
+          return '';
+        }
       }
     }
 
@@ -150,9 +159,9 @@ export class CapnpToJson {
       }
 
       case 'data': {
-        // Data fields would need a getData method
-        // For now return placeholder
-        return { $data: '[binary]' };
+        const data = reader.getData(field.codeOrder);
+        if (data === undefined) return null;
+        return bytesToBase64(data);
       }
 
       case 'list': {
@@ -162,9 +171,20 @@ export class CapnpToJson {
       }
 
       case 'struct': {
-        // For nested struct, we'd need struct info
-        // Return placeholder for now
-        return { $struct: kind.typeId.toString(16) };
+        const nestedSchema = this.schemaRegistry.get(kind.typeId);
+        if (!nestedSchema) {
+          throw new Error(`Schema not found for struct type ${kind.typeId.toString(16)}`);
+        }
+        if (nestedSchema.type !== SchemaNodeType.STRUCT || !nestedSchema.structInfo) {
+          throw new Error(`Invalid schema for struct type ${kind.typeId.toString(16)}`);
+        }
+        const nestedReader = reader.getStruct(
+          field.codeOrder,
+          nestedSchema.structInfo.dataWordCount,
+          nestedSchema.structInfo.pointerCount
+        );
+        if (!nestedReader) return null;
+        return this.convert(nestedReader, nestedSchema);
       }
 
       case 'enum': {
@@ -222,17 +242,72 @@ export class CapnpToJson {
         case 'float32':
         case 'float64':
           // Floats are stored as raw bytes, need special handling
-          result.push({ $float: '[float]' });
+          result.push(Number(listReader.getPrimitive(i)));
           break;
 
         case 'text': {
-          // Text list would need special handling
-          result.push({ $text: '[text]' });
+          // Text in list is stored as a pointer in each struct element
+          const structReader = listReader.getStruct(i);
+          if (!structReader) {
+            result.push(null);
+            break;
+          }
+          // Text is at pointer index 0 in the struct
+          const text = structReader.getText(0);
+          result.push(text ?? '');
           break;
         }
 
         case 'data': {
-          result.push({ $data: '[binary]' });
+          const structReader = listReader.getStruct(i);
+          if (!structReader) {
+            result.push(null);
+            break;
+          }
+          const data = structReader.getData(0);
+          if (data === undefined) {
+            result.push(null);
+          } else {
+            result.push(bytesToBase64(data));
+          }
+          break;
+        }
+
+        case 'struct': {
+          const nestedSchema = this.schemaRegistry.get(elementType.kind.typeId);
+          if (!nestedSchema) {
+            throw new Error(`Schema not found for struct list element type ${elementType.kind.typeId.toString(16)}`);
+          }
+          if (nestedSchema.type !== SchemaNodeType.STRUCT || !nestedSchema.structInfo) {
+            throw new Error(`Invalid schema for struct list element type ${elementType.kind.typeId.toString(16)}`);
+          }
+          const structReader = listReader.getStruct(i);
+          if (!structReader) {
+            result.push(null);
+            break;
+          }
+          result.push(this.convert(structReader, nestedSchema));
+          break;
+        }
+
+        case 'enum': {
+          result.push(Number(listReader.getPrimitive(i)));
+          break;
+        }
+
+        case 'list': {
+          // Nested list - get the list reader from pointer index 0
+          const structReader = listReader.getStruct(i);
+          if (!structReader) {
+            result.push(null);
+            break;
+          }
+          const nestedList = structReader.getList(0, ElementSize.INLINE_COMPOSITE);
+          if (!nestedList) {
+            result.push(null);
+          } else {
+            result.push(this.readList(nestedList, elementType.kind.elementType));
+          }
           break;
         }
 
@@ -382,8 +457,9 @@ export class JsonToCapnp {
         break;
 
       case 'data':
-        // Data fields need special handling
-        // For now, skip
+        if (typeof value === 'string') {
+          builder.setData(field.codeOrder, base64ToBytes(value));
+        }
         break;
 
       case 'list':
@@ -392,10 +468,25 @@ export class JsonToCapnp {
         }
         break;
 
-      case 'struct':
-        // Nested struct - would need struct info
-        // For now, skip
+      case 'struct': {
+        const nestedSchema = this.schemaRegistry.get(kind.typeId);
+        if (!nestedSchema) {
+          throw new Error(`Schema not found for struct type ${kind.typeId.toString(16)}`);
+        }
+        if (nestedSchema.type !== SchemaNodeType.STRUCT || !nestedSchema.structInfo) {
+          throw new Error(`Invalid schema for struct type ${kind.typeId.toString(16)}`);
+        }
+        if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+          throw new Error(`Expected object for struct field ${field.name}`);
+        }
+        const nestedBuilder = builder.initStruct(
+          field.codeOrder,
+          nestedSchema.structInfo.dataWordCount,
+          nestedSchema.structInfo.pointerCount
+        );
+        this.convert(value, nestedSchema, nestedBuilder);
         break;
+      }
 
       case 'enum':
         if (typeof value === 'number') {
@@ -422,8 +513,10 @@ export class JsonToCapnp {
     const elementCount = values.length;
     if (elementCount === 0) return;
 
-    // Determine element size
+    // Determine element size and struct size for complex types
     let elementSize: ElementSize;
+    let structSize: { dataWords: number; pointerCount: number } | undefined;
+
     switch (elementType.kind.type) {
       case 'bool':
         elementSize = ElementSize.BIT;
@@ -446,11 +539,34 @@ export class JsonToCapnp {
       case 'float64':
         elementSize = ElementSize.EIGHT_BYTES;
         break;
+      case 'text':
+      case 'data':
+        // Text and data in lists are stored as pointers (1 pointer per element)
+        elementSize = ElementSize.INLINE_COMPOSITE;
+        structSize = { dataWords: 0, pointerCount: 1 };
+        break;
+      case 'struct': {
+        const nestedSchema = this.schemaRegistry.get(elementType.kind.typeId);
+        if (!nestedSchema || nestedSchema.type !== SchemaNodeType.STRUCT || !nestedSchema.structInfo) {
+          throw new Error(`Schema not found for struct list element type ${elementType.kind.typeId.toString(16)}`);
+        }
+        elementSize = ElementSize.INLINE_COMPOSITE;
+        structSize = {
+          dataWords: nestedSchema.structInfo.dataWordCount,
+          pointerCount: nestedSchema.structInfo.pointerCount,
+        };
+        break;
+      }
+      case 'list':
+        // Nested lists are stored as pointers
+        elementSize = ElementSize.INLINE_COMPOSITE;
+        structSize = { dataWords: 0, pointerCount: 1 };
+        break;
       default:
         elementSize = ElementSize.INLINE_COMPOSITE;
     }
 
-    const listBuilder = builder.initList(field.codeOrder, elementSize, elementCount);
+    const listBuilder = builder.initList(field.codeOrder, elementSize, elementCount, structSize);
 
     for (let i = 0; i < elementCount; i++) {
       const value = values[i];
@@ -458,6 +574,7 @@ export class JsonToCapnp {
       switch (elementType.kind.type) {
         case 'bool':
           // BIT list not directly supported in ListBuilder, use primitive
+          listBuilder.setPrimitive(i, value ? 1 : 0);
           break;
 
         case 'int8':
@@ -484,6 +601,60 @@ export class JsonToCapnp {
         case 'float64':
           listBuilder.setPrimitive(i, Number(value));
           break;
+
+        case 'text': {
+          // Text in list: set text at pointer index 0 of the struct element
+          const structBuilder = listBuilder.getStruct(i);
+          structBuilder.setText(0, String(value));
+          break;
+        }
+
+        case 'data': {
+          // Data in list: set data at pointer index 0 of the struct element
+          const structBuilder = listBuilder.getStruct(i);
+          if (typeof value === 'string') {
+            structBuilder.setData(0, base64ToBytes(value));
+          }
+          break;
+        }
+
+        case 'struct': {
+          const nestedSchema = this.schemaRegistry.get(elementType.kind.typeId);
+          if (!nestedSchema || nestedSchema.type !== SchemaNodeType.STRUCT || !nestedSchema.structInfo) {
+            throw new Error(`Schema not found for struct list element type ${elementType.kind.typeId.toString(16)}`);
+          }
+          const structBuilder = listBuilder.getStruct(i);
+          if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+            throw new Error(`Expected object for struct list element at index ${i}`);
+          }
+          this.convert(value, nestedSchema, structBuilder);
+          break;
+        }
+
+        case 'list': {
+          // Nested list
+          const structBuilder = listBuilder.getStruct(i);
+          if (!Array.isArray(value)) {
+            throw new Error(`Expected array for nested list at index ${i}`);
+          }
+          // Use writeList recursively - but we need the field info
+          // Create a synthetic field for the nested list
+          const syntheticField: SchemaField = {
+            name: '',
+            codeOrder: 0,
+            discriminantValue: 0xffff,
+            offset: 0,
+            type: { kind: elementType.kind },
+            hadExplicitDefault: false,
+          };
+          this.writeList(structBuilder, syntheticField, value, elementType.kind.elementType);
+          break;
+        }
+
+        case 'enum': {
+          listBuilder.setPrimitive(i, Number(value));
+          break;
+        }
 
         default:
           // Skip complex types for now

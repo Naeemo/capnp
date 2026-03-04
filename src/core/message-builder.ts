@@ -209,6 +209,33 @@ export class StructBuilder {
   }
 
   /**
+   * 设置数据字段（Uint8Array）
+   * @param pointerIndex - 指针索引
+   * @param value - Uint8Array 数据
+   */
+  setData(pointerIndex: number, value: Uint8Array): void {
+    const ptrOffset = this.wordOffset + this.dataWords + pointerIndex;
+    const segment = this.message.getSegment();
+
+    // 处理空数组
+    if (value.length === 0) {
+      const ptr = encodeListPointer(0, ElementSize.BYTE, 0);
+      segment.setWord(ptrOffset, ptr);
+      return;
+    }
+
+    const wordCount = Math.ceil(value.length / WORD_SIZE);
+    const listOffset = segment.allocate(wordCount);
+
+    // 写入数据
+    new Uint8Array(segment.dataView.buffer, listOffset * WORD_SIZE, value.length).set(value);
+
+    // 写入指针
+    const ptr = encodeListPointer(listOffset - ptrOffset - 1, ElementSize.BYTE, value.length);
+    segment.setWord(ptrOffset, ptr);
+  }
+
+  /**
    * 初始化嵌套结构
    */
   initStruct(pointerIndex: number, dataWords: number, pointerCount: number): StructBuilder {

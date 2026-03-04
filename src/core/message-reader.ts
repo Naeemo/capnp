@@ -437,6 +437,33 @@ export class StructReader {
   }
 
   /**
+   * 获取数据字段
+   * Data is stored as List(UInt8) without NUL terminator
+   * @param pointerIndex - The index of the pointer in the pointer section
+   * @returns Uint8Array of the data content, or undefined if null pointer
+   */
+  getData(pointerIndex: number): Uint8Array | undefined {
+    const ptrOffset = this.wordOffset + this.dataWords + pointerIndex;
+    const resolved = this.message.resolvePointer(this.segmentIndex, ptrOffset);
+
+    if (!resolved) return undefined;
+
+    const { segmentIndex, wordOffset, pointer } = resolved;
+    if (pointer.tag !== PointerTag.LIST) return undefined;
+
+    const listPtr = pointer as ListPointer;
+    const segment = this.message.getSegment(segmentIndex)!;
+
+    // Data is stored as List(UInt8) without NUL terminator
+    const byteLength = listPtr.elementCount;
+    if (byteLength === 0) return new Uint8Array(0);
+
+    // Return a copy of the raw bytes
+    const bytes = new Uint8Array(segment.dataView.buffer, wordOffset * WORD_SIZE, byteLength);
+    return new Uint8Array(bytes);
+  }
+
+  /**
    * 获取嵌套结构
    */
   getStruct(
