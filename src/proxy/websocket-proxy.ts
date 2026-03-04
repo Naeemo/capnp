@@ -56,7 +56,7 @@ class ProxyConnection extends EventEmitter {
   }
 
   private setupWebSocket(): void {
-    this.ws.on('message', (data) => {
+    this.ws.on('message', (data: WebSocket.RawData) => {
       this.handleWebSocketMessage(data);
     });
 
