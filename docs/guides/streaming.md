@@ -1,43 +1,43 @@
-# 流控制指南
+# Streaming Guide
 
-@naeemo/capnp 提供三种流控制机制，适用于不同场景的数据传输：Stream、Bulk 和 Realtime。
+@naeemo/capnp provides three streaming mechanisms for different data transmission scenarios: Stream, Bulk, and Realtime.
 
-## 三种流模式对比
+## Stream Mode Comparison
 
-| 特性 | Stream | Bulk | Realtime |
-|------|--------|------|----------|
-| **适用场景** | 通用双向流 | 大文件传输 | 音视频流 |
-| **可靠性** | 可靠 | 可靠 | 尽力而为 |
-| **顺序保证** | ✅ | ✅ | ⚠️ 可能乱序 |
-| **背压控制** | ✅ 窗口机制 | ✅ 速率限制 | ❌ 无 |
-| **延迟敏感** | 中等 | 低 | 极高 |
-| **丢包处理** | 重传 | 重传 | 丢弃旧数据 |
+| Feature | Stream | Bulk | Realtime |
+|---------|--------|------|----------|
+| **Use Case** | General bidirectional | Large file transfer | Audio/video streaming |
+| **Reliability** | Reliable | Reliable | Best effort |
+| **Ordering** | ✅ | ✅ | ⚠️ May be out of order |
+| **Backpressure** | ✅ Window mechanism | ✅ Rate limiting | ❌ None |
+| **Latency Sensitive** | Medium | Low | Very high |
+| **Packet Loss** | Retransmit | Retransmit | Drop old data |
 
 ## Stream API
 
-通用双向流，适用于大多数场景。
+General bidirectional stream for most scenarios.
 
-### 基本使用
+### Basic Usage
 
 ```typescript
 import { createStream } from '@naeemo/capnp';
 
-// 创建流
+// Create stream
 const stream = createStream({
   direction: 'bidirectional',  // 'send' | 'receive' | 'bidirectional'
   flowControl: {
-    windowSize: 64 * 1024,     // 64KB 滑动窗口
-    updateThreshold: 1024,     // 1KB 阈值触发窗口更新
+    windowSize: 64 * 1024,     // 64KB sliding window
+    updateThreshold: 1024,     // 1KB threshold for window update
   }
 });
 
-// 发送数据
+// Send data
 await stream.send({
   data: new Uint8Array([0x01, 0x02, 0x03]),
-  endStream: false,  // 是否为最后一块
+  endStream: false,  // Is this the last chunk
 });
 
-// 接收数据
+// Receive data
 for await (const chunk of stream) {
   console.log(`Received ${chunk.data.length} bytes`);
   
@@ -47,34 +47,34 @@ for await (const chunk of stream) {
   }
 }
 
-// 优雅关闭
+// Graceful close
 await stream.close();
 ```
 
-### 背压控制
+### Backpressure Control
 
-Stream 自动处理背压，防止发送方淹没接收方：
+Stream automatically handles backpressure to prevent sender from overwhelming receiver:
 
 ```typescript
 const stream = createStream({
   flowControl: {
-    // 初始窗口大小
+    // Initial window size
     windowSize: 64 * 1024,
     
-    // 当窗口低于此值时，发送窗口更新
+    // Send window update when below this value
     updateThreshold: 16 * 1024,
     
-    // 每次更新的字节数
+    // Bytes to add per update
     updateIncrement: 32 * 1024,
   }
 });
 
-// 发送会自动等待窗口空间
-// 无需手动处理背压
+// Sending automatically waits for window space
+// No manual backpressure handling needed
 await stream.send(largeData);
 ```
 
-### 错误处理
+### Error Handling
 
 ```typescript
 try {
@@ -83,10 +83,10 @@ try {
   }
 } catch (error) {
   if (error.code === 'STREAM_RESET') {
-    // 对端重置了流
+    // Peer reset the stream
     console.error('Stream reset by peer:', error.reason);
   } else if (error.code === 'FLOW_CONTROL_ERROR') {
-    // 流控制错误
+    // Flow control violation
     console.error('Flow control violation');
   }
 }
@@ -94,23 +94,23 @@ try {
 
 ## Bulk API
 
-专为大文件传输优化，提供进度追踪和断点续传。
+Optimized for large file transfers with progress tracking and resumable uploads.
 
-### 基本使用
+### Basic Usage
 
 ```typescript
 import { BulkTransferManager } from '@naeemo/capnp';
 
 const bulk = new BulkTransferManager({
-  chunkSize: 1024 * 1024,  // 1MB 分块
-  maxConcurrent: 3,        // 最多 3 个并发块
-  retryAttempts: 3,        // 失败重试 3 次
+  chunkSize: 1024 * 1024,  // 1MB chunks
+  maxConcurrent: 3,        // Max 3 concurrent chunks
+  retryAttempts: 3,        // Retry 3 times on failure
 });
 
-// 上传文件
+// Upload file
 const upload = await bulk.upload({
   source: fileStream,      // ReadableStream
-  totalSize: file.size,    // 总大小用于进度计算
+  totalSize: file.size,    // Total size for progress calculation
   
   onProgress: (progress) => {
     console.log(`Uploaded: ${progress.percentage}%`);
@@ -122,17 +122,17 @@ const upload = await bulk.upload({
   },
 });
 
-// 等待完成
+// Wait for completion
 await upload.complete();
 ```
 
-### 断点续传
+### Resumable Upload
 
 ```typescript
-// 检查已上传的部分
+// Check already uploaded parts
 const checkpoint = await bulk.checkCheckpoint(uploadId);
 
-// 从断点继续
+// Resume from checkpoint
 const upload = await bulk.resumeUpload({
   uploadId,
   source: fileStream,
@@ -140,7 +140,7 @@ const upload = await bulk.resumeUpload({
 });
 ```
 
-### 下载文件
+### Download File
 
 ```typescript
 const download = await bulk.download({
@@ -152,7 +152,7 @@ const download = await bulk.download({
   },
 });
 
-// 保存到文件
+// Save to file
 const writer = fileStream.getWriter();
 for await (const chunk of download.chunks()) {
   await writer.write(chunk.data);
@@ -162,40 +162,40 @@ await writer.close();
 
 ## Realtime API
 
-为低延迟场景设计，优先保证实时性而非可靠性。
+Designed for low-latency scenarios, prioritizing real-time delivery over reliability.
 
-### 基本使用
+### Basic Usage
 
 ```typescript
 import { createRealtimeStream, DropPolicy } from '@naeemo/capnp';
 
 const stream = createRealtimeStream({
-  // 最大允许延迟
+  // Max allowed latency
   maxLatency: 100,  // 100ms
   
-  // 超出延迟时的处理策略
-  dropPolicy: DropPolicy.oldest,  // 丢弃最旧的数据
+  // Policy when exceeding latency
+  dropPolicy: DropPolicy.oldest,  // Drop oldest data
   
-  // 缓冲区大小
-  bufferSize: 10,  // 最多缓冲 10 帧
+  // Buffer size
+  bufferSize: 10,  // Max 10 frames buffer
 });
 
-// 发送视频帧
+// Send video frame
 function onVideoFrame(frame: VideoFrame) {
   stream.send({
     timestamp: performance.now(),
     data: encodeVideoFrame(frame),
-    // 如果缓冲区满，根据 dropPolicy 可能返回 false
+    // Returns false if buffer full according to dropPolicy
   });
 }
 
-// 接收端
+// Receiver
 for await (const frame of stream) {
-  // 检查延迟
+  // Check latency
   const latency = performance.now() - frame.timestamp;
   
   if (latency > 100) {
-    // 延迟过高，可能选择跳过这帧
+    // High latency, may choose to skip
     console.warn(`High latency: ${latency}ms`);
     continue;
   }
@@ -204,49 +204,49 @@ for await (const frame of stream) {
 }
 ```
 
-### Drop Policy 策略
+### Drop Policies
 
 ```typescript
 enum DropPolicy {
-  // 丢弃最旧的数据（适合直播）
+  // Drop oldest data (good for live streaming)
   oldest = 'oldest',
   
-  // 丢弃最新的数据（适合传感器）
+  // Drop newest data (good for sensors)
   newest = 'newest',
   
-  // 丢弃关键帧之间的数据
+  // Drop data between keyframes
   nonKeyFrames = 'nonKeyFrames',
   
-  // 不清除，等待（可能阻塞发送）
+  // Don't drop, wait (may block sender)
   none = 'none',
 }
 ```
 
-### 自适应码率
+### Adaptive Bitrate
 
 ```typescript
 const stream = createRealtimeStream({
   maxLatency: 100,
   dropPolicy: DropPolicy.oldest,
   
-  // 启用自适应
+  // Enable adaptive bitrate
   adaptiveBitrate: {
     enabled: true,
     minBitrate: 100_000,   // 100 Kbps
     maxBitrate: 10_000_000, // 10 Mbps
-    adjustmentStep: 0.1,    // 每次调整 10%
+    adjustmentStep: 0.1,    // Adjust 10% each time
   },
   
   onBitrateChange: (newBitrate) => {
-    // 通知编码器调整码率
+    // Notify encoder to adjust bitrate
     videoEncoder.setBitrate(newBitrate);
   },
 });
 ```
 
-## 与 RPC 集成
+## RPC Integration
 
-流可以作为 RPC 方法的一部分：
+Streams can be part of RPC methods:
 
 ```capnp
 interface FileService {
@@ -255,7 +255,7 @@ interface FileService {
 }
 ```
 
-### 服务端实现
+### Server Implementation
 
 ```typescript
 class FileServiceImpl implements FileService.Server {
@@ -263,7 +263,7 @@ class FileServiceImpl implements FileService.Server {
     const fileStream = fs.createReadStream(params.fileId);
     const stream = createStream({ direction: 'send' });
     
-    // 管道文件到流
+    // Pipe file to stream
     fileStream.on('data', (chunk) => {
       stream.send({ data: new Uint8Array(chunk) });
     });
@@ -287,84 +287,84 @@ class FileServiceImpl implements FileService.Server {
 }
 ```
 
-### 客户端使用
+### Client Usage
 
 ```typescript
 const fileService = await connection.bootstrap().getAs(FileService);
 
-// 下载
+// Download
 const { stream } = await fileService.download({ fileId: 'document.pdf' });
 
 for await (const chunk of stream) {
   await fileWriter.write(chunk.data);
 }
 
-// 上传
+// Upload
 const uploadStream = createStream({ direction: 'send' });
 const { fileId } = await fileService.upload({ stream: uploadStream });
 
-// 边读取文件边发送
+// Send while reading file
 fileReader.on('data', (chunk) => {
   uploadStream.send({ data: new Uint8Array(chunk) });
 });
 ```
 
-## 性能对比
+## Performance Comparison
 
-### 场景 1：传输 100MB 文件
+### Scenario 1: Transfer 100MB file
 
 ```
 Stream:  850 MB/s, CPU 15%
-Bulk:    920 MB/s, CPU 12%  ✅ 最优
+Bulk:    920 MB/s, CPU 12%  ✅ Best
 Raw RPC: 780 MB/s, CPU 20%
 ```
 
-### 场景 2：实时视频流（1080p60）
+### Scenario 2: Real-time video (1080p60)
 
 ```
-Stream:   平均延迟 45ms, 偶尔卡顿
-Realtime: 平均延迟 18ms, 无卡顿 ✅ 最优
+Stream:   Avg latency 45ms, occasional stutter
+Realtime: Avg latency 18ms, no stutter ✅ Best
 ```
 
-### 场景 3：大量小消息（10000 x 1KB）
+### Scenario 3: Many small messages (10000 x 1KB)
 
 ```
-Stream:   12 MB/s, 延迟 2ms
-Bulk:     45 MB/s, 延迟 50ms  ✅ 批量优化
-Raw RPC:  8 MB/s,  延迟 5ms
+Stream:   12 MB/s, latency 2ms
+Bulk:     45 MB/s, latency 50ms  ✅ Batch optimization
+Raw RPC:  8 MB/s,  latency 5ms
 ```
 
-## 最佳实践
+## Best Practices
 
-1. **选择合适的 API**
-   - 文件传输 → Bulk
-   - 音视频 → Realtime
-   - 其他 → Stream
+1. **Choose the right API**
+   - File transfer → Bulk
+   - Audio/video → Realtime
+   - Other → Stream
 
-2. **合理设置缓冲区**
+2. **Set reasonable buffer sizes**
    ```typescript
-   // 太小：频繁阻塞
-   windowSize: 4 * 1024,     // ❌ 太小
+   // Too small: frequent blocking
+   windowSize: 4 * 1024,     // ❌ Too small
    
-   // 适中：平衡延迟和吞吐
-   windowSize: 64 * 1024,    // ✅ 推荐
+   // Balanced: latency and throughput
+   windowSize: 64 * 1024,    // ✅ Recommended
    
-   // 太大：内存占用高
-   windowSize: 1024 * 1024,  // ⚠️ 仅在必要时
+   // Too large: high memory usage
+   windowSize: 1024 * 1024,  // ⚠️ Only when necessary
    ```
 
-3. **始终处理错误**
+3. **Always handle errors**
    ```typescript
    stream.onError = (err) => {
      console.error('Stream error:', err);
-     // 清理资源
+     // Cleanup resources
      cleanup();
    };
    ```
 
-4. **及时关闭流**
+4. **Close streams promptly**
    ```typescript
-   // 好的做法
+   // Good practice
    try {
      await processStream(stream);
    } finally {
@@ -372,8 +372,8 @@ Raw RPC:  8 MB/s,  延迟 5ms
    }
    ```
 
-## 参考
+## Reference
 
-- [API 参考 - Stream](../api/stream.md)
-- [API 参考 - Bulk](../api/bulk.md)
-- [API 参考 - Realtime](../api/realtime.md)
+- [API Reference - Stream](../api/stream.md)
+- [API Reference - Bulk](../api/bulk.md)
+- [API Reference - Realtime](../api/realtime.md)

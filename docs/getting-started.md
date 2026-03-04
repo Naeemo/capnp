@@ -1,14 +1,14 @@
-# 快速入门
+# Getting Started
 
-5 分钟上手 @naeemo/capnp。
+Get started with @naeemo/capnp in 5 minutes.
 
-## 安装
+## Installation
 
 ```bash
 npm install @naeemo/capnp
 ```
 
-同时需要安装官方 `capnp` 工具用于 schema 编译：
+You also need the official `capnp` tool for schema compilation:
 
 ```bash
 # macOS
@@ -17,13 +17,13 @@ brew install capnp
 # Ubuntu/Debian
 apt-get install capnp
 
-# 验证安装
+# Verify installation
 capnp --version
 ```
 
-## 定义 Schema
+## Define Schema
 
-创建 `person.capnp`：
+Create `person.capnp`:
 
 ```capnp
 @0x1234567890abcdef;
@@ -47,106 +47,106 @@ struct Person {
 }
 ```
 
-## 生成 TypeScript 代码
+## Generate TypeScript
 
 ```bash
 npx capnp-ts-codegen person.capnp -o person.ts
 ```
 
-生成的代码包含：
-- `Person` - TypeScript 接口
-- `PersonReader` - 读取已序列化的消息
-- `PersonBuilder` - 构建新消息
+Generated code includes:
+- `Person` - TypeScript interface
+- `PersonReader` - Read serialized messages
+- `PersonBuilder` - Build new messages
 
-## 基本使用
+## Basic Usage
 
-### 构建消息
+### Build a Message
 
 ```typescript
 import { MessageBuilder } from '@naeemo/capnp';
 import { PersonBuilder } from './person.js';
 
-// 创建消息构建器
+// Create message builder
 const message = new MessageBuilder();
 const person = message.initRoot(PersonBuilder);
 
-// 设置字段
+// Set fields
 person.setId(123);
 person.setName('Alice');
 person.setEmail('alice@example.com');
 
-// 添加列表
+// Add list
 const phones = person.initPhones(2);
 phones.get(0).setNumber('555-1234');
 phones.get(0).setType(Person.PhoneNumber.Type.mobile);
 phones.get(1).setNumber('555-5678');
 phones.get(1).setType(Person.PhoneNumber.Type.home);
 
-// 序列化为 Uint8Array
+// Serialize to Uint8Array
 const data = message.toArrayBuffer();
 ```
 
-### 读取消息
+### Read a Message
 
 ```typescript
 import { MessageReader } from '@naeemo/capnp';
 import { PersonReader } from './person.js';
 
-// 从 Uint8Array 读取
+// Read from Uint8Array
 const reader = new MessageReader(new Uint8Array(data));
 const person = reader.getRoot(PersonReader);
 
-// 访问字段
+// Access fields
 console.log(person.getId());      // 123
 console.log(person.getName());    // "Alice"
 console.log(person.getEmail());   // "alice@example.com"
 
-// 遍历列表
+// Iterate list
 for (const phone of person.getPhones()) {
   console.log(phone.getNumber(), phone.getType());
 }
 ```
 
-## RPC 调用
+## RPC Call
 
-### 服务端
+### Server
 
 ```typescript
 import { RpcConnection, EzRpcTransport } from '@naeemo/capnp';
 
-// 实现服务
+// Implement service
 class MyServiceImpl implements MyService.Server {
   async echo(params: { message: string }) {
     return { result: params.message };
   }
 }
 
-// 创建服务器
+// Create server
 const transport = await EzRpcTransport.connect('0.0.0.0', 8080);
 const connection = new RpcConnection(transport, {
   bootstrap: new MyServiceImpl()
 });
 ```
 
-### 客户端
+### Client
 
 ```typescript
 import { EzRpcTransport, RpcConnection } from '@naeemo/capnp';
 
-// 连接服务器
+// Connect to server
 const transport = await EzRpcTransport.connect('localhost', 8080);
 const connection = new RpcConnection(transport);
 
-// 获取能力
+// Get capability
 const service = await connection.bootstrap().getAs(MyService);
 
-// 调用方法
+// Call method
 const result = await service.echo({ message: 'Hello' });
 console.log(result); // "Hello"
 ```
 
-## 下一步
+## Next Steps
 
-- [代码生成详解](./guides/codegen.md) - 了解更多生成选项
-- [RPC 使用指南](./guides/rpc.md) - Promise Pipelining、Capability 传递
-- [API 参考](./api/core.md) - 完整 API 文档
+- [Code Generation Guide](./guides/codegen.md) - Learn more about generation options
+- [RPC Guide](./guides/rpc.md) - Promise Pipelining, Capability passing
+- [API Reference](./api/core.md) - Complete API documentation

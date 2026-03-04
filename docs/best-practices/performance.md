@@ -1,33 +1,33 @@
-# 性能优化指南
+# Performance Optimization Guide
 
-@naeemo/capnp 本身就是高性能设计，但仍有一些优化技巧可以让你的应用更快。
+@naeemo/capnp is designed for high performance, but there are still optimization techniques to make your application faster.
 
-## 核心原则
+## Core Principles
 
-Cap'n Proto 的核心优势是**零拷贝**。优化目标是最大化这个优势：
+Cap'n Proto's core advantage is **zero-copy**. The optimization goal is to maximize this:
 
-1. **避免不必要的拷贝** - 直接操作 Cap'n Proto buffer
-2. **复用 MessageBuilder** - 减少内存分配
-3. **使用合适的传输** - 根据场景选择最优传输方式
-4. **批量处理** - 减少 RPC 往返
+1. **Avoid unnecessary copies** - Work directly with Cap'n Proto buffers
+2. **Reuse MessageBuilder** - Reduce memory allocation
+3. **Use appropriate transport** - Choose optimal transport for your scenario
+4. **Batch processing** - Reduce RPC round trips
 
-## 序列化优化
+## Serialization Optimization
 
-### 1. 复用 MessageBuilder
+### 1. Reuse MessageBuilder
 
 ```typescript
 import { MessageBuilder } from '@naeemo/capnp';
 
-// ❌ 每次新建 builder
+// ❌ Create new builder each time
 function bad(items: Item[]) {
   for (const item of items) {
-    const builder = new MessageBuilder();  // 每次分配
+    const builder = new MessageBuilder();  // Allocates each time
     serializeItem(builder, item);
     send(builder.toArrayBuffer());
   }
 }
 
-// ✅ 复用 builder
+// ✅ Reuse builder
 const builderPool: MessageBuilder[] = [];
 
 function good(items: Item[]) {
@@ -35,108 +35,108 @@ function good(items: Item[]) {
     const builder = builderPool.pop() ?? new MessageBuilder();
     serializeItem(builder, item);
     send(builder.toArrayBuffer());
-    builder.reset();  // 重置而不是丢弃
+    builder.reset();  // Reset instead of discarding
     builderPool.push(builder);
   }
 }
 ```
 
-### 2. 使用 MemoryPool
+### 2. Use MemoryPool
 
 ```typescript
 import { getGlobalMemoryPool } from '@naeemo/capnp';
 
-// 配置全局内存池
+// Configure global memory pool
 const pool = getGlobalMemoryPool();
 pool.configure({
-  initialCapacity: 100,      // 初始 100 个 buffer
-  maxCapacity: 1000,         // 最多保留 1000 个
-  bufferSize: 64 * 1024,     // 每个 64KB
+  initialCapacity: 100,      // Initial 100 buffers
+  maxCapacity: 1000,         // Max 1000 retained
+  bufferSize: 64 * 1024,     // Each 64KB
 });
 
-// 后续 MessageBuilder 会自动使用池化内存
+// Subsequent MessageBuilders automatically use pooled memory
 const builder = new MessageBuilder();
 ```
 
-### 3. 直接操作二进制数据
+### 3. Work Directly with Binary Data
 
 ```typescript
-// ❌ 转换为字符串再处理
-const text = reader.getData().toString();  // 拷贝
+// ❌ Convert to string then process
+const text = reader.getData().toString();  // Copies
 const result = process(text);
 
-// ✅ 直接在 buffer 上操作
-const data = reader.getData();  // Uint8Array，零拷贝
+// ✅ Work directly on buffer
+const data = reader.getData();  // Uint8Array, zero-copy
 const result = processBinary(data);
 ```
 
-### 4. 批量处理列表
+### 4. Batch Process Lists
 
 ```typescript
-// ❌ 逐个添加元素
+// ❌ Add elements one by one
 const list = builder.initItems(count);
 for (let i = 0; i < items.length; i++) {
   list.get(i).setName(items[i].name);
 }
 
-// ✅ 预分配，批量复制（如果可能）
+// ✅ Pre-allocate and batch copy (if possible)
 const list = builder.initItems(count);
-// 使用 TypedArray 批量操作
+// Use TypedArray batch operations
 const names = new TextEncoder().encode(allNames);
 // ...
 ```
 
-## RPC 优化
+## RPC Optimization
 
 ### 1. Promise Pipelining
 
 ```typescript
-// ❌ 3 次网络往返
+// ❌ 3 network round trips
 const foo = await getFoo();
 const bar = await foo.getBar();
 const result = await bar.compute();
 
-// ✅ 1 次网络往返
+// ✅ 1 network round trip
 const result = await getFoo().getBar().compute();
 ```
 
-### 2. 批量 RPC 调用
+### 2. Batch RPC Calls
 
 ```typescript
-// ❌ 多次往返
+// ❌ Multiple round trips
 for (const id of ids) {
-  const item = await db.getItem({ id });  // 每次往返
+  const item = await db.getItem({ id });  // Each round trip
   results.push(item);
 }
 
-// ✅ 单次往返（如果服务器支持）
-const results = await db.getItems({ ids });  // 批量接口
+// ✅ Single round trip (if server supports)
+const results = await db.getItems({ ids });  // Batch API
 ```
 
-### 3. 选择合适的传输
+### 3. Choose Appropriate Transport
 
 ```typescript
 // Node.js ↔ C++
 import { EzRpcTransport } from '@naeemo/capnp';
 const transport = await EzRpcTransport.connect(host, port);
-// 最小开销，原始 TCP
+// Minimal overhead, raw TCP
 
-// 浏览器 ↔ 服务器
+// Browser ↔ Server
 import { WebSocketTransport } from '@naeemo/capnp';
 const transport = await WebSocketTransport.connect(url);
-// WebSocket 有少量帧头开销
+// WebSocket has small frame overhead
 ```
 
-### 4. 连接复用
+### 4. Connection Reuse
 
 ```typescript
-// ❌ 每次新建连接
+// ❌ Create new connection each time
 async function callMethod(data) {
-  const conn = await createConnection();  // 开销大
+  const conn = await createConnection();  // Expensive
   return await conn.call(data);
 }
 
-// ✅ 复用连接
+// ✅ Reuse connections
 class ConnectionPool {
   private connections: RpcConnection[] = [];
   
@@ -147,55 +147,55 @@ class ConnectionPool {
 }
 ```
 
-## 内存优化
+## Memory Optimization
 
-### 1. 避免大消息
+### 1. Avoid Large Messages
 
 ```typescript
-// ❌ 单个大消息
+// ❌ Single large message
 const hugeMessage = buildHugeMessage();  // 100MB
 send(hugeMessage);
 
-// ✅ 分块传输
+// ✅ Chunked transfer
 const stream = createStream();
 for (const chunk of chunks) {
-  await stream.send(chunk);  // 每次 1MB
+  await stream.send(chunk);  // 1MB each
 }
 ```
 
-### 2. 及时释放引用
+### 2. Release References Promptly
 
 ```typescript
 function processLargeFile(data: Uint8Array) {
   const reader = new MessageReader(data);
   
-  // 处理数据...
+  // Process data...
   const result = process(reader);
   
-  // ✅ 及时释放，允许 GC
+  // ✅ Release promptly to allow GC
   reader.release?.();
   
   return result;
 }
 ```
 
-### 3. 使用 Struct Lists 而非 Pointer Lists
+### 3. Use Struct Lists Instead of Pointer Lists
 
 ```typescript
 // schema.capnp
-# ❌ Pointer list，每个元素单独分配
+# ❌ Pointer list, each element allocated separately
 struct Item { value @0 :UInt64; }
 struct Container { items @0 :List(Item); }
 
-# ✅ Inline list，连续内存
+# ✅ Inline list, contiguous memory
 struct Container { 
   values @0 :List(UInt64); 
 }
 ```
 
-## 测量性能
+## Performance Measurement
 
-### 使用内置 Benchmark
+### Use Built-in Benchmark
 
 ```typescript
 import { benchmark } from '@naeemo/capnp/bench';
@@ -216,7 +216,7 @@ console.log(`${result.opsPerSecond.toFixed(0)} ops/sec`);
 console.log(`${(result.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/sec`);
 ```
 
-### 内存分析
+### Memory Profiling
 
 ```typescript
 // Node.js
@@ -225,7 +225,7 @@ const v8 = require('v8');
 function measureMemory() {
   const before = v8.getHeapStatistics();
   
-  // 你的代码
+  // Your code
   processLargeBatch();
   
   const after = v8.getHeapStatistics();
@@ -233,18 +233,18 @@ function measureMemory() {
 }
 ```
 
-## 常见陷阱
+## Common Pitfalls
 
-### 1. 在热路径上创建 Builder
+### 1. Creating Builders in Hot Paths
 
 ```typescript
-// ❌ 高频调用中新建 builder
+// ❌ Creating builder in high-frequency calls
 function handleRequest(data) {
-  const builder = new MessageBuilder();  // 每次分配
+  const builder = new MessageBuilder();  // Allocates each time
   // ...
 }
 
-// ✅ 使用对象池
+// ✅ Use object pool
 const pool = new MessageBuilderPool();
 
 function handleRequest(data) {
@@ -257,50 +257,50 @@ function handleRequest(data) {
 }
 ```
 
-### 2. 不必要的字段拷贝
+### 2. Unnecessary Field Copying
 
 ```typescript
-// ❌ 拷贝所有字段
+// ❌ Copy all fields
 const copy = {
   id: reader.getId(),
   name: reader.getName(),
-  // ... 几十个字段
+  // ... dozens of fields
 };
 
-// ✅ 直接传递 reader，按需读取
-processReader(reader);  // 只读取需要的字段
+// ✅ Pass reader directly, read on demand
+processReader(reader);  // Only read needed fields
 ```
 
-### 3. 忽视列表预分配
+### 3. Ignoring List Pre-allocation
 
 ```typescript
-// ❌ 动态扩容
+// ❌ Dynamic resizing
 const list = [];
 for (const item of items) {
-  list.push(item);  // 多次扩容
+  list.push(item);  // Multiple resizes
 }
 
-// ✅ 预分配容量
+// ✅ Pre-allocate capacity
 const list = new Array(items.length);
 for (let i = 0; i < items.length; i++) {
   list[i] = items[i];
 }
 ```
 
-## 性能基准
+## Performance Benchmarks
 
-参考性能数据（在典型笔记本上）：
+Reference performance data (on typical laptop):
 
-| 操作 | 性能 |
-|------|------|
-| 序列化 | ~1M ops/sec |
-| 反序列化 | ~2M ops/sec（零拷贝） |
-| RPC 调用（本地）| ~100K calls/sec |
-| RPC 调用（远程）| 受网络延迟限制 |
-| 流吞吐 | ~1 GB/sec |
+| Operation | Performance |
+|-----------|-------------|
+| Serialization | ~1M ops/sec |
+| Deserialization | ~2M ops/sec (zero-copy) |
+| RPC Call (local) | ~100K calls/sec |
+| RPC Call (remote) | Limited by network latency |
+| Stream throughput | ~1 GB/sec |
 
-## 参考
+## Reference
 
-- [性能测试代码](../../src/bench/benchmark.ts)
-- [内存池配置](../api/performance.md)
-- [V8 性能指南](https://v8.dev/docs/profile)
+- [Performance Test Code](../../src/bench/benchmark.ts)
+- [Memory Pool Configuration](../api/performance.md)
+- [V8 Performance Guide](https://v8.dev/docs/profile)

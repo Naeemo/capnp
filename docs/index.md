@@ -1,51 +1,34 @@
-# @naeemo/capnp 文档
+# @naeemo/capnp Documentation
 
-## 快速开始
+A pure TypeScript implementation of Cap'n Proto with zero-copy deserialization and full RPC support.
 
-- [快速入门](./getting-started.md) - 5 分钟上手
-- [安装指南](./installation.md)
+## Quick Start
 
-## 核心概念
+- [Getting Started](./getting-started.md) - Get started in 5 minutes
+- [Quick Start (Next.js)](./quickstart.md) - Full-stack application example
 
-- [Cap'n Proto 简介](./concepts/intro.md)
-- [序列化基础](./concepts/serialization.md)
-- [RPC 协议](./concepts/rpc.md)
+## Guides
 
-## 使用指南
+- [Code Generation](./guides/codegen.md) - Generate TypeScript from schema
+- [RPC Usage](./guides/rpc.md) - Remote calls, Promise Pipelining
+- [Dynamic Schema](./guides/dynamic-schema.md) - Runtime schema handling
+- [Streaming](./guides/streaming.md) - Stream, Bulk, Realtime API
 
-- [代码生成](./guides/codegen.md) - 从 schema 生成 TypeScript
-- [RPC 使用](./guides/rpc.md) - 远程调用、Promise Pipelining
-- [动态 Schema](./guides/dynamic-schema.md) - 运行时 schema 处理
-- [流控制](./guides/streaming.md) - Stream、Bulk、Realtime API
+## Best Practices
 
-## 最佳实践
+- [Performance](./best-practices/performance.md) - Optimization tips and pitfalls
+- [Error Handling](./best-practices/error-handling.md) - Robust error handling patterns
 
-- [性能优化](./best-practices/performance.md) - 优化技巧和陷阱
-- [错误处理](./best-practices/error-handling.md) - 健壮的错误处理模式
+## Examples
 
-## API 参考
+- [Basic Usage](../examples/basic.ts) - Simple serialization example
+- [RPC Example](../examples/echo-service/) - Echo service implementation
+- [Promise Pipelining](../examples/promise-pipelining.ts) - Pipeline calls
+- [Dynamic Schema](../examples/dynamic-schema.ts) - Runtime type handling
 
-- [Core API](./api/core.md) - 序列化核心
-- [RPC API](./api/rpc.md) - RPC 层
-- [Codegen API](./api/codegen.md) - 代码生成
+## Reference
 
-## 最佳实践
-
-- [性能优化](./best-practices/performance.md)
-- [错误处理](./best-practices/error-handling.md)
-- [调试技巧](./best-practices/debugging.md)
-
-## 示例
-
-- [基本使用](../examples/basic.ts)
-- [RPC 示例](../examples/echo-service/)
-- [Promise Pipelining](../examples/promise-pipelining.ts)
-
-## 迁移指南
-
-- [从 protobuf 迁移](./migration/protobuf.md)
-
-## 参考
-
-- [Cap'n Proto 官方文档](https://capnproto.org/)
-- [GitHub 仓库](https://github.com/Naeemo/capnp)
+- [Performance Benchmarks](./benchmarks.md) - Performance test data
+- [Changelog](./changelog.md) - Version history
+- [Cap'n Proto Official](https://capnproto.org/)
+- [GitHub Repository](https://github.com/Naeemo/capnp)

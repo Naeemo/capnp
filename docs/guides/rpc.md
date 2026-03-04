@@ -1,40 +1,40 @@
-# RPC 使用指南
+# RPC Usage Guide
 
-@naeemo/capnp 实现了完整的 Cap'n Proto RPC 协议（Level 0-4），支持从基本的远程调用到高级的 Promise Pipelining 和三方引入。
+@naeemo/capnp implements the complete Cap'n Proto RPC protocol (Level 0-4), supporting everything from basic remote calls to advanced Promise Pipelining and three-party introductions.
 
-## 基本概念
+## Basic Concepts
 
-### Capability（能力）
+### Capability
 
-Capability 是 RPC 的核心概念，代表一个远程对象上的权限。它不是对象本身，而是调用该对象方法的权限。
+Capability is the core concept of RPC, representing permission to call methods on a remote object. It's not the object itself, but the right to invoke methods on it.
 
 ```typescript
-// Capability 可以像本地对象一样使用
+// Capability can be used like a local object
 const result = await capability.someMethod(args);
 ```
 
-### 传输层
+### Transport Layer
 
-根据使用场景选择合适的传输：
+Choose transport based on use case:
 
-| 传输 | 适用场景 | 特点 |
-|------|----------|------|
-| `EzRpcTransport` | Node.js ↔ C++ | 原始 TCP，无长度前缀 |
-| `WebSocketTransport` | 浏览器、Node.js | 带长度前缀，支持浏览器 |
-| `TcpTransport` | Node.js 内部 | 带长度前缀的 TCP |
+| Transport | Use Case | Characteristics |
+|-----------|----------|-----------------|
+| `EzRpcTransport` | Node.js ↔ C++ | Raw TCP, no length prefix |
+| `WebSocketTransport` | Browser, Node.js | With length prefix, browser support |
+| `TcpTransport` | Node.js internal | TCP with length prefix |
 
-## 基础 RPC
+## Basic RPC
 
-### 服务端实现
+### Server Implementation
 
 ```typescript
 import { RpcConnection, EzRpcTransport } from '@naeemo/capnp';
-import { Calculator } from './calculator.js';  // 生成的代码
+import { Calculator } from './calculator.js';  // Generated code
 
-// 实现服务接口
+// Implement service interface
 class CalculatorImpl implements Calculator.Server {
   async evaluate(params: { expression: Expression }): Promise<{ value: number }> {
-    // 实现计算逻辑
+    // Implement calculation logic
     return { value: this.compute(params.expression) };
   }
   
@@ -43,7 +43,7 @@ class CalculatorImpl implements Calculator.Server {
   }
 }
 
-// 启动服务器
+// Start server
 async function startServer() {
   const transport = await EzRpcTransport.connect('0.0.0.0', 8080);
   const connection = new RpcConnection(transport, {
@@ -54,22 +54,22 @@ async function startServer() {
 }
 ```
 
-### 客户端调用
+### Client Call
 
 ```typescript
 import { EzRpcTransport, RpcConnection } from '@naeemo/capnp';
 import { Calculator } from './calculator.js';
 
 async function useClient() {
-  // 连接服务器
+  // Connect to server
   const transport = await EzRpcTransport.connect('localhost', 8080);
   const connection = new RpcConnection(transport);
   await connection.start();
   
-  // 获取 bootstrap 能力
+  // Get bootstrap capability
   const calculator = await connection.bootstrap().getAs(Calculator);
   
-  // 调用方法
+  // Call method
   const result = await calculator.evaluate({
     expression: { literal: 42 }
   });
@@ -78,109 +78,109 @@ async function useClient() {
 }
 ```
 
-## Promise Pipelining（流水线调用）
+## Promise Pipelining
 
-Promise Pipelining 是 Cap'n Proto RPC 的核心特性，允许在收到第一个调用的结果之前就发送第二个调用。
+Promise Pipelining is a core feature of Cap'n Proto RPC, allowing the second call to be sent before receiving the result of the first call.
 
-### 传统 RPC 的问题
+### Traditional RPC Problem
 
 ```typescript
-// 传统方式：需要 2 次网络往返
-const foo = await getFoo();      // 第 1 次往返
-const bar = await foo.getBar();  // 第 2 次往返
-const result = await bar.baz();  // 第 3 次往返
-// 总共 3 次往返！
+// Traditional approach: 2 network round trips
+const foo = await getFoo();      // Round trip 1
+const bar = await foo.getBar();  // Round trip 2
+const result = await bar.baz();  // Round trip 3
+// Total: 3 round trips!
 ```
 
-### Cap'n Proto 的解决方案
+### Cap'n Proto Solution
 
 ```typescript
-// Promise Pipelining：只需要 1 次网络往返
-const foo = getFoo();                    // 不等待
-const bar = foo.getBar();                // 在返回的 promise 上继续调用
-const result = await bar.baz();          // 所有调用合并为一次往返
-// 总共 1 次往返！
+// Promise Pipelining: only 1 network round trip
+const foo = getFoo();                    // Don't wait
+const bar = foo.getBar();                // Call on returned promise
+const result = await bar.baz();          // All calls merged into one round trip
+// Total: 1 round trip!
 ```
 
-### 实际示例
+### Practical Example
 
 ```typescript
-// 文件系统场景
+// File system scenario
 const directory = await connection.bootstrap().getAs(Directory);
 
-// 链式调用，只产生一次网络往返
+// Chain calls, only one network round trip
 const fileContent = await directory
   .open('documents')
   .open('report.txt')
   .read();
 ```
 
-### 实现原理
+### How It Works
 
 ```typescript
-// 当在 promise 上调用方法时，capnp-ts 会：
-// 1. 不等待 promise 解析
-// 2. 立即发送第二个调用，引用第一个调用的结果
-// 3. 服务器按顺序处理，一次性返回所有结果
+// When calling a method on a promise, capnp-ts will:
+// 1. Not wait for promise resolution
+// 2. Immediately send second call, referencing first call's result
+// 3. Server processes in order, returns all results at once
 
-const promise1 = obj.method1();           // 发送 Call(questionId=1)
-const promise2 = promise1.method2();      // 发送 Call(questionId=2, target=answer to 1)
-const result = await promise2;            // 等待 Return for question 2
+const promise1 = obj.method1();           // Send Call(questionId=1)
+const promise2 = promise1.method2();      // Send Call(questionId=2, target=answer to 1)
+const result = await promise2;            // Wait for Return for question 2
 ```
 
-## Capability 传递
+## Capability Passing
 
-可以将 Capability 作为参数传递给远程方法：
+Capabilities can be passed as arguments to remote methods:
 
 ```typescript
-// 服务端提供数据能力
+// Server provides data capability
 class DataProviderImpl implements DataProvider.Server {
   async getData() {
     return { data: 'some data' };
   }
 }
 
-// 客户端创建回调能力
+// Client creates callback capability
 class CallbackImpl implements Callback.Server {
   async onData(params: { data: string }) {
     console.log('Received:', params.data);
   }
 }
 
-// 使用
+// Usage
 const provider = await connection.bootstrap().getAs(DataProvider);
 const callback = new CallbackImpl();
 
-// 将回调能力传递给服务端
+// Pass callback capability to server
 await provider.processWithCallback({ callback });
 ```
 
-## SturdyRefs（持久化能力）
+## SturdyRefs (Persistent Capabilities)
 
-SturdyRefs 允许 Capability 在连接断开后仍然存在：
+SturdyRefs allow Capabilities to persist after connection drops:
 
 ```typescript
 import { SturdyRefManager } from '@naeemo/capnp';
 
-// 创建 SturdyRefManager
+// Create SturdyRefManager
 const sturdyRefs = new SturdyRefManager({
-  secretKey: 'your-secret-key',  // 用于签名
+  secretKey: 'your-secret-key',  // For signing
 });
 
-// 保存能力
+// Save capability
 const token = await sturdyRefs.save(myCapability, {
-  ttl: 3600,  // 1小时有效期
+  ttl: 3600,  // 1 hour validity
 });
-// token 是字符串，可以存储到数据库
+// token is a string, can be stored in database
 
-// 恢复能力
+// Restore capability
 const restoredCapability = await sturdyRefs.restore(token);
-// 即使连接断开重连，也能恢复相同的能力
+// Same capability even after connection reconnects
 ```
 
-## Level 3: 三方引入
+## Level 3: Three-Party Introduction
 
-支持在三个参与方之间传递 Capability：
+Support for passing Capability between three parties:
 
 ```typescript
 import { ConnectionManager } from '@naeemo/capnp';
@@ -189,7 +189,7 @@ const manager = new ConnectionManager({
   vatId: generateVatId(),
 });
 
-// Alice 将能力传递给 Carol，通过 Bob
+// Alice passes capability to Carol, through Bob
 const carolId = await manager.introduce({
   provider: aliceConnection,
   recipient: carolId,
@@ -197,7 +197,7 @@ const carolId = await manager.introduce({
 });
 ```
 
-## 流控制
+## Flow Control
 
 ### Stream API
 
@@ -207,11 +207,11 @@ import { createStream } from '@naeemo/capnp';
 const stream = createStream({
   direction: 'bidirectional',
   flowControl: {
-    windowSize: 65536,    // 64KB 窗口
+    windowSize: 65536,    // 64KB window
   }
 });
 
-// 发送数据
+// Send data
 for await (const chunk of stream) {
   await processChunk(chunk);
   stream.send(responseChunk);
@@ -241,50 +241,50 @@ await bulk.upload({
 import { createRealtimeStreamManager, DropPolicy } from '@naeemo/capnp';
 
 const realtime = createRealtimeStreamManager({
-  policy: DropPolicy.oldest,  // 超出窗口时丢弃最旧数据
-  maxLatency: 100,            // 100ms 最大延迟
+  policy: DropPolicy.oldest,  // Drop oldest data when exceeding window
+  maxLatency: 100,            // 100ms max latency
 });
 
-// 适用于音视频流
+// Suitable for audio/video streams
 realtime.send(videoFrame);
 ```
 
-## 错误处理
+## Error Handling
 
 ```typescript
 try {
   const result = await capability.someMethod();
 } catch (error) {
   if (error.type === 'disconnected') {
-    // 连接断开，可能需要重连
+    // Connection dropped, may need to reconnect
   } else if (error.type === 'failed') {
-    // 方法执行失败
+    // Method execution failed
     console.error('Method failed:', error.reason);
   } else if (error.type === 'unimplemented') {
-    // 服务器不支持该方法
+    // Server doesn't support this method
   }
 }
 ```
 
-## 最佳实践
+## Best Practices
 
-1. **尽早使用 Pipeline**: 不要 `await` 中间结果，直接链式调用
-2. **限制并发**: 使用 `Promise.all()` 时要注意服务器负载
-3. **处理断开**: 始终监听 `onClose` 事件
-4. **使用 SturdyRefs**: 需要持久化的能力应该用 SturdyRefs
+1. **Use Pipeline Early**: Don't `await` intermediate results, chain calls directly
+2. **Limit Concurrency**: Be careful with server load when using `Promise.all()`
+3. **Handle Disconnects**: Always listen to `onClose` events
+4. **Use SturdyRefs**: Capabilities that need persistence should use SturdyRefs
 
 ```typescript
-// 好的做法：链式调用
+// Good: chain calls
 const result = await obj.a().b().c();
 
-// 避免：不必要的 await
+// Avoid: unnecessary awaits
 const a = await obj.a();
 const b = await a.b();
 const result = await b.c();
 ```
 
-## 参考
+## Reference
 
-- [Cap'n Proto RPC 协议](https://capnproto.org/rpc.html)
-- [Promise Pipelining 论文](http://www.erights.org/elib/distrib/pipeline.html)
-- [API 参考 - RPC](./api/rpc.md)
+- [Cap'n Proto RPC Protocol](https://capnproto.org/rpc.html)
+- [Promise Pipelining Paper](http://www.erights.org/elib/distrib/pipeline.html)
+- [API Reference - RPC](./api/rpc.md)
