@@ -1,6 +1,6 @@
 /**
  * Cap'n Proto Code Generator CLI
- * 
+ *
  * Usage: capnp gen <schema.capnp> [options]
  */
 
@@ -86,7 +86,7 @@ export async function run(args: string[]): Promise<void> {
     const { exec } = await import('node:child_process');
     const { promisify } = await import('node:util');
     const execAsync = promisify(exec);
-    
+
     await execAsync(`capnp compile -o- "${inputFile}" > "${binFile}"`);
 
     // Read and parse
@@ -94,7 +94,8 @@ export async function run(args: string[]): Promise<void> {
     const request = CodeGeneratorRequestReader.fromBuffer(buffer.buffer);
 
     const opts: GeneratorOptions = {
-      runtimeImportPath: typeof values.runtimePath === 'string' ? values.runtimePath : '@naeemo/capnp',
+      runtimeImportPath:
+        typeof values.runtimePath === 'string' ? values.runtimePath : '@naeemo/capnp',
     };
 
     const files = generateFromRequest(request, opts);
