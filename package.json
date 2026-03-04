@@ -11,12 +11,17 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./compat": {
+      "types": "./dist/compat/index.d.ts",
+      "import": "./dist/compat/index.js"
     }
   },
   "files": ["dist", "README.md", "README.zh.md", "LICENSE"],
   "bin": {
     "capnp": "./dist/cli.js",
-    "capnp-ts-codegen": "./dist/cli.js"
+    "capnp-ts-codegen": "./dist/cli.js",
+    "capnp-compat": "./dist/compat/cli.js"
   },
   "scripts": {
     "build": "rolldown -c rolldown.config.ts",
