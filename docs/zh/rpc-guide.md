@@ -7,15 +7,14 @@
 - **Level 0**: 基础 RPC (Bootstrap, Call/Return/Finish)
 - **Level 1**: Promise Pipelining, Capability 传递
 - **Level 2**: SturdyRefs (持久化能力引用)
-- **Level 3**: 第三方握手 (Provide/Accept)
+- **Level 3**: 三方引入 (Provide/Accept)
 - **Level 4**: Join 操作（引用相等性验证）
-- **Phase 7**: Dynamic Schema（动态 Schema 获取）
 
 ## 快速开始
 
 ### 1. 定义接口
 
-创建 `.capnp` 文件定义你的服务接口：
+创建 `.capnp` 文件定义服务接口：
 
 ```capnp
 @0x1234567890abcdef;
@@ -24,35 +23,9 @@ interface Calculator {
   evaluate @0 (expression :Expression) -> (value :Float64);
   getOperator @1 (op :Operator) -> (func :Function);
 }
-
-struct Expression {
-  union {
-    literal @0 :Float64;
-    call @1 :Call;
-  }
-}
-
-struct Call {
-  function @0 :Function;
-  params @1 :List(Expression);
-}
-
-struct Function {
-  interfaceId @0 :UInt64;
-  methodId @1 :UInt16;
-}
-
-enum Operator {
-  add @0;
-  subtract @1;
-  multiply @2;
-  divide @3;
-}
 ```
 
 ### 2. 生成代码
-
-使用 V3 CLI 生成 TypeScript 代码：
 
 ```bash
 npx capnp-ts-codegen calculator.capnp -o calculator.ts
@@ -62,237 +35,188 @@ npx capnp-ts-codegen calculator.capnp -o calculator.ts
 - `CalculatorInterfaceId` - 接口 ID 常量
 - `CalculatorMethodIds` - 方法 ID 常量
 - `CalculatorServer` - 服务器接口
-- `CalculatorStub` - 服务器存根（方法分发）
+- `CalculatorStub` - 服务器存根
 - `CalculatorClient` - 客户端类（支持 Promise Pipelining）
 
 ### 3. 实现服务器
 
 ```typescript
-import { RpcConnection, WebSocketTransport } from '@naeemo/capnp';
-import { 
-  CalculatorServer, 
-  CalculatorStub,
-  EvaluateParamsReader,
-  EvaluateResultsBuilder,
-  CallContext 
-} from './calculator.js';
+import { RpcConnection, EzRpcTransport } from '@naeemo/capnp';
+import { CalculatorServer, CalculatorStub } from './calculator.js';
 
 class CalculatorImpl implements CalculatorServer {
-  async evaluate(
-    context: CallContext<EvaluateParamsReader, EvaluateResultsBuilder>
-  ): Promise<void> {
-    const params = context.getParams();
-    const results = context.getResults();
-    
-    const value = this.evaluateExpression(params.getExpression());
-    results.setValue(value);
-    
-    context.return();
-  }
-  
-  private evaluateExpression(expr: ExpressionReader): number {
-    // 实现表达式求值逻辑
-    return 0;
+  async evaluate(params: { expression: Expression }) {
+    const value = this.compute(params.expression);
+    return { value };
   }
 }
 
-// 启动服务器
-const transport = WebSocketTransport.fromWebSocket(ws);
-const calculator = new CalculatorImpl();
-const stub = new CalculatorStub(calculator);
-
+const transport = await EzRpcTransport.connect('0.0.0.0', 8080);
 const connection = new RpcConnection(transport, {
-  bootstrap: stub
+  bootstrap: new CalculatorImpl()
 });
-
-await connection.start();
 ```
 
 ### 4. 创建客户端
 
 ```typescript
-import { WebSocketTransport, RpcConnection } from '@naeemo/capnp';
-import { CalculatorClient } from './calculator.js';
+import { RpcConnection, EzRpcTransport } from '@naeemo/capnp';
+import { Calculator } from './calculator.js';
 
-// 连接到服务器
-const transport = await WebSocketTransport.connect('ws://localhost:8080');
+const transport = await EzRpcTransport.connect('localhost', 8080);
 const connection = new RpcConnection(transport);
-await connection.start();
+const calculator = await connection.bootstrap().getAs(Calculator);
 
-// 获取 bootstrap 能力
-const bootstrap = await connection.bootstrap();
-
-// 创建 Calculator 客户端
-const calculator = new CalculatorClient(connection, bootstrap);
-
-// 调用方法
 const result = await calculator.evaluate({
-  expression: { literal: 42.0 }
+  expression: { literal: 42 }
 });
 
-console.log('Result:', result.getValue());
-
-// 关闭连接
-await connection.stop();
+console.log(result.value); // 42
 ```
 
-## Phase 7: Dynamic Schema（动态 Schema 获取）
+## 核心概念
 
-Phase 7 提供了在运行时动态获取和使用 Schema 的能力，特别适用于：
+### Capability（能力）
 
-- **动态语言绑定** - 为 Python、Ruby 等动态语言提供运行时类型信息
-- **Schema 浏览器** - 构建可以探索远程服务类型的工具
-- **通用客户端** - 创建可以调用任何 Cap'n Proto 服务的通用客户端
-- **调试工具** - 在运行时检查和解析消息内容
-
-### 核心功能
-
-#### 1. 从远程获取 Schema
+Capability 是 RPC 的核心概念 - 它是调用远程对象方法的权限。
 
 ```typescript
-import { RpcConnection, WebSocketTransport } from '@naeemo/capnp';
-
-const transport = await WebSocketTransport.connect('ws://localhost:8080');
-const connection = new RpcConnection(transport);
-await connection.start();
-
-// 通过类型 ID 获取 Schema
-const schema = await connection.getDynamicSchema(0x1234567890abcdefn);
-console.log('Struct name:', schema.displayName);
-console.log('Fields:', schema.structInfo?.fields);
-
-// 通过类型名称获取 Schema
-const schemaByName = await connection.getDynamicSchemaByName('myapp.Person');
+// Capability 可以像本地对象一样使用
+const result = await capability.someMethod(args);
 ```
 
-#### 2. 使用 Dynamic Reader 读取消息
+### Promise Pipelining
+
+Cap'n Proto 的杀手级特性 - 一次网络往返中发起多个调用：
 
 ```typescript
-import { createDynamicReader, dumpDynamicReader } from '@naeemo/capnp';
+// 传统 RPC: 3 次往返
+const user = await db.getUser({ id: 1 });
+const orders = await user.getOrders();
+const items = await orders.getItems();
 
-// 获取 Schema
-const schema = await connection.getDynamicSchema(0x1234567890abcdefn);
-
-// 创建动态 reader 读取消息
-const reader = createDynamicReader(schema, messageBuffer);
-
-// 动态访问字段
-console.log('Name:', reader.get('name'));
-console.log('Age:', reader.get('age'));
-
-// 导出所有字段
-console.log(dumpDynamicReader(reader));
+// Cap'n Proto: 1 次往返
+const items = await db
+  .getUser({ id: 1 })
+  .getOrders()
+  .getItems();
 ```
 
-#### 3. 使用 Dynamic Writer 写入消息
+### SturdyRefs
+
+持久化的能力引用，连接断开后仍然存在：
 
 ```typescript
-import { createDynamicWriter } from '@naeemo/capnp';
+import { SturdyRefManager } from '@naeemo/capnp';
 
-// 获取 Schema
-const schema = await connection.getDynamicSchema(0x1234567890abcdefn);
+const manager = new SturdyRefManager({
+  secretKey: 'your-secret-key'
+});
 
-// 创建动态 writer
+// 保存能力
+const token = await manager.save(myCapability, { ttl: 3600 });
+// 存储 token 到数据库...
+
+// 之后，恢复能力
+const restored = await manager.restore(token);
+// 同一个能力，即使重连后
+```
+
+## 高级特性
+
+### Level 3: 三方引入
+
+允许能力在三个参与方之间传递：
+
+```typescript
+import { ConnectionManager } from '@naeemo/capnp';
+
+const manager = new ConnectionManager({
+  vatId: generateVatId()
+});
+
+// Alice 将能力传递给 Carol，通过 Bob
+await manager.introduce({
+  provider: aliceConnection,
+  recipient: carolConnection,
+  capability: someCapability
+});
+```
+
+### Level 4: Join
+
+验证两个能力是否指向同一个对象：
+
+```typescript
+const isSame = await connection.join([cap1, cap2]);
+if (isSame) {
+  console.log('同一个对象');
+}
+```
+
+### 动态 Schema
+
+在运行时获取 schema 信息：
+
+```typescript
+const schema = await connection.getDynamicSchema({
+  typeName: 'calculator.Calculator'
+});
+
+// 使用动态 reader/writer
 const writer = createDynamicWriter(schema);
-
-// 设置字段
-writer.set('name', 'John Doe');
-writer.set('age', 30);
-writer.setText('email', 'john@example.com');
-
-// 序列化
-const buffer = writer.toBuffer();
+writer.set('operand1', 10);
+writer.set('operand2', 20);
 ```
 
-### CLI 工具增强
+## 最佳实践
 
-#### 生成动态加载代码
-
-使用 `--dynamic` 标志生成支持动态 Schema 加载的代码：
-
-```bash
-# 生成动态加载代码
-capnp-ts-codegen calculator.capnp --dynamic -o calculator-dynamic.ts
-
-# 生成的代码包含：
-# - 类型 ID 常量
-# - loadCalculatorSchema() - 从远程加载 Schema
-# - createExpressionReader() - 创建动态 reader
-# - Schema 缓存管理
-```
-
-#### 交互式 Schema 查询工具
-
-使用 `--interactive` 标志启动交互式 Schema 浏览器：
-
-```bash
-capnp-ts-codegen calculator.capnp --interactive
-```
-
-交互式命令：
-- `inspect <type>` - 查看类型的详细信息
-- `ids` - 列出所有类型 ID
-- `export` - 导出 Schema 信息为 JSON
-- `quit` - 退出
-
-### Schema 缓存
-
-Dynamic Schema 会自动缓存已获取的 Schema，避免重复网络请求：
+### 1. 使用 Promise Pipelining
 
 ```typescript
-// 第一次调用会从远程获取
-const schema1 = await connection.getDynamicSchema(0x1234567890abcdefn);
+// ✅ 好的做法：链式调用
+const result = await service
+  .getA()
+  .getB()
+  .getC();
 
-// 第二次调用会从缓存返回
-const schema2 = await connection.getDynamicSchema(0x1234567890abcdefn);
-
-// 手动清除缓存
-connection.clearSchemaCache();
-
-// 检查 Schema 是否在缓存中
-const isCached = connection.hasCachedSchema(0x1234567890abcdefn);
+// ❌ 避免：顺序 await
+const a = await service.getA();
+const b = await a.getB();
+const result = await b.getC();
 ```
 
-### Schema Registry
-
-Schema Registry 管理所有已加载的 Schema：
+### 2. 错误处理
 
 ```typescript
-// 获取 Registry
-const registry = connection.getSchemaRegistry();
-
-// 通过 ID 获取 Schema
-const schema = registry.getNode(0x1234567890abcdefn);
-
-// 通过名称获取 Schema
-const schemaByName = registry.getNodeByName('myapp.Person');
-
-// 手动注册 Schema
-connection.registerSchema(customSchemaNode);
+try {
+  const result = await capability.method();
+} catch (error) {
+  switch (error.type) {
+    case 'disconnected':
+      await reconnect();
+      break;
+    case 'failed':
+      console.error('方法失败:', error.reason);
+      break;
+  }
+}
 ```
 
-### 完整示例
+### 3. 清理资源
 
-参见 [examples/dynamic-schema-client.ts](../examples/dynamic-schema-client.ts) 获取完整示例。
+```typescript
+const connection = new RpcConnection(transport);
+try {
+  await connection.start();
+  // ... 使用连接
+} finally {
+  await connection.stop();
+}
+```
 
-## 当前状态汇总
+## 参考
 
-| 功能 | 状态 |
-|------|------|
-| Level 0 RPC | ✅ 完成 |
-| Level 1 Promise Pipelining | ✅ 完成 |
-| Level 2 SturdyRefs | ✅ 完成 |
-| Level 3 第三方握手 | ✅ 完成 |
-| Level 4 Join 操作 | ✅ 完成 |
-| WebSocket 传输 | ✅ 完成 |
-| 代码生成 | ✅ 完成 |
-| C++ 互操作 | ✅ 完成 |
-| Phase 7 Dynamic Schema | ✅ 完成 |
-
-**测试**: 420+ 测试通过
-
-## 下一步计划
-
-1. **性能优化** - 基准测试和优化
-2. **更多传输层** - HTTP/2、TCP 原生支持
-3. **持久化存储** - SturdyRefs 的持久化实现
+- [完整 RPC 指南](./guides/rpc.md)
+- [动态 Schema 指南](./guides/dynamic-schema.md)
+- [Cap'n Proto RPC 规范](https://capnproto.org/rpc.html)

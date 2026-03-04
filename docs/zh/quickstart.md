@@ -28,7 +28,7 @@ struct CreateUserRequest {
 ## 2. 生成 TypeScript 代码
 
 ```bash
-npx tsx node_modules/@naeemo/capnp/dist/cli/codegen.js schemas/user.capnp -o types/user.ts
+npx capnp-ts-codegen schemas/user.capnp -o types/user.ts
 ```
 
 生成的代码：

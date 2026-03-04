@@ -1,56 +1,33 @@
-# @naeemo/capnp
+# @naeemo/capnp 文档
 
-Cap'n Proto 的纯 TypeScript 实现，具有零拷贝反序列化功能，并与官方 C++ 实现完全兼容。
-
-## 特性
-
-- 🚀 **零拷贝反序列化** - 直接从缓冲区读取数据，无需解析
-- 🔧 **纯 TypeScript** - 无 WASM 或原生依赖
-- ✅ **官方兼容** - 与官方 C++ 实现进行测试验证
-- 📦 **Schema 代码生成** - 从 `.capnp` Schema 生成 TypeScript 类型
-- ⚡ **高性能** - 序列化 1.4μs，反序列化 0.6μs
-
-## 安装
-
-```bash
-npm install @naeemo/capnp
-```
+Cap'n Proto 的纯 TypeScript 实现，支持零拷贝反序列化和完整的 RPC 功能。
 
 ## 快速开始
 
-### 代码生成
+- [快速入门](./getting-started.md) - 5 分钟上手
+- [Next.js 示例](./quickstart.md) - 全栈应用示例
+- [示例代码](./examples.md) - 完整示例集合
 
-从你的 Cap'n Proto Schema 生成 TypeScript 类型：
+## 使用指南
 
-```bash
-npx @naeemo/capnp gen schema.capnp -o types.ts
-```
+- [代码生成](./guides/codegen.md) - 从 schema 生成 TypeScript
+- [RPC 使用](./guides/rpc.md) - 远程调用、Promise Pipelining
+- [动态 Schema](./guides/dynamic-schema.md) - 运行时 schema 处理
+- [流控制](./guides/streaming.md) - Stream、Bulk、Realtime API
 
-### 基本用法
+## 最佳实践
 
-```typescript
-import { MessageBuilder, MessageReader } from '@naeemo/capnp';
-import { PersonBuilder, PersonReader } from './types';
+- [性能优化](./best-practices/performance.md) - 优化技巧和陷阱
+- [错误处理](./best-practices/error-handling.md) - 健壮的错误处理模式
 
-// 构建消息
-const builder = new MessageBuilder();
-const person = PersonBuilder.create(builder);
-person.setName('John');
-person.setAge(30);
-const buffer = builder.toArrayBuffer();
+## 性能报告
 
-// 读取消息
-const reader = new MessageReader(buffer);
-const p = new PersonReader(reader.getRoot(2, 1));
-console.log(p.name); // "John"
-```
+- [性能基准](./benchmarks.md) - 性能测试数据
+- [性能对比](./performance.md) - 与 JSON 对比
 
-## 文档
+## 参考
 
-- [快速开始指南](./quickstart)
-- [RPC 指南](./rpc-guide)
-- [更新日志](./changelog)
-
-## 许可证
-
-MIT License © 2024-2026 Naeemo
+- [RPC 快速指南](./rpc-guide.md) - RPC 快速入门
+- [更新日志](./changelog.md) - 版本历史
+- [Cap'n Proto 官方文档](https://capnproto.org/)
+- [GitHub 仓库](https://github.com/Naeemo/capnp)
