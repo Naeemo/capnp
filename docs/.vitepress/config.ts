@@ -15,6 +15,7 @@ export default defineConfig({
         nav: [
           { text: 'Home', link: '/' },
           { text: 'Quick Start', link: '/quickstart' },
+          { text: 'Examples', link: '/examples' },
           { text: 'RPC Guide', link: '/rpc-guide' },
           { text: 'Performance', link: '/performance' },
           { text: 'Changelog', link: '/changelog' },
@@ -24,7 +25,9 @@ export default defineConfig({
             text: 'Guide',
             items: [
               { text: 'Introduction', link: '/' },
+              { text: 'Getting Started', link: '/getting-started' },
               { text: 'Quick Start', link: '/quickstart' },
+              { text: 'Examples', link: '/examples' },
               { text: 'RPC Guide', link: '/rpc-guide' },
               { text: 'Performance', link: '/performance' },
               { text: 'Changelog', link: '/changelog' },

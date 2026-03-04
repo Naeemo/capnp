@@ -21,10 +21,14 @@ A pure TypeScript implementation of Cap'n Proto with zero-copy deserialization a
 
 ## Examples
 
-- [Basic Usage](../examples/basic.ts) - Simple serialization example
-- [RPC Example](../examples/echo-service/) - Echo service implementation
-- [Promise Pipelining](../examples/promise-pipelining.ts) - Pipeline calls
-- [Dynamic Schema](../examples/dynamic-schema.ts) - Runtime type handling
+- [Basic Usage](./examples.md#basic-serialization) - Simple serialization example
+- [Echo Service](./examples.md#echo-service-rpc) - RPC client/server
+- [Promise Pipelining](./examples.md#promise-pipelining) - Pipeline calls
+- [Dynamic Schema](./examples.md#dynamic-schema) - Runtime type handling
+- [WebSocket Chat](./examples.md#websocket-chat) - Real-time messaging
+- [File Transfer](./examples.md#file-transfer) - Large file streaming
+
+All examples are available in the [GitHub repository](https://github.com/Naeemo/capnp/tree/main/examples).
 
 ## Reference
 
