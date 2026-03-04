@@ -1,8 +1,9 @@
-#!/usr/bin/env node
 /**
  * JSON Codec CLI
  *
  * Convert between Cap'n Proto binary and JSON
+ *
+ * Usage: capnp json <command> [options]
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -11,11 +12,13 @@ import type { SchemaNode } from '../rpc/schema-types.js';
 import { SchemaNodeType } from '../rpc/schema-types.js';
 import { CapnpToJson, JsonToCapnp } from './index.js';
 
+const VERSION = '0.7.0';
+
 function printUsage() {
   console.log(`
-Cap'n Proto JSON Codec v0.7.0
+Cap'n Proto JSON Codec v${VERSION}
 
-Usage: capnp-json <command> [options]
+Usage: capnp json <command> [options]
 
 Commands:
   to-json     Convert Cap'n Proto binary to JSON
@@ -31,17 +34,9 @@ Options:
   -h, --help      Show this help
 
 Examples:
-  # Convert binary to JSON
-  capnp-json to-json -i data.bin -s schema.json -o data.json
-  
-  # Pretty print to stdout
-  capnp-json to-json -i data.bin -s schema.json -p
-  
-  # Convert JSON to binary
-  capnp-json from-json -i data.json -s schema.json -o data.bin
-  
-  # Preserve field names
-  capnp-json to-json -i data.bin -s schema.json --preserve-names
+  capnp json to-json -i data.bin -s schema.json -o data.json
+  capnp json to-json -i data.bin -s schema.json -p
+  capnp json from-json -i data.json -s schema.json -o data.bin
 `);
 }
 
@@ -177,14 +172,7 @@ async function fromJsonCommand(options: ReturnType<typeof parseArgs>) {
   }
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-
-  if (args.length === 0) {
-    printUsage();
-    process.exit(1);
-  }
-
+export async function run(args: string[]): Promise<void> {
   const options = parseArgs(args);
 
   if (!options.command) {
@@ -218,5 +206,3 @@ async function main() {
     process.exit(1);
   }
 }
-
-main();

@@ -1,19 +1,22 @@
-#!/usr/bin/env node
 /**
  * Schema Compatibility Checker CLI
  *
  * Check compatibility between Cap'n Proto schema versions
+ *
+ * Usage: capnp compat <old-schema> <new-schema> [options]
  */
 
 import { readFileSync } from 'node:fs';
 import type { SchemaNode } from '../rpc/schema-types.js';
 import { checkCompatibility, formatReport } from './index.js';
 
+const VERSION = '0.9.0';
+
 function printUsage() {
   console.log(`
-Cap'n Proto Schema Compatibility Checker
+Cap'n Proto Schema Compatibility Checker v${VERSION}
 
-Usage: capnp-compat <old-schema> <new-schema> [options]
+Usage: capnp compat <old-schema> <new-schema> [options]
 
 Arguments:
   old-schema    Path to old schema JSON file
@@ -27,9 +30,9 @@ Options:
   -h, --help            Show this help
 
 Examples:
-  capnp-compat schema-v1.json schema-v2.json
-  capnp-compat old.json new.json --json
-  capnp-compat old.json new.json --strict-renames
+  capnp compat schema-v1.json schema-v2.json
+  capnp compat old.json new.json --json
+  capnp compat old.json new.json --strict-renames
 `);
 }
 
@@ -86,14 +89,7 @@ function loadSchema(path: string): SchemaNode | SchemaNode[] {
   })) as SchemaNode[];
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-
-  if (args.length < 2) {
-    printUsage();
-    process.exit(1);
-  }
-
+export async function run(args: string[]): Promise<void> {
   const options = parseArgs(args);
 
   if (!options.oldSchema || !options.newSchema) {
@@ -124,5 +120,3 @@ async function main() {
     process.exit(2);
   }
 }
-
-main();

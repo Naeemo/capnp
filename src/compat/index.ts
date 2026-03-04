@@ -1,6 +1,6 @@
 /**
  * Schema Compatibility Checker
- * 
+ *
  * Detect breaking changes between Cap'n Proto schema versions.
  */
 
@@ -20,7 +20,7 @@ export interface CompatibilityIssue {
   /** Type of compatibility issue */
   type: 'breaking' | 'warning' | 'info';
   /** Category of the issue */
-  category: 
+  category:
     | 'field_removed'
     | 'field_type_changed'
     | 'field_default_changed'
@@ -83,13 +83,13 @@ export function checkCompatibility(
   const newNodes = Array.isArray(newSchema) ? newSchema : [newSchema];
 
   // Build maps for quick lookup
-  const oldMap = new Map(oldNodes.map(n => [n.id, n]));
-  const newMap = new Map(newNodes.map(n => [n.id, n]));
+  const oldMap = new Map(oldNodes.map((n) => [n.id, n]));
+  const newMap = new Map(newNodes.map((n) => [n.id, n]));
 
   // Check each old node
   for (const oldNode of oldNodes) {
     const newNode = newMap.get(oldNode.id);
-    
+
     if (!newNode) {
       // Node was removed
       if (oldNode.type === SchemaNodeType.STRUCT) {
@@ -116,16 +116,20 @@ export function checkCompatibility(
     }
   }
 
-  const breaking = issues.filter(i => i.type === 'breaking').length;
-  const warning = issues.filter(i => i.type === 'warning').length;
-  const info = issues.filter(i => i.type === 'info').length;
+  const breaking = issues.filter((i) => i.type === 'breaking').length;
+  const warning = issues.filter((i) => i.type === 'warning').length;
+  const info = issues.filter((i) => i.type === 'info').length;
 
   return {
     compatible: breaking === 0,
     issues,
     summary: { breaking, warning, info },
-    oldVersion: oldNodes[0] ? { id: oldNodes[0].id, displayName: oldNodes[0].displayName } : undefined,
-    newVersion: newNodes[0] ? { id: newNodes[0].id, displayName: newNodes[0].displayName } : undefined,
+    oldVersion: oldNodes[0]
+      ? { id: oldNodes[0].id, displayName: oldNodes[0].displayName }
+      : undefined,
+    newVersion: newNodes[0]
+      ? { id: newNodes[0].id, displayName: newNodes[0].displayName }
+      : undefined,
   };
 }
 
@@ -165,8 +169,8 @@ function compareStructs(
 ): void {
   if (!oldNode.structInfo || !newNode.structInfo) return;
 
-  const oldFields = new Map(oldNode.structInfo.fields.map(f => [f.name, f]));
-  const newFields = new Map(newNode.structInfo.fields.map(f => [f.name, f]));
+  const oldFields = new Map(oldNode.structInfo.fields.map((f) => [f.name, f]));
+  const newFields = new Map(newNode.structInfo.fields.map((f) => [f.name, f]));
 
   // Check for removed fields
   for (const [name, oldField] of oldFields) {
@@ -190,7 +194,7 @@ function compareStructs(
   if (options.checkUnions) {
     const oldUnionCount = oldNode.structInfo.discriminantCount;
     const newUnionCount = newNode.structInfo.discriminantCount;
-    
+
     if (oldUnionCount !== newUnionCount) {
       issues.push({
         type: 'breaking',
@@ -235,7 +239,7 @@ function compareEnums(
 ): void {
   if (!oldNode.enumInfo || !newNode.enumInfo) return;
 
-  const newValues = new Set(newNode.enumInfo.enumerants.map(e => e.name));
+  const newValues = new Set(newNode.enumInfo.enumerants.map((e) => e.name));
 
   for (const oldValue of oldNode.enumInfo.enumerants) {
     if (!newValues.has(oldValue.name)) {
@@ -257,7 +261,7 @@ function checkNewRequiredFields(
 ): void {
   if (!oldNode.structInfo || !newNode.structInfo) return;
 
-  const oldFields = new Set(oldNode.structInfo.fields.map(f => f.name));
+  const oldFields = new Set(oldNode.structInfo.fields.map((f) => f.name));
 
   for (const newField of newNode.structInfo.fields) {
     if (!oldFields.has(newField.name)) {
@@ -279,32 +283,31 @@ function checkNewRequiredFields(
  */
 export function formatReport(report: CompatibilityReport): string {
   const lines: string[] = [];
-  
+
   lines.push('='.repeat(60));
   lines.push('SCHEMA COMPATIBILITY REPORT');
   lines.push('='.repeat(60));
   lines.push('');
-  
+
   if (report.compatible) {
     lines.push('✅ Schemas are compatible');
   } else {
     lines.push('❌ Schemas are NOT compatible');
   }
   lines.push('');
-  
+
   lines.push('Summary:');
   lines.push(`  Breaking: ${report.summary.breaking}`);
   lines.push(`  Warnings: ${report.summary.warning}`);
   lines.push(`  Info: ${report.summary.info}`);
   lines.push('');
-  
+
   if (report.issues.length > 0) {
     lines.push('Issues:');
     lines.push('-'.repeat(60));
-    
+
     for (const issue of report.issues) {
-      const icon = issue.type === 'breaking' ? '❌' : 
-                   issue.type === 'warning' ? '⚠️' : 'ℹ️';
+      const icon = issue.type === 'breaking' ? '❌' : issue.type === 'warning' ? '⚠️' : 'ℹ️';
       lines.push(`${icon} [${issue.type.toUpperCase()}] ${issue.category}`);
       lines.push(`   Path: ${issue.path}`);
       lines.push(`   ${issue.message}`);
@@ -314,6 +317,6 @@ export function formatReport(report: CompatibilityReport): string {
       lines.push('');
     }
   }
-  
+
   return lines.join('\n');
 }
