@@ -29,7 +29,8 @@ export default defineConfig([
   {
     input: 'src/cli-unified.ts',
     output: {
-      file: 'dist/cli.js',
+      dir: 'dist',
+      entryFileNames: 'cli.js',
       format: 'esm',
       sourcemap: true,
     },
