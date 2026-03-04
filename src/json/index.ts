@@ -276,10 +276,14 @@ export class CapnpToJson {
         case 'struct': {
           const nestedSchema = this.schemaRegistry.get(elementType.kind.typeId);
           if (!nestedSchema) {
-            throw new Error(`Schema not found for struct list element type ${elementType.kind.typeId.toString(16)}`);
+            throw new Error(
+              `Schema not found for struct list element type ${elementType.kind.typeId.toString(16)}`
+            );
           }
           if (nestedSchema.type !== SchemaNodeType.STRUCT || !nestedSchema.structInfo) {
-            throw new Error(`Invalid schema for struct list element type ${elementType.kind.typeId.toString(16)}`);
+            throw new Error(
+              `Invalid schema for struct list element type ${elementType.kind.typeId.toString(16)}`
+            );
           }
           const structReader = listReader.getStruct(i);
           if (!structReader) {
@@ -547,8 +551,14 @@ export class JsonToCapnp {
         break;
       case 'struct': {
         const nestedSchema = this.schemaRegistry.get(elementType.kind.typeId);
-        if (!nestedSchema || nestedSchema.type !== SchemaNodeType.STRUCT || !nestedSchema.structInfo) {
-          throw new Error(`Schema not found for struct list element type ${elementType.kind.typeId.toString(16)}`);
+        if (
+          !nestedSchema ||
+          nestedSchema.type !== SchemaNodeType.STRUCT ||
+          !nestedSchema.structInfo
+        ) {
+          throw new Error(
+            `Schema not found for struct list element type ${elementType.kind.typeId.toString(16)}`
+          );
         }
         elementSize = ElementSize.INLINE_COMPOSITE;
         structSize = {
@@ -620,8 +630,14 @@ export class JsonToCapnp {
 
         case 'struct': {
           const nestedSchema = this.schemaRegistry.get(elementType.kind.typeId);
-          if (!nestedSchema || nestedSchema.type !== SchemaNodeType.STRUCT || !nestedSchema.structInfo) {
-            throw new Error(`Schema not found for struct list element type ${elementType.kind.typeId.toString(16)}`);
+          if (
+            !nestedSchema ||
+            nestedSchema.type !== SchemaNodeType.STRUCT ||
+            !nestedSchema.structInfo
+          ) {
+            throw new Error(
+              `Schema not found for struct list element type ${elementType.kind.typeId.toString(16)}`
+            );
           }
           const structBuilder = listBuilder.getStruct(i);
           if (typeof value !== 'object' || value === null || Array.isArray(value)) {
