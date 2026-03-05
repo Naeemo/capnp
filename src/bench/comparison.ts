@@ -171,7 +171,7 @@ function protobufSerialize(): Uint8Array {
 }
 
 function protobufDeserialize(data: Uint8Array): void {
-  const decoded = TestUser.decode(data);
+  const decoded = TestUser.decode(data) as any;
   // 访问所有字段确保公平比较
   void decoded.id;
   void decoded.name;
@@ -289,7 +289,7 @@ function protobufSimpleSerialize(): Uint8Array {
 }
 
 function protobufSimpleDeserialize(data: Uint8Array): void {
-  const decoded = SimpleStruct.decode(data);
+  const decoded = SimpleStruct.decode(data) as any;
   void decoded.field1;
   void decoded.field2;
 }
