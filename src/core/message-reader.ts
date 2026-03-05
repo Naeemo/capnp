@@ -14,14 +14,47 @@ import {
 } from './pointer.js';
 import { Segment, WORD_SIZE } from './segment.js';
 
+/**
+ * 安全选项配置
+ */
+export interface SecurityOptions {
+  /** 最大段数限制（默认64） */
+  maxSegments?: number;
+  /** 消息总大小限制，单位字节（默认64MB） */
+  maxTotalSize?: number;
+  /** 严格模式，遇到异常立即抛出而非静默处理（默认false） */
+  strictMode?: boolean;
+}
+
+/** 默认安全选项 */
+const DEFAULT_SECURITY_OPTIONS: Required<SecurityOptions> = {
+  maxSegments: 64,
+  maxTotalSize: 64 * 1024 * 1024, // 64MB
+  strictMode: false,
+};
+
 export class MessageReader {
   private segments: Segment[];
+  private securityOptions: Required<SecurityOptions>;
 
-  constructor(buffer: ArrayBuffer | Uint8Array) {
+  constructor(buffer: ArrayBuffer | Uint8Array, securityOptions?: SecurityOptions) {
+    // 合并安全选项
+    this.securityOptions = {
+      ...DEFAULT_SECURITY_OPTIONS,
+      ...securityOptions,
+    };
+
     const uint8Array = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer;
 
     // 初始化空段数组（用于无效消息）
     this.segments = [];
+
+    // 检查消息总大小限制
+    if (this.securityOptions.strictMode && uint8Array.byteLength > this.securityOptions.maxTotalSize) {
+      throw new Error(
+        `Message size (${uint8Array.byteLength} bytes) exceeds maximum allowed size (${this.securityOptions.maxTotalSize} bytes)`
+      );
+    }
 
     // 检查最小大小（至少需要8字节的头部）
     if (uint8Array.byteLength < 8) {
@@ -38,13 +71,30 @@ export class MessageReader {
     const segmentCount = (firstWordLow & 0xffffffff) + 1;
     const firstSegmentSize = firstWordHigh;
 
+    // 检查段数限制
+    if (segmentCount > this.securityOptions.maxSegments) {
+      if (this.securityOptions.strictMode) {
+        throw new Error(
+          `Segment count (${segmentCount}) exceeds maximum allowed (${this.securityOptions.maxSegments})`
+        );
+      }
+      // 非严格模式下：截断段数到最大限制
+      return;
+    }
+
     let offset = 8;
     const segmentSizes: number[] = [firstSegmentSize];
 
     // 读取剩余段大小
     for (let i = 1; i < segmentCount; i++) {
       if (offset + 4 > uint8Array.byteLength) {
-        // 消息过早结束，视为空消息
+        // 消息过早结束
+        if (this.securityOptions.strictMode) {
+          throw new Error(
+            `Message ended prematurely while reading segment ${i} size (offset: ${offset}, length: ${uint8Array.byteLength})`
+          );
+        }
+        // 非严格模式下：视为空消息
         this.segments = [];
         return;
       }
@@ -57,7 +107,30 @@ export class MessageReader {
 
     // 检查是否有足够的空间容纳段表
     if (offset > uint8Array.byteLength) {
+      if (this.securityOptions.strictMode) {
+        throw new Error(
+          `Insufficient data for segment table (offset: ${offset}, length: ${uint8Array.byteLength})`
+        );
+      }
       this.segments = [];
+      return;
+    }
+
+    // 计算预期总大小并验证
+    const headerSize = offset;
+    let totalBodySize = 0;
+    for (const size of segmentSizes) {
+      totalBodySize += size * WORD_SIZE;
+    }
+    const expectedTotalSize = headerSize + totalBodySize;
+    
+    if (expectedTotalSize > this.securityOptions.maxTotalSize) {
+      if (this.securityOptions.strictMode) {
+        throw new Error(
+          `Total message size (${expectedTotalSize} bytes) exceeds maximum allowed size (${this.securityOptions.maxTotalSize} bytes)`
+        );
+      }
+      // 非严格模式下：截断处理
       return;
     }
 
@@ -65,7 +138,13 @@ export class MessageReader {
     this.segments = [];
     for (const size of segmentSizes) {
       if (offset + size * WORD_SIZE > uint8Array.byteLength) {
-        // 段数据不足，截断或视为空消息
+        // 段数据不足
+        if (this.securityOptions.strictMode) {
+          throw new Error(
+            `Insufficient data for segment (expected ${size * WORD_SIZE} bytes at offset ${offset}, ` +
+            `but message is ${uint8Array.byteLength} bytes)`
+          );
+        }
         // 官方实现：返回已读取的部分
         break;
       }
@@ -213,6 +292,13 @@ export class MessageReader {
    */
   get segmentCount(): number {
     return this.segments.length;
+  }
+
+  /**
+   * 获取当前安全选项配置
+   */
+  getSecurityOptions(): SecurityOptions {
+    return { ...this.securityOptions };
   }
 }
 

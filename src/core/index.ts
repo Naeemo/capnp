@@ -1,4 +1,4 @@
-export { MessageReader, StructReader } from './message-reader.js';
+export { MessageReader, StructReader, type SecurityOptions } from './message-reader.js';
 export { MessageBuilder, StructBuilder } from './message-builder.js';
 export { ListReader, ListBuilder } from './list.js';
 export {
