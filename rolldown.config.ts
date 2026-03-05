@@ -11,7 +11,7 @@ export default defineConfig([
       sourcemap: true,
     },
     platform: 'node',
-    external: ['node:fs', 'node:path', 'node:url', 'lz4'],
+    external: ['node:fs', 'node:path', 'node:url'],
   },
   // CJS build
   {
@@ -23,7 +23,7 @@ export default defineConfig([
       sourcemap: true,
     },
     platform: 'node',
-    external: ['node:fs', 'node:path', 'node:url', 'lz4'],
+    external: ['node:fs', 'node:path', 'node:url'],
   },
   // CLI
   {
@@ -43,6 +43,6 @@ export default defineConfig([
       },
     ],
     platform: 'node',
-    external: ['node:fs', 'node:path', 'node:child_process', 'node:os', 'node:util', 'lz4'],
+    external: ['node:fs', 'node:path', 'node:child_process', 'node:os', 'node:util'],
   },
 ]);

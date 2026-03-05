@@ -1,12 +1,12 @@
 /**
  * LZ4 Compression Module
  *
- * Wrapper around the lz4 npm package with:
+ * Uses lz4js (pure JavaScript) for cross-platform compatibility
  * - Compression threshold (skip compression for small data)
  * - Error handling with fallback
  */
 
-import * as lz4 from 'lz4';
+import { compress as lz4Compress, decompress as lz4Decompress } from 'lz4js';
 
 /**
  * Compression options
@@ -14,10 +14,8 @@ import * as lz4 from 'lz4';
 export interface CompressionOptions {
   /** Minimum size to compress (default: 1024 bytes) */
   threshold?: number;
-  /** Use high compression mode (default: false) */
-  highCompression?: boolean;
-  /** Compression level 1-16 (default: 0) */
-  level?: number;
+  /** Compression acceleration 1-65535 (default: 1, fastest) */
+  acceleration?: number;
 }
 
 /**
@@ -25,8 +23,7 @@ export interface CompressionOptions {
  */
 export const DEFAULT_COMPRESSION_OPTIONS: Required<CompressionOptions> = {
   threshold: 1024,
-  highCompression: false,
-  level: 0,
+  acceleration: 1,
 };
 
 /**
@@ -44,99 +41,60 @@ export function compress(data: Uint8Array, options: CompressionOptions = {}): Ui
   }
 
   try {
-    // Convert Uint8Array to Buffer for lz4 package
-    const inputBuffer = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-
-    // Build encoder options
-    const encoderOptions = {
-      blockChecksum: false,
-      highCompression: opts.highCompression,
-      compressionLevel: opts.level,
-    };
-
-    // Compress using lz4
-    const compressed = lz4.encode(inputBuffer, encoderOptions);
-
-    // Check if compression is beneficial
+    // Convert Uint8Array to Array for lz4js
+    const inputArray = Array.from(data);
+    
+    // Compress using lz4js
+    const compressed = lz4Compress(inputArray);
+    
+    // Only use compressed data if it's actually smaller
     if (compressed.length >= data.length) {
-      return null; // Compression didn't help
+      return null;
     }
 
-    // Convert back to Uint8Array
-    return new Uint8Array(compressed.buffer, compressed.byteOffset, compressed.byteLength);
-  } catch (_error) {
-    // Compression failed - return null to indicate failure
+    return new Uint8Array(compressed);
+  } catch (error) {
+    // Compression failed, return null to indicate no compression
     return null;
   }
 }
 
 /**
- * Uncompress data using LZ4
+ * Decompress LZ4 compressed data
  * @param data - Compressed data
- * @param uncompressedSize - Expected uncompressed size (optional for stream format)
- * @returns Uncompressed data, or null if decompression failed
+ * @param originalSize - Original uncompressed size
+ * @returns Decompressed data, or null if decompression failed
  */
-export function uncompress(data: Uint8Array, uncompressedSize?: number): Uint8Array | null {
+export function decompress(data: Uint8Array, originalSize: number): Uint8Array | null {
   try {
-    // Convert Uint8Array to Buffer for lz4 package
-    const inputBuffer = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-
-    // Decompress using lz4
-    const result = lz4.decode(inputBuffer);
-
-    // Verify result length if uncompressedSize is provided
-    if (uncompressedSize !== undefined && result.length !== uncompressedSize) {
-      return null;
-    }
-
-    // Convert back to Uint8Array
-    return new Uint8Array(result.buffer, result.byteOffset, result.byteLength);
-  } catch (_error) {
+    // Convert Uint8Array to Array for lz4js
+    const inputArray = Array.from(data);
+    
+    // Decompress using lz4js
+    const decompressed = lz4Decompress(inputArray, originalSize);
+    
+    return new Uint8Array(decompressed);
+  } catch (error) {
     // Decompression failed
     return null;
   }
 }
 
 /**
- * Compress data with automatic fallback
- * @param data - Data to compress
- * @param options - Compression options
- * @returns Object with compressed data and metadata
+ * Check if data is likely LZ4 compressed
+ * (LZ4 doesn't have a magic number, so this is a heuristic)
+ * @param data - Data to check
+ * @returns true if data might be LZ4 compressed
  */
-export function compressWithFallback(
-  data: Uint8Array,
-  options: CompressionOptions = {}
-): {
-  data: Uint8Array;
-  compressed: boolean;
-  originalSize: number;
-} {
-  const originalSize = data.length;
-  const compressed = compress(data, options);
-
-  if (compressed !== null) {
-    return {
-      data: compressed,
-      compressed: true,
-      originalSize,
-    };
-  }
-
-  // Return original data if compression failed or not beneficial
-  return {
-    data,
-    compressed: false,
-    originalSize,
-  };
-}
-
-/**
- * Uncompress data with automatic fallback
- * If decompression fails, returns original data
- * @param data - Potentially compressed data
- * @returns Uncompressed data or original data if decompression failed
- */
-export function uncompressWithFallback(data: Uint8Array): Uint8Array {
-  const result = uncompress(data);
-  return result !== null ? result : data;
+export function isLikelyCompressed(data: Uint8Array): boolean {
+  // Heuristic: compressed data is usually smaller and doesn't look like valid Cap'n Proto
+  if (data.length < 8) return false;
+  
+  // Check if it doesn't look like a Cap'n Proto message
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const firstWord = view.getUint32(0, true);
+  
+  // Cap'n Proto messages typically have reasonable segment counts
+  // If the first word looks like a very large number, it's probably compressed
+  return firstWord > 0x100000;
 }
