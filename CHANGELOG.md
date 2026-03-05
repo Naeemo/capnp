@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.9.1] - 2026-03-05
+
+### Added
+- **Security Audit**: Built-in security scanning capabilities
+  - `capnp audit` command for message file security analysis
+  - `SecurityOptions` for runtime safety limits (maxSegments, maxTotalSize, strictMode)
+  - `AuditReader` class with deep security scanning
+  - Support for detecting: deep nesting, far pointer cycles, invalid offsets
+  - 53 security tests including 12 malformed message types
+- **Benchmark Suite**: Comprehensive performance testing
+  - `capnp bench` command with multiple output formats (terminal, markdown, json, csv)
+  - Multi-dimensional testing: payload sizes (64B-1MB), struct complexity, list types
+  - Comparison with JSON and Protobuf (using protobufjs)
+  - GC pressure and memory allocation tracking
+  - Warm-up mechanism and statistical sampling
+- **CLI Commands**: 5 unified CLI commands
+  - `gen` - TypeScript code generation from .capnp schemas
+  - `json` - Cap'n Proto binary ↔ JSON conversion
+  - `compat` - Schema compatibility checking between versions
+  - `audit` - Security audit with JSON/markdown reports
+  - `bench` - Performance benchmarking with comparisons
+
+### Changed
+- Enhanced `MessageReader` with optional `SecurityOptions` parameter
+- All 489 tests passing with new security and benchmark suites
+
+[0.9.1]: https://github.com/Naeemo/capnp/releases/tag/v0.9.1
+
+## [0.5.2] - 2026-03-03
+
 ## [0.5.2] - 2026-03-03
 
 ### Added
