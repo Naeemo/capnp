@@ -204,7 +204,7 @@ describe('Negotiation - Encoding/Decoding', () => {
     };
 
     const encoded = encodeCapabilities(original);
-    const arrayBuffer = encoded.buffer;
+    const arrayBuffer = new Uint8Array(encoded).buffer;
     const decoded = decodeCapabilities(arrayBuffer);
 
     expect(decoded.compressionAlgorithms).toEqual([CompressionAlgorithm.NONE]);
