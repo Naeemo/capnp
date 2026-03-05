@@ -8,6 +8,7 @@
  *   gen       Generate TypeScript code from schema
  *   json      Convert between Cap'n Proto and JSON
  *   compat    Check schema compatibility
+ *   audit     Security audit message files
  *   help      Show help for a command
  */
 
@@ -20,6 +21,7 @@ const { values, positionals } = parseArgs({
     version: { type: 'boolean', short: 'v' },
   },
   allowPositionals: true,
+  strict: false,
 });
 
 const VERSION = '0.9.0';
@@ -34,6 +36,7 @@ Commands:
   gen       Generate TypeScript code from .capnp schema
   json      Convert between Cap'n Proto binary and JSON
   compat    Check schema compatibility between versions
+  audit     Security audit message files
 
 Options:
   -h, --help     Show this help
@@ -43,6 +46,7 @@ Examples:
   capnp gen schema.capnp -o types.ts
   capnp json to-json -i data.bin -s schema.json
   capnp compat old.json new.json
+  capnp audit message.bin
 
 Run 'capnp <command> --help' for more information on a command.
 `);
@@ -72,6 +76,9 @@ async function main() {
     case 'compat':
       await import('./compat/cli.js').then((m) => m.run(args));
       break;
+    case 'audit':
+      await import('./cli-audit.js').then((m) => m.run(args));
+      break;
     case 'help':
       if (positionals[1]) {
         // Show help for specific command
@@ -85,6 +92,9 @@ async function main() {
             break;
           case 'compat':
             await import('./compat/cli.js').then((m) => m.run(args));
+            break;
+          case 'audit':
+            await import('./cli-audit.js').then((m) => m.run(args));
             break;
           default:
             console.error(`Unknown command: ${positionals[1]}`);
