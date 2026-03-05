@@ -384,7 +384,7 @@ function protobufNestedSerialize(): Uint8Array {
 }
 
 function protobufNestedDeserialize(data: Uint8Array): void {
-  const decoded = NestedStruct.decode(data);
+  const decoded = NestedStruct.decode(data) as any;
   void decoded.value;
   void decoded.child?.value;
   void decoded.child?.grandchild?.value;
@@ -428,7 +428,7 @@ function protobufSmallListSerialize(): Uint8Array {
 }
 
 function protobufSmallListDeserialize(data: Uint8Array): void {
-  const decoded = ListStruct.decode(data);
+  const decoded = ListStruct.decode(data) as any;
   for (const item of decoded.items) void item;
 }
 
@@ -470,7 +470,7 @@ function protobufLargeListSerialize(): Uint8Array {
 }
 
 function protobufLargeListDeserialize(data: Uint8Array): void {
-  const decoded = ListStruct.decode(data);
+  const decoded = ListStruct.decode(data) as any;
   for (const item of decoded.items) void item;
 }
 

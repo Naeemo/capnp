@@ -406,12 +406,12 @@ export class AuditReader {
         break;
       }
 
-      case PointerTag.CAPABILITY:
-        // Capability 指针在序列化消息中不应出现
+      case PointerTag.OTHER:
+        // Capability 指针或其他特殊类型在序列化消息中不应出现
         this.addIssue(
           'warning',
           'capability_in_message',
-          '序列化消息中发现 Capability 指针',
+          '序列化消息中发现 Capability 或其他特殊指针',
           `segment[${segmentIndex}].word[${wordOffset}]`,
           'Capability 通常不应在序列化消息中'
         );
