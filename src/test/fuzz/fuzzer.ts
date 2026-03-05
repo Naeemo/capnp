@@ -570,7 +570,7 @@ export class CapnpFuzzer {
   /**
    * 测试单个输入
    */
-  private testInput(input: Uint8Array, strategy: MutationStrategy): FuzzResult {
+  public testInput(input: Uint8Array, strategy: MutationStrategy): FuzzResult {
     const result: FuzzResult = {
       input,
       strategy,
