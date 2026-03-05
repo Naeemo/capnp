@@ -4,12 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import {
-  ElementSize,
-  MessageBuilder,
-  MessageReader,
-  StructBuilder,
-} from '../index.js';
+import { ElementSize, MessageBuilder, MessageReader, StructBuilder } from '../index.js';
 
 describe('List Comprehensive Tests', () => {
   describe('BIT Element Size', () => {
@@ -259,7 +254,7 @@ describe('List Comprehensive Tests', () => {
 
     it('should return undefined for null list pointer', () => {
       const builder = new MessageBuilder();
-      const root = builder.initRoot(0, 1);
+      const _root = builder.initRoot(0, 1);
       // 不初始化列表
 
       const buffer = builder.toArrayBuffer();

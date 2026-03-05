@@ -4,6 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { encodeFarPointer } from '../core/pointer.js';
 import {
   ElementSize,
   MessageBuilder,
@@ -12,7 +13,6 @@ import {
   decodePointer,
   encodeStructPointer,
 } from '../index.js';
-import { encodeFarPointer } from '../core/pointer.js';
 
 describe('Far Pointer Tests', () => {
   /**

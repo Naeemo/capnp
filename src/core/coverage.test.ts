@@ -63,7 +63,7 @@ describe('Core Module Coverage Tests', () => {
     it('should throw RangeError for out of bounds index in getPrimitive', () => {
       const builder = new MessageBuilder();
       const root = builder.initRoot(0, 1);
-      const list = root.initList<number>(0, ElementSize.FOUR_BYTES, 3);
+      const _list = root.initList<number>(0, ElementSize.FOUR_BYTES, 3);
 
       const buffer = builder.toArrayBuffer();
       const reader = new MessageReader(buffer);
@@ -177,9 +177,9 @@ describe('Core Module Coverage Tests', () => {
       view.setUint32(0, 0, true); // 单段
       view.setUint32(4, 0xffffffff, true); // 巨大的段大小
 
-      expect(() =>
-        new MessageReader(buffer, { strictMode: true, maxTotalSize: 1024 })
-      ).toThrow('Total message size');
+      expect(() => new MessageReader(buffer, { strictMode: true, maxTotalSize: 1024 })).toThrow(
+        'Total message size'
+      );
     });
 
     it('should handle message that ends prematurely', () => {
@@ -301,7 +301,7 @@ describe('Core Module Coverage Tests', () => {
 
     it('should return undefined for null data pointer', () => {
       const builder = new MessageBuilder();
-      const root = builder.initRoot(0, 1);
+      const _root = builder.initRoot(0, 1);
       // 不设置数据，指针为 null
 
       const buffer = builder.toArrayBuffer();
@@ -325,7 +325,7 @@ describe('Core Module Coverage Tests', () => {
 
     it('should handle null text pointer', () => {
       const builder = new MessageBuilder();
-      const root = builder.initRoot(0, 1);
+      const _root = builder.initRoot(0, 1);
       // 不设置文本
 
       const buffer = builder.toArrayBuffer();
