@@ -3,16 +3,16 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { CapnpFuzzer, MutationStrategy, runFuzzing } from './fuzzer.js';
-import { AuditReader } from '../security/audit-reader.js';
 import { MessageReader } from '../../core/message-reader.js';
+import { AuditReader } from '../security/audit-reader.js';
+import { CapnpFuzzer, MutationStrategy, runFuzzing } from './fuzzer.js';
 
 describe('Fuzzing', () => {
   it('should generate valid seed messages', () => {
     const fuzzer = new CapnpFuzzer();
 
     for (let i = 0; i < 10; i++) {
-      const seed = fuzzer['generateSeed']();
+      const seed = fuzzer.generateSeed();
       expect(seed).toBeInstanceOf(Uint8Array);
       expect(seed.length).toBeGreaterThan(0);
     }
@@ -20,9 +20,9 @@ describe('Fuzzing', () => {
 
   it('should apply mutations without crashing', () => {
     const fuzzer = new CapnpFuzzer();
-    const seed = fuzzer['generateSeed']();
+    const seed = fuzzer.generateSeed();
 
-    for (const strategy of Object.values(MutationStrategy)) {
+    for (const _strategy of Object.values(MutationStrategy)) {
       const { output, strategy: appliedStrategy } = fuzzer.mutate(seed);
       expect(output).toBeInstanceOf(Uint8Array);
       expect(Object.values(MutationStrategy)).toContain(appliedStrategy);

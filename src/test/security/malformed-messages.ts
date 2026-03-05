@@ -3,7 +3,7 @@
  * 用于安全测试的各种恶意构造消息
  */
 
-import { encodeStructPointer, encodeFarPointer, PointerTag } from '../../core/pointer.js';
+import { PointerTag, encodeFarPointer, encodeStructPointer } from '../../core/pointer.js';
 
 /**
  * 畸形消息类型
@@ -25,13 +25,14 @@ export enum MalformedType {
 
 /**
  * 畸形消息生成器
+ * 避免 class 只包含 static 成员，改用 namespace
  */
-export class MalformedMessageGenerator {
+export namespace MalformedMessageGenerator {
   /**
    * 超大段数（>64）
    * Cap'n Proto 协议规定段数最多为 2^32，但实践中通常限制在较小范围
    */
-  static tooManySegments(segmentCount: number = 100): ArrayBuffer {
+  export function tooManySegments(segmentCount = 100): ArrayBuffer {
     const buffer = new ArrayBuffer(8 + segmentCount * 4);
     const view = new DataView(buffer);
 
@@ -50,13 +51,13 @@ export class MalformedMessageGenerator {
   /**
    * 段大小超过消息总大小
    */
-  static segmentSizeExceedsMessage(): ArrayBuffer {
+  export function segmentSizeExceedsMessage(): ArrayBuffer {
     const buffer = new ArrayBuffer(16);
     const view = new DataView(buffer);
 
     // Header: 1 segment, size = 0xFFFFFFFF (远大于实际大小)
     view.setUint32(0, 0, true);
-    view.setUint32(4, 0xFFFFFFFF, true);
+    view.setUint32(4, 0xffffffff, true);
 
     // 一个假的根指针
     view.setBigUint64(8, 0n, true);
@@ -68,7 +69,7 @@ export class MalformedMessageGenerator {
    * 负值指针偏移
    * 创建一个指向消息开始之前的指针
    */
-  static negativePointerOffset(): ArrayBuffer {
+  export function negativePointerOffset(): ArrayBuffer {
     const buffer = new ArrayBuffer(24);
     const view = new DataView(buffer);
 
@@ -78,12 +79,12 @@ export class MalformedMessageGenerator {
 
     // Struct pointer with negative offset (-1)
     // Offset field: 0x3FFFFFFF (max negative when interpreted as signed 30-bit)
-    const negativeOffset = 0x3FFFFFFF;
+    const negativeOffset = 0x3fffffff;
     const ptr = (BigInt(negativeOffset) << BigInt(2)) | BigInt(PointerTag.STRUCT);
     view.setBigUint64(8, ptr, true);
 
     // 一些数据
-    view.setUint32(16, 0xDEADBEEF, true);
+    view.setUint32(16, 0xdeadbeef, true);
 
     return buffer;
   }
@@ -92,7 +93,7 @@ export class MalformedMessageGenerator {
    * 循环 Far Pointer
    * 创建一个指向自己的 far pointer
    */
-  static circularFarPointer(): ArrayBuffer {
+  export function circularFarPointer(): ArrayBuffer {
     const buffer = new ArrayBuffer(48);
     const view = new DataView(buffer);
 
@@ -117,7 +118,7 @@ export class MalformedMessageGenerator {
    * 跨段循环 Far Pointer
    * segment 0 -> segment 1 -> segment 0
    */
-  static crossSegmentCircularFarPointer(): ArrayBuffer {
+  export function crossSegmentCircularFarPointer(): ArrayBuffer {
     const buffer = new ArrayBuffer(48);
     const view = new DataView(buffer);
 
@@ -143,7 +144,7 @@ export class MalformedMessageGenerator {
   /**
    * Double-far 循环
    */
-  static doubleFarCircular(): ArrayBuffer {
+  export function doubleFarCircular(): ArrayBuffer {
     const buffer = new ArrayBuffer(64);
     const view = new DataView(buffer);
 
@@ -173,7 +174,7 @@ export class MalformedMessageGenerator {
   /**
    * 深度嵌套结构（>100层）
    */
-  static deepNesting(depth: number = 101): ArrayBuffer {
+  export function deepNesting(depth = 101): ArrayBuffer {
     // 每层的开销：1个指针指向下一层 + 1个结构体
     // 结构体大小：dataWords=0, pointerCount=1
     // 每层需要2个字：1个指针 + 1个landing pad
@@ -214,14 +215,14 @@ export class MalformedMessageGenerator {
   /**
    * 零长度消息
    */
-  static zeroLengthMessage(): ArrayBuffer {
+  export function zeroLengthMessage(): ArrayBuffer {
     return new ArrayBuffer(0);
   }
 
   /**
    * 极小消息（小于头部大小）
    */
-  static truncatedHeader(): ArrayBuffer {
+  export function truncatedHeader(): ArrayBuffer {
     const buffer = new ArrayBuffer(4);
     const view = new DataView(buffer);
     view.setUint32(0, 0, true);
@@ -231,7 +232,7 @@ export class MalformedMessageGenerator {
   /**
    * 无效的 far pointer 段索引
    */
-  static invalidFarPointerSegment(): ArrayBuffer {
+  export function invalidFarPointerSegment(): ArrayBuffer {
     const buffer = new ArrayBuffer(32);
     const view = new DataView(buffer);
 
@@ -252,7 +253,7 @@ export class MalformedMessageGenerator {
   /**
    * 巨大的 struct pointer（声称有大量数据）
    */
-  static hugeStructPointer(): ArrayBuffer {
+  export function hugeStructPointer(): ArrayBuffer {
     const buffer = new ArrayBuffer(24);
     const view = new DataView(buffer);
 
@@ -262,7 +263,8 @@ export class MalformedMessageGenerator {
 
     // Struct pointer claiming 0xFFFF data words and 0xFFFF pointer count
     // This would require a huge amount of memory
-    const ptr = (BigInt(0xFFFF) << BigInt(32)) | (BigInt(0xFFFF) << BigInt(48)) | BigInt(PointerTag.STRUCT);
+    const ptr =
+      (BigInt(0xffff) << BigInt(32)) | (BigInt(0xffff) << BigInt(48)) | BigInt(PointerTag.STRUCT);
     view.setBigUint64(8, ptr, true);
 
     return buffer;
@@ -271,7 +273,7 @@ export class MalformedMessageGenerator {
   /**
    * 重叠的指针（两个指针指向同一位置）
    */
-  static overlappingPointers(): ArrayBuffer {
+  export function overlappingPointers(): ArrayBuffer {
     const buffer = new ArrayBuffer(48);
     const view = new DataView(buffer);
 
@@ -298,7 +300,7 @@ export class MalformedMessageGenerator {
   /**
    * 未对齐的段数（导致头部未对齐到8字节）
    */
-  static unalignedSegmentCount(): ArrayBuffer {
+  export function unalignedSegmentCount(): ArrayBuffer {
     // Header: 8 + (3-1)*4 = 16 bytes, then padded to 16
     // Segment data: 3 segments * 1 word * 8 bytes = 24 bytes
     const buffer = new ArrayBuffer(40); // 16 + 24
@@ -327,7 +329,7 @@ export class MalformedMessageGenerator {
   /**
    * 负段大小（最高位被设置）
    */
-  static negativeSegmentSize(): ArrayBuffer {
+  export function negativeSegmentSize(): ArrayBuffer {
     const buffer = new ArrayBuffer(16);
     const view = new DataView(buffer);
 
@@ -341,52 +343,58 @@ export class MalformedMessageGenerator {
   /**
    * 生成所有类型的畸形消息
    */
-  static generateAll(): Map<MalformedType, ArrayBuffer> {
+  export function generateAll(): Map<MalformedType, ArrayBuffer> {
     return new Map([
-      [MalformedType.TOO_MANY_SEGMENTS, this.tooManySegments()],
-      [MalformedType.SEGMENT_SIZE_EXCEEDS_MESSAGE, this.segmentSizeExceedsMessage()],
-      [MalformedType.NEGATIVE_POINTER_OFFSET, this.negativePointerOffset()],
-      [MalformedType.CIRCULAR_FAR_POINTER, this.circularFarPointer()],
-      [MalformedType.DEEP_NESTING, this.deepNesting()],
-      [MalformedType.ZERO_LENGTH_MESSAGE, this.zeroLengthMessage()],
-      [MalformedType.TRUNCATED_HEADER, this.truncatedHeader()],
-      [MalformedType.INVALID_FAR_POINTER_SEGMENT, this.invalidFarPointerSegment()],
-      [MalformedType.HUGE_STRUCT_POINTER, this.hugeStructPointer()],
-      [MalformedType.OVERLAPPING_POINTERS, this.overlappingPointers()],
-      [MalformedType.UNALIGNED_SEGMENT_COUNT, this.unalignedSegmentCount()],
-      [MalformedType.NEGATIVE_SEGMENT_SIZE, this.negativeSegmentSize()],
+      [MalformedType.TOO_MANY_SEGMENTS, MalformedMessageGenerator.tooManySegments()],
+      [
+        MalformedType.SEGMENT_SIZE_EXCEEDS_MESSAGE,
+        MalformedMessageGenerator.segmentSizeExceedsMessage(),
+      ],
+      [MalformedType.NEGATIVE_POINTER_OFFSET, MalformedMessageGenerator.negativePointerOffset()],
+      [MalformedType.CIRCULAR_FAR_POINTER, MalformedMessageGenerator.circularFarPointer()],
+      [MalformedType.DEEP_NESTING, MalformedMessageGenerator.deepNesting()],
+      [MalformedType.ZERO_LENGTH_MESSAGE, MalformedMessageGenerator.zeroLengthMessage()],
+      [MalformedType.TRUNCATED_HEADER, MalformedMessageGenerator.truncatedHeader()],
+      [
+        MalformedType.INVALID_FAR_POINTER_SEGMENT,
+        MalformedMessageGenerator.invalidFarPointerSegment(),
+      ],
+      [MalformedType.HUGE_STRUCT_POINTER, MalformedMessageGenerator.hugeStructPointer()],
+      [MalformedType.OVERLAPPING_POINTERS, MalformedMessageGenerator.overlappingPointers()],
+      [MalformedType.UNALIGNED_SEGMENT_COUNT, MalformedMessageGenerator.unalignedSegmentCount()],
+      [MalformedType.NEGATIVE_SEGMENT_SIZE, MalformedMessageGenerator.negativeSegmentSize()],
     ]);
   }
 
   /**
    * 生成特定类型的畸形消息
    */
-  static generate(type: MalformedType, ...args: unknown[]): ArrayBuffer {
+  export function generate(type: MalformedType, ...args: unknown[]): ArrayBuffer {
     switch (type) {
       case MalformedType.TOO_MANY_SEGMENTS:
-        return this.tooManySegments(args[0] as number);
+        return MalformedMessageGenerator.tooManySegments(args[0] as number);
       case MalformedType.SEGMENT_SIZE_EXCEEDS_MESSAGE:
-        return this.segmentSizeExceedsMessage();
+        return MalformedMessageGenerator.segmentSizeExceedsMessage();
       case MalformedType.NEGATIVE_POINTER_OFFSET:
-        return this.negativePointerOffset();
+        return MalformedMessageGenerator.negativePointerOffset();
       case MalformedType.CIRCULAR_FAR_POINTER:
-        return this.circularFarPointer();
+        return MalformedMessageGenerator.circularFarPointer();
       case MalformedType.DEEP_NESTING:
-        return this.deepNesting(args[0] as number);
+        return MalformedMessageGenerator.deepNesting(args[0] as number);
       case MalformedType.ZERO_LENGTH_MESSAGE:
-        return this.zeroLengthMessage();
+        return MalformedMessageGenerator.zeroLengthMessage();
       case MalformedType.TRUNCATED_HEADER:
-        return this.truncatedHeader();
+        return MalformedMessageGenerator.truncatedHeader();
       case MalformedType.INVALID_FAR_POINTER_SEGMENT:
-        return this.invalidFarPointerSegment();
+        return MalformedMessageGenerator.invalidFarPointerSegment();
       case MalformedType.HUGE_STRUCT_POINTER:
-        return this.hugeStructPointer();
+        return MalformedMessageGenerator.hugeStructPointer();
       case MalformedType.OVERLAPPING_POINTERS:
-        return this.overlappingPointers();
+        return MalformedMessageGenerator.overlappingPointers();
       case MalformedType.UNALIGNED_SEGMENT_COUNT:
-        return this.unalignedSegmentCount();
+        return MalformedMessageGenerator.unalignedSegmentCount();
       case MalformedType.NEGATIVE_SEGMENT_SIZE:
-        return this.negativeSegmentSize();
+        return MalformedMessageGenerator.negativeSegmentSize();
       default:
         throw new Error(`Unknown malformed type: ${type}`);
     }

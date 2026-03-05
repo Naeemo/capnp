@@ -3,7 +3,13 @@
  * 支持多种 payload 大小、结构复杂度和列表类型
  */
 
-import { MessageBuilder, MessageReader, StructBuilder, StructReader, ElementSize } from '../index.js';
+import {
+  ElementSize,
+  MessageBuilder,
+  MessageReader,
+  StructBuilder,
+  StructReader,
+} from '../index.js';
 
 // ============================================================================
 // 类型定义
@@ -114,14 +120,6 @@ function average(values: number[]): number {
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-/** 计算标准差 */
-function stdDev(values: number[]): number {
-  if (values.length < 2) return 0;
-  const avg = average(values);
-  const variance = values.reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) / values.length;
-  return Math.sqrt(variance);
-}
-
 // ============================================================================
 // 测试数据生成器
 // ============================================================================
@@ -138,8 +136,8 @@ function generateString(size: number): string {
 
 /** Payload 大小定义 */
 export const PAYLOAD_SIZES = {
-  tiny: 64,      // 64B
-  small: 1024,   // 1KB
+  tiny: 64, // 64B
+  small: 1024, // 1KB
   medium: 10240, // 10KB
   large: 102400, // 100KB
   huge: 1048576, // 1MB
@@ -193,7 +191,7 @@ function readNestedStruct(reader: MessageReader): void {
 function createDeepStruct(builder: MessageBuilder): ArrayBuffer {
   const root = builder.initRoot(1, 1);
   root.setInt32(0, 1);
-  
+
   let current = root;
   for (let i = 0; i < 4; i++) {
     const next = current.initStruct(0, 1, 1);
@@ -206,7 +204,7 @@ function createDeepStruct(builder: MessageBuilder): ArrayBuffer {
 function readDeepStruct(reader: MessageReader): void {
   const root = reader.getRoot(1, 1);
   root.getInt32(0);
-  
+
   let current = root.getStruct(0, 1, 1);
   while (current) {
     current.getInt32(0);
@@ -296,20 +294,20 @@ function runSingleBenchmark(
 } {
   const serializeLatencies: number[] = [];
   const deserializeLatencies: number[] = [];
-  
+
   // Warm-up 阶段
   for (let i = 0; i < config.warmUpIterations; i++) {
     const buffer = serialize();
     deserialize(buffer);
   }
-  
+
   // 测量内存基线
   const memoryBefore = config.measureMemory ? getMemoryUsage() : 0;
   const gcBefore = config.measureGCPressure ? getGCStats() : { count: 0, time: 0 };
-  
+
   // 运行测试
   const buffers: ArrayBuffer[] = [];
-  
+
   // 序列化测试
   for (let i = 0; i < config.runIterations; i++) {
     const start = nowUs();
@@ -318,7 +316,7 @@ function runSingleBenchmark(
     serializeLatencies.push(end - start);
     buffers.push(buffer);
   }
-  
+
   // 反序列化测试
   for (let i = 0; i < config.runIterations; i++) {
     const start = nowUs();
@@ -326,11 +324,11 @@ function runSingleBenchmark(
     const end = nowUs();
     deserializeLatencies.push(end - start);
   }
-  
+
   // 计算 GC 和内存
   const gcAfter = config.measureGCPressure ? getGCStats() : { count: 0, time: 0 };
   const memoryAfter = config.measureMemory ? getMemoryUsage() : 0;
-  
+
   return {
     serializeLatencies,
     deserializeLatencies,
@@ -355,14 +353,14 @@ export function runBenchmark(
   } = {}
 ): BenchmarkResult {
   const fullConfig = { ...defaultConfig, ...config };
-  
+
   // 多次采样
   const allSerializeLatencies: number[] = [];
   const allDeserializeLatencies: number[] = [];
   let totalGCCount = 0;
   let totalMemoryDelta = 0;
   let dataSize = 0;
-  
+
   for (let s = 0; s < fullConfig.sampleCount; s++) {
     const result = runSingleBenchmark(serialize, deserialize, fullConfig);
     allSerializeLatencies.push(...result.serializeLatencies);
@@ -371,22 +369,22 @@ export function runBenchmark(
     totalMemoryDelta += result.memoryDelta;
     dataSize = result.dataSize;
   }
-  
+
   // 计算统计数据
-  const sortedSerialize = [...allSerializeLatencies].sort((a, b) => a - b);
-  const sortedDeserialize = [...allDeserializeLatencies].sort((a, b) => a - b);
+  const _sortedSerialize = [...allSerializeLatencies].sort((a, b) => a - b);
+  const _sortedDeserialize = [...allDeserializeLatencies].sort((a, b) => a - b);
   const allLatencies = [...allSerializeLatencies, ...allDeserializeLatencies].sort((a, b) => a - b);
-  
+
   const serializeAvg = average(allSerializeLatencies);
   const deserializeAvg = average(allDeserializeLatencies);
   const totalAvg = serializeAvg + deserializeAvg;
-  
+
   const serializeOps = 1000000 / serializeAvg;
   const deserializeOps = 1000000 / deserializeAvg;
   const totalOps = 1000000 / totalAvg;
-  
+
   const totalIterations = fullConfig.runIterations * fullConfig.sampleCount;
-  
+
   return {
     name,
     payloadSize: metadata.payloadSize || dataSize,
@@ -411,11 +409,9 @@ export function runBenchmark(
 // ============================================================================
 
 /** 不同 payload 大小的测试 */
-export function runPayloadSizeBenchmarks(
-  config: Partial<BenchmarkConfig> = {}
-): BenchmarkResult[] {
+export function runPayloadSizeBenchmarks(config: Partial<BenchmarkConfig> = {}): BenchmarkResult[] {
   const results: BenchmarkResult[] = [];
-  
+
   for (const [sizeName, size] of Object.entries(PAYLOAD_SIZES)) {
     // 文本 payload 测试
     results.push(
@@ -430,7 +426,7 @@ export function runPayloadSizeBenchmarks(
         { payloadSize: size, structComplexity: 'simple' }
       )
     );
-    
+
     // 原始列表 payload 测试
     const listCount = Math.floor(size / 4);
     results.push(
@@ -446,16 +442,14 @@ export function runPayloadSizeBenchmarks(
       )
     );
   }
-  
+
   return results;
 }
 
 /** 不同结构复杂度的测试 */
-export function runComplexityBenchmarks(
-  config: Partial<BenchmarkConfig> = {}
-): BenchmarkResult[] {
+export function runComplexityBenchmarks(config: Partial<BenchmarkConfig> = {}): BenchmarkResult[] {
   const results: BenchmarkResult[] = [];
-  
+
   // 简单结构
   results.push(
     runBenchmark(
@@ -469,7 +463,7 @@ export function runComplexityBenchmarks(
       { payloadSize: 16, structComplexity: 'simple' }
     )
   );
-  
+
   // 嵌套结构
   results.push(
     runBenchmark(
@@ -483,7 +477,7 @@ export function runComplexityBenchmarks(
       { payloadSize: 48, structComplexity: 'nested' }
     )
   );
-  
+
   // 深层结构
   results.push(
     runBenchmark(
@@ -497,17 +491,15 @@ export function runComplexityBenchmarks(
       { payloadSize: 80, structComplexity: 'deep' }
     )
   );
-  
+
   return results;
 }
 
 /** 列表类型测试 */
-export function runListTypeBenchmarks(
-  config: Partial<BenchmarkConfig> = {}
-): BenchmarkResult[] {
+export function runListTypeBenchmarks(config: Partial<BenchmarkConfig> = {}): BenchmarkResult[] {
   const results: BenchmarkResult[] = [];
   const counts = [10, 100, 1000, 10000];
-  
+
   for (const count of counts) {
     // 原始类型列表
     results.push(
@@ -522,7 +514,7 @@ export function runListTypeBenchmarks(
         { payloadSize: count * 4, structComplexity: 'simple', listType: 'primitive' }
       )
     );
-    
+
     // 结构体列表
     results.push(
       runBenchmark(
@@ -537,7 +529,7 @@ export function runListTypeBenchmarks(
       )
     );
   }
-  
+
   return results;
 }
 
@@ -567,44 +559,38 @@ export function printBenchmarkResult(result: BenchmarkResult): void {
   console.log(`  列表类型:          ${result.listType || 'N/A'}`);
   console.log(`  数据大小:          ${formatBytes(result.dataSize)}`);
   console.log(`  样本数:            ${formatNumber(result.samples)}`);
-  console.log(`  ─────────────────────────────────────────`);
+  console.log('  ─────────────────────────────────────────');
   console.log(`  总吞吐量:          ${formatNumber(result.operationsPerSecond)} ops/sec`);
   console.log(`  序列化吞吐量:      ${formatNumber(result.serializeOpsPerSecond)} ops/sec`);
   console.log(`  反序列化吞吐量:    ${formatNumber(result.deserializeOpsPerSecond)} ops/sec`);
-  console.log(`  ─────────────────────────────────────────`);
+  console.log('  ─────────────────────────────────────────');
   console.log(`  平均延迟:          ${formatNumber(result.avgLatency)} μs`);
   console.log(`  P99 延迟:          ${formatNumber(result.p99Latency)} μs`);
   console.log(`  序列化平均延迟:    ${formatNumber(result.serializeAvgLatency)} μs`);
   console.log(`  反序列化平均延迟:  ${formatNumber(result.deserializeAvgLatency)} μs`);
-  console.log(`  ─────────────────────────────────────────`);
+  console.log('  ─────────────────────────────────────────');
   console.log(`  内存使用:          ${formatBytes(result.memoryUsed)}`);
   console.log(`  GC 压力:           ${formatNumber(result.gcPressure)} GC/1000 ops`);
 }
 
 /** 打印结果表格 */
 export function printBenchmarkTable(results: BenchmarkResult[]): void {
-  console.log('\n' + '='.repeat(120));
+  console.log(`\n${'='.repeat(120)}`);
   console.log('基准测试结果汇总');
   console.log('='.repeat(120));
   console.log(
     `${'测试名称'.padEnd(30)} ${'Payload'.padEnd(10)} ${'复杂度'.padEnd(8)} ` +
-    `${'吞吐量(ops/s)'.padEnd(15)} ${'平均延迟(μs)'.padEnd(12)} ${'P99延迟(μs)'.padEnd(12)} ` +
-    `${'GC压力'.padEnd(10)}`
+      `${'吞吐量(ops/s)'.padEnd(15)} ${'平均延迟(μs)'.padEnd(12)} ${'P99延迟(μs)'.padEnd(12)} ` +
+      `${'GC压力'.padEnd(10)}`
   );
   console.log('-'.repeat(120));
-  
+
   for (const r of results) {
     console.log(
-      `${r.name.slice(0, 29).padEnd(30)} ` +
-      `${formatBytes(r.payloadSize).padEnd(10)} ` +
-      `${r.structComplexity.padEnd(8)} ` +
-      `${formatNumber(Math.round(r.operationsPerSecond)).padEnd(15)} ` +
-      `${formatNumber(r.avgLatency).padEnd(12)} ` +
-      `${formatNumber(r.p99Latency).padEnd(12)} ` +
-      `${r.gcPressure.toFixed(2)}/1000`.padEnd(10)
+      `${r.name.slice(0, 29).padEnd(30)} ${formatBytes(r.payloadSize).padEnd(10)} ${r.structComplexity.padEnd(8)} ${formatNumber(Math.round(r.operationsPerSecond)).padEnd(15)} ${formatNumber(r.avgLatency).padEnd(12)} ${formatNumber(r.p99Latency).padEnd(12)} ${`${r.gcPressure.toFixed(2)}/1000`.padEnd(10)}`
     );
   }
-  
+
   console.log('='.repeat(120));
 }
 
@@ -616,20 +602,42 @@ export function exportResults(results: BenchmarkResult[]): string {
 /** 导出结果为 CSV */
 export function exportResultsCSV(results: BenchmarkResult[]): string {
   const headers = [
-    'name', 'payloadSize', 'structComplexity', 'listType',
-    'operationsPerSecond', 'serializeOpsPerSecond', 'deserializeOpsPerSecond',
-    'avgLatency', 'p99Latency', 'serializeAvgLatency', 'deserializeAvgLatency',
-    'memoryUsed', 'gcPressure', 'dataSize', 'samples'
+    'name',
+    'payloadSize',
+    'structComplexity',
+    'listType',
+    'operationsPerSecond',
+    'serializeOpsPerSecond',
+    'deserializeOpsPerSecond',
+    'avgLatency',
+    'p99Latency',
+    'serializeAvgLatency',
+    'deserializeAvgLatency',
+    'memoryUsed',
+    'gcPressure',
+    'dataSize',
+    'samples',
   ];
-  
-  const rows = results.map(r => [
-    r.name, r.payloadSize, r.structComplexity, r.listType || 'none',
-    r.operationsPerSecond, r.serializeOpsPerSecond, r.deserializeOpsPerSecond,
-    r.avgLatency, r.p99Latency, r.serializeAvgLatency, r.deserializeAvgLatency,
-    r.memoryUsed, r.gcPressure, r.dataSize, r.samples
+
+  const rows = results.map((r) => [
+    r.name,
+    r.payloadSize,
+    r.structComplexity,
+    r.listType || 'none',
+    r.operationsPerSecond,
+    r.serializeOpsPerSecond,
+    r.deserializeOpsPerSecond,
+    r.avgLatency,
+    r.p99Latency,
+    r.serializeAvgLatency,
+    r.deserializeAvgLatency,
+    r.memoryUsed,
+    r.gcPressure,
+    r.dataSize,
+    r.samples,
   ]);
-  
-  return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+
+  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
 }
 
 // ============================================================================
@@ -640,37 +648,39 @@ export function exportResultsCSV(results: BenchmarkResult[]): string {
 export function runComprehensiveBenchmarks(
   config: Partial<BenchmarkConfig> = {}
 ): BenchmarkResult[] {
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log("   Cap'n Proto 全面性能基准测试套件");
   console.log('='.repeat(60));
-  console.log(`配置: 预热=${config.warmUpIterations ?? defaultConfig.warmUpIterations}次, ` +
-              `运行=${config.runIterations ?? defaultConfig.runIterations}次, ` +
-              `采样=${config.sampleCount ?? defaultConfig.sampleCount}次`);
+  console.log(
+    `配置: 预热=${config.warmUpIterations ?? defaultConfig.warmUpIterations}次, ` +
+      `运行=${config.runIterations ?? defaultConfig.runIterations}次, ` +
+      `采样=${config.sampleCount ?? defaultConfig.sampleCount}次`
+  );
   console.log('='.repeat(60));
-  
+
   const allResults: BenchmarkResult[] = [];
-  
+
   // 1. 结构复杂度测试
   console.log('\n📦 运行结构复杂度测试...');
   const complexityResults = runComplexityBenchmarks(config);
   complexityResults.forEach(printBenchmarkResult);
   allResults.push(...complexityResults);
-  
+
   // 2. Payload 大小测试
   console.log('\n📊 运行 Payload 大小测试...');
   const payloadResults = runPayloadSizeBenchmarks(config);
   payloadResults.forEach(printBenchmarkResult);
   allResults.push(...payloadResults);
-  
+
   // 3. 列表类型测试
   console.log('\n📋 运行列表类型测试...');
   const listResults = runListTypeBenchmarks(config);
   listResults.forEach(printBenchmarkResult);
   allResults.push(...listResults);
-  
+
   // 汇总表格
   printBenchmarkTable(allResults);
-  
+
   return allResults;
 }
 
@@ -681,6 +691,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     runIterations: 1000,
     sampleCount: 3,
   };
-  
+
   runComprehensiveBenchmarks(quickConfig);
 }

@@ -50,7 +50,10 @@ export class MessageReader {
     this.segments = [];
 
     // 检查消息总大小限制
-    if (this.securityOptions.strictMode && uint8Array.byteLength > this.securityOptions.maxTotalSize) {
+    if (
+      this.securityOptions.strictMode &&
+      uint8Array.byteLength > this.securityOptions.maxTotalSize
+    ) {
       throw new Error(
         `Message size (${uint8Array.byteLength} bytes) exceeds maximum allowed size (${this.securityOptions.maxTotalSize} bytes)`
       );
@@ -123,7 +126,7 @@ export class MessageReader {
       totalBodySize += size * WORD_SIZE;
     }
     const expectedTotalSize = headerSize + totalBodySize;
-    
+
     if (expectedTotalSize > this.securityOptions.maxTotalSize) {
       if (this.securityOptions.strictMode) {
         throw new Error(
@@ -142,7 +145,7 @@ export class MessageReader {
         if (this.securityOptions.strictMode) {
           throw new Error(
             `Insufficient data for segment (expected ${size * WORD_SIZE} bytes at offset ${offset}, ` +
-            `but message is ${uint8Array.byteLength} bytes)`
+              `but message is ${uint8Array.byteLength} bytes)`
           );
         }
         // 官方实现：返回已读取的部分

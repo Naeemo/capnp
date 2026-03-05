@@ -7,9 +7,9 @@ import { describe, expect, it } from 'vitest';
 import { MessageReader } from '../../core/message-reader.js';
 import { AuditReader, SecurityIssueType, Severity } from './audit-reader.js';
 import {
+  DEFAULT_SECURITY_OPTIONS,
   MalformedMessageGenerator,
   MalformedType,
-  DEFAULT_SECURITY_OPTIONS,
 } from './malformed-messages.js';
 
 describe('Security Tests', () => {
@@ -92,7 +92,7 @@ describe('Security Tests', () => {
       const reader = new MessageReader(buffer);
       expect(reader.segmentCount).toBe(1);
       // Should handle without allocating huge memory
-      expect(() => reader.getRoot(0xFFFF, 0xFFFF)).not.toThrow();
+      expect(() => reader.getRoot(0xffff, 0xffff)).not.toThrow();
     });
 
     it('should handle overlapping pointers', () => {
@@ -211,9 +211,9 @@ describe('Security Tests', () => {
 
       const lenientAuditor = new AuditReader({ maxSegmentCount: 100 });
       const lenientResult = lenientAuditor.audit(buffer);
-      expect(
-        lenientResult.issues.some((i) => i.type === SecurityIssueType.TOO_MANY_SEGMENTS)
-      ).toBe(false);
+      expect(lenientResult.issues.some((i) => i.type === SecurityIssueType.TOO_MANY_SEGMENTS)).toBe(
+        false
+      );
     });
 
     it('should provide accurate statistics', async () => {
@@ -236,7 +236,7 @@ describe('Security Tests', () => {
       const buffer = MalformedMessageGenerator.generateAll();
       const auditor = new AuditReader();
 
-      for (const [type, msgBuffer] of buffer) {
+      for (const [_type, msgBuffer] of buffer) {
         const result = auditor.audit(msgBuffer);
         for (const issue of result.issues) {
           expect(Object.values(Severity)).toContain(issue.severity);
@@ -289,7 +289,7 @@ describe('Security Tests', () => {
       const messages = MalformedMessageGenerator.generateAll();
       const auditor = new AuditReader();
 
-      for (const [type, buffer] of messages) {
+      for (const [_type, buffer] of messages) {
         // Each malformed message should either be detected as invalid or handled gracefully
         expect(() => {
           const result = auditor.audit(buffer);

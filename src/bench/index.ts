@@ -1,13 +1,13 @@
 /**
  * 基准测试套件入口
- * 
+ *
  * 使用示例:
  * ```ts
  * import { runComprehensiveBenchmarks, runPayloadSizeBenchmarks } from './bench/index.js';
- * 
+ *
  * // 运行完整基准测试套件
  * const results = runComprehensiveBenchmarks();
- * 
+ *
  * // 运行特定测试
  * const payloadResults = runPayloadSizeBenchmarks({
  *   warmUpIterations: 1000,
@@ -25,17 +25,14 @@ export {
   runPayloadSizeBenchmarks,
   runComplexityBenchmarks,
   runListTypeBenchmarks,
-  
   // 工具函数
   printBenchmarkResult,
   printBenchmarkTable,
   exportResults,
   exportResultsCSV,
-  
   // 常量
   PAYLOAD_SIZES,
   defaultConfig,
-  
   // 类型
   type BenchmarkResult,
   type BenchmarkConfig,

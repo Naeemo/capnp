@@ -89,10 +89,7 @@ export class AuditReader {
   private pointersScanned = 0;
   private maxNestingDepth = 0;
 
-  constructor(
-    buffer: ArrayBuffer | Uint8Array,
-    options: AuditSecurityOptions = {}
-  ) {
+  constructor(buffer: ArrayBuffer | Uint8Array, options: AuditSecurityOptions = {}) {
     this.options = { ...DEFAULT_AUDIT_OPTIONS, ...options };
     const uint8Array = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer;
 
@@ -101,7 +98,13 @@ export class AuditReader {
 
     // 检查最小大小
     if (uint8Array.byteLength < 8) {
-      this.addIssue('error', 'invalid_header', '消息太小，无法包含有效的 Cap\'n Proto 头部', 'header', '消息至少需要8字节的头部');
+      this.addIssue(
+        'error',
+        'invalid_header',
+        "消息太小，无法包含有效的 Cap'n Proto 头部",
+        'header',
+        '消息至少需要8字节的头部'
+      );
       return;
     }
 
@@ -160,13 +163,7 @@ export class AuditReader {
     offset = (offset + 7) & ~7;
 
     if (offset > uint8Array.byteLength) {
-      this.addIssue(
-        'error',
-        'truncated_header',
-        '段表头部不完整',
-        'header',
-        '消息文件可能已损坏'
-      );
+      this.addIssue('error', 'truncated_header', '段表头部不完整', 'header', '消息文件可能已损坏');
       return;
     }
 
@@ -276,7 +273,7 @@ export class AuditReader {
       this.addIssue(
         'error',
         'nesting_too_deep',
-        `指针嵌套深度超过100，可能存在恶意构造的消息`,
+        '指针嵌套深度超过100，可能存在恶意构造的消息',
         `segment[${segmentIndex}].word[${wordOffset}]`,
         '检查消息是否被恶意构造'
       );
@@ -293,7 +290,10 @@ export class AuditReader {
         const targetOffset = wordOffset + 1 + structPtr.offset;
 
         // 检查目标范围
-        if (targetOffset < 0 || targetOffset + structPtr.dataWords + structPtr.pointerCount > segment.wordCount) {
+        if (
+          targetOffset < 0 ||
+          targetOffset + structPtr.dataWords + structPtr.pointerCount > segment.wordCount
+        ) {
           this.addIssue(
             'error',
             'out_of_bounds',
@@ -398,7 +398,12 @@ export class AuditReader {
             if (targetSegment && farPtr.targetOffset < targetSegment.wordCount) {
               const landingPadPtr = targetSegment.getWord(farPtr.targetOffset);
               if (landingPadPtr !== 0n) {
-                this.scanPointer(farPtr.targetSegment, farPtr.targetOffset, landingPadPtr, depth + 1);
+                this.scanPointer(
+                  farPtr.targetSegment,
+                  farPtr.targetOffset,
+                  landingPadPtr,
+                  depth + 1
+                );
               }
             }
           }
@@ -452,7 +457,7 @@ export function formatAuditReport(report: AuditReport): string {
   const lines: string[] = [];
 
   lines.push('='.repeat(60));
-  lines.push('CAP\'N PROTO SECURITY AUDIT REPORT');
+  lines.push("CAP'N PROTO SECURITY AUDIT REPORT");
   lines.push('='.repeat(60));
   lines.push('');
 
@@ -600,15 +605,15 @@ function parseArgs(args: string[]) {
     } else if (arg === '-o' || arg === '--output') {
       options.output = args[++i];
     } else if (arg === '--max-segments') {
-      const val = parseInt(args[++i], 10);
-      if (isNaN(val) || val <= 0) {
+      const val = Number.parseInt(args[++i], 10);
+      if (Number.isNaN(val) || val <= 0) {
         console.error('Error: --max-segments must be a positive integer');
         process.exit(1);
       }
       options.maxSegments = val;
     } else if (arg === '--max-size') {
-      const val = parseInt(args[++i], 10);
-      if (isNaN(val) || val <= 0) {
+      const val = Number.parseInt(args[++i], 10);
+      if (Number.isNaN(val) || val <= 0) {
         console.error('Error: --max-size must be a positive integer');
         process.exit(1);
       }

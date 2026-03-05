@@ -1,11 +1,11 @@
 /**
  * 性能对比测试 - Cap'n Proto vs JSON vs Protobuf
- * 
+ *
  * 运行: npx tsx src/bench/comparison.ts
  */
 
-import { MessageBuilder, MessageReader } from '../index.js';
 import protobuf from 'protobufjs';
+import { MessageBuilder, MessageReader } from '../index.js';
 
 // 高精度计时（微秒）
 function nowUs(): number {
@@ -17,62 +17,62 @@ const protobufRoot = protobuf.Root.fromJSON({
   nested: {
     TestUser: {
       fields: {
-        id: { type: "int32", id: 1 },
-        name: { type: "string", id: 2 },
-        email: { type: "string", id: 3 },
-        active: { type: "bool", id: 4 },
-        scores: { type: "int32", id: 5, rule: "repeated" },
-        metadata: { type: "Metadata", id: 6 }
-      }
+        id: { type: 'int32', id: 1 },
+        name: { type: 'string', id: 2 },
+        email: { type: 'string', id: 3 },
+        active: { type: 'bool', id: 4 },
+        scores: { type: 'int32', id: 5, rule: 'repeated' },
+        metadata: { type: 'Metadata', id: 6 },
+      },
     },
     Metadata: {
       fields: {
-        created: { type: "string", id: 1 },
-        updated: { type: "string", id: 2 }
-      }
+        created: { type: 'string', id: 1 },
+        updated: { type: 'string', id: 2 },
+      },
     },
     SimpleStruct: {
       fields: {
-        field1: { type: "int32", id: 1 },
-        field2: { type: "int32", id: 2 }
-      }
+        field1: { type: 'int32', id: 1 },
+        field2: { type: 'int32', id: 2 },
+      },
     },
     TextStruct: {
       fields: {
-        id: { type: "int32", id: 1 },
-        text: { type: "string", id: 2 }
-      }
+        id: { type: 'int32', id: 1 },
+        text: { type: 'string', id: 2 },
+      },
     },
     NestedStruct: {
       fields: {
-        value: { type: "int32", id: 1 },
-        child: { type: "ChildStruct", id: 2 }
-      }
+        value: { type: 'int32', id: 1 },
+        child: { type: 'ChildStruct', id: 2 },
+      },
     },
     ChildStruct: {
       fields: {
-        value: { type: "int32", id: 1 },
-        grandchild: { type: "GrandchildStruct", id: 2 }
-      }
+        value: { type: 'int32', id: 1 },
+        grandchild: { type: 'GrandchildStruct', id: 2 },
+      },
     },
     GrandchildStruct: {
       fields: {
-        value: { type: "int32", id: 1 }
-      }
+        value: { type: 'int32', id: 1 },
+      },
     },
     ListStruct: {
       fields: {
-        items: { type: "int32", id: 1, rule: "repeated" }
-      }
-    }
-  }
+        items: { type: 'int32', id: 1, rule: 'repeated' },
+      },
+    },
+  },
 });
 
-const TestUser = protobufRoot.lookupType("TestUser");
-const SimpleStruct = protobufRoot.lookupType("SimpleStruct");
-const TextStruct = protobufRoot.lookupType("TextStruct");
-const NestedStruct = protobufRoot.lookupType("NestedStruct");
-const ListStruct = protobufRoot.lookupType("ListStruct");
+const TestUser = protobufRoot.lookupType('TestUser');
+const SimpleStruct = protobufRoot.lookupType('SimpleStruct');
+const TextStruct = protobufRoot.lookupType('TextStruct');
+const NestedStruct = protobufRoot.lookupType('NestedStruct');
+const ListStruct = protobufRoot.lookupType('ListStruct');
 
 // ========== 测试数据结构 ==========
 
@@ -295,7 +295,7 @@ function protobufSimpleDeserialize(data: Uint8Array): void {
 }
 
 // 文本字段测试数据
-const textData = { id: 42, text: "Hello, World! This is a test string." };
+const textData = { id: 42, text: 'Hello, World! This is a test string.' };
 
 function capnpTextSerialize(): ArrayBuffer {
   const builder = new MessageBuilder();
@@ -338,9 +338,9 @@ const nestedData = {
   child: {
     value: 2,
     grandchild: {
-      value: 3
-    }
-  }
+      value: 3,
+    },
+  },
 };
 
 function capnpNestedSerialize(): ArrayBuffer {
@@ -484,71 +484,207 @@ const results: Map<string, Map<string, BenchmarkResult>> = new Map();
 for (const payload of payloads) {
   console.log(`\n--- ${payload.name} ---`);
   const payloadResults = new Map<string, BenchmarkResult>();
-  
+
   let capnpResult: BenchmarkResult;
   let jsonResult: BenchmarkResult;
   let protobufResult: BenchmarkResult;
 
   switch (payload.name) {
     case '简单结构':
-      capnpResult = runBenchmark("Cap'n Proto", payload.name, capnpSimpleSerialize, capnpSimpleDeserialize, (d) => (d as ArrayBuffer).byteLength, payload.iterations);
-      jsonResult = runBenchmark("JSON", payload.name, jsonSimpleSerialize, jsonSimpleDeserialize, (d) => new TextEncoder().encode(d as string).length, payload.iterations);
-      protobufResult = runBenchmark("Protobuf", payload.name, protobufSimpleSerialize, protobufSimpleDeserialize, (d) => (d as Uint8Array).length, payload.iterations);
+      capnpResult = runBenchmark(
+        "Cap'n Proto",
+        payload.name,
+        capnpSimpleSerialize,
+        capnpSimpleDeserialize,
+        (d) => (d as ArrayBuffer).byteLength,
+        payload.iterations
+      );
+      jsonResult = runBenchmark(
+        'JSON',
+        payload.name,
+        jsonSimpleSerialize,
+        jsonSimpleDeserialize,
+        (d) => new TextEncoder().encode(d as string).length,
+        payload.iterations
+      );
+      protobufResult = runBenchmark(
+        'Protobuf',
+        payload.name,
+        protobufSimpleSerialize,
+        protobufSimpleDeserialize,
+        (d) => (d as Uint8Array).length,
+        payload.iterations
+      );
       break;
-    
+
     case '文本字段':
-      capnpResult = runBenchmark("Cap'n Proto", payload.name, capnpTextSerialize, capnpTextDeserialize, (d) => (d as ArrayBuffer).byteLength, payload.iterations);
-      jsonResult = runBenchmark("JSON", payload.name, jsonTextSerialize, jsonTextDeserialize, (d) => new TextEncoder().encode(d as string).length, payload.iterations);
-      protobufResult = runBenchmark("Protobuf", payload.name, protobufTextSerialize, protobufTextDeserialize, (d) => (d as Uint8Array).length, payload.iterations);
+      capnpResult = runBenchmark(
+        "Cap'n Proto",
+        payload.name,
+        capnpTextSerialize,
+        capnpTextDeserialize,
+        (d) => (d as ArrayBuffer).byteLength,
+        payload.iterations
+      );
+      jsonResult = runBenchmark(
+        'JSON',
+        payload.name,
+        jsonTextSerialize,
+        jsonTextDeserialize,
+        (d) => new TextEncoder().encode(d as string).length,
+        payload.iterations
+      );
+      protobufResult = runBenchmark(
+        'Protobuf',
+        payload.name,
+        protobufTextSerialize,
+        protobufTextDeserialize,
+        (d) => (d as Uint8Array).length,
+        payload.iterations
+      );
       break;
-    
+
     case '嵌套结构':
-      capnpResult = runBenchmark("Cap'n Proto", payload.name, capnpNestedSerialize, capnpNestedDeserialize, (d) => (d as ArrayBuffer).byteLength, payload.iterations);
-      jsonResult = runBenchmark("JSON", payload.name, jsonNestedSerialize, jsonNestedDeserialize, (d) => new TextEncoder().encode(d as string).length, payload.iterations);
-      protobufResult = runBenchmark("Protobuf", payload.name, protobufNestedSerialize, protobufNestedDeserialize, (d) => (d as Uint8Array).length, payload.iterations);
+      capnpResult = runBenchmark(
+        "Cap'n Proto",
+        payload.name,
+        capnpNestedSerialize,
+        capnpNestedDeserialize,
+        (d) => (d as ArrayBuffer).byteLength,
+        payload.iterations
+      );
+      jsonResult = runBenchmark(
+        'JSON',
+        payload.name,
+        jsonNestedSerialize,
+        jsonNestedDeserialize,
+        (d) => new TextEncoder().encode(d as string).length,
+        payload.iterations
+      );
+      protobufResult = runBenchmark(
+        'Protobuf',
+        payload.name,
+        protobufNestedSerialize,
+        protobufNestedDeserialize,
+        (d) => (d as Uint8Array).length,
+        payload.iterations
+      );
       break;
-    
+
     case '小列表(100)':
-      capnpResult = runBenchmark("Cap'n Proto", payload.name, capnpSmallListSerialize, capnpSmallListDeserialize, (d) => (d as ArrayBuffer).byteLength, payload.iterations);
-      jsonResult = runBenchmark("JSON", payload.name, jsonSmallListSerialize, jsonSmallListDeserialize, (d) => new TextEncoder().encode(d as string).length, payload.iterations);
-      protobufResult = runBenchmark("Protobuf", payload.name, protobufSmallListSerialize, protobufSmallListDeserialize, (d) => (d as Uint8Array).length, payload.iterations);
+      capnpResult = runBenchmark(
+        "Cap'n Proto",
+        payload.name,
+        capnpSmallListSerialize,
+        capnpSmallListDeserialize,
+        (d) => (d as ArrayBuffer).byteLength,
+        payload.iterations
+      );
+      jsonResult = runBenchmark(
+        'JSON',
+        payload.name,
+        jsonSmallListSerialize,
+        jsonSmallListDeserialize,
+        (d) => new TextEncoder().encode(d as string).length,
+        payload.iterations
+      );
+      protobufResult = runBenchmark(
+        'Protobuf',
+        payload.name,
+        protobufSmallListSerialize,
+        protobufSmallListDeserialize,
+        (d) => (d as Uint8Array).length,
+        payload.iterations
+      );
       break;
-    
+
     case '大列表(10000)':
-      capnpResult = runBenchmark("Cap'n Proto", payload.name, capnpLargeListSerialize, capnpLargeListDeserialize, (d) => (d as ArrayBuffer).byteLength, payload.iterations);
-      jsonResult = runBenchmark("JSON", payload.name, jsonLargeListSerialize, jsonLargeListDeserialize, (d) => new TextEncoder().encode(d as string).length, payload.iterations);
-      protobufResult = runBenchmark("Protobuf", payload.name, protobufLargeListSerialize, protobufLargeListDeserialize, (d) => (d as Uint8Array).length, payload.iterations);
+      capnpResult = runBenchmark(
+        "Cap'n Proto",
+        payload.name,
+        capnpLargeListSerialize,
+        capnpLargeListDeserialize,
+        (d) => (d as ArrayBuffer).byteLength,
+        payload.iterations
+      );
+      jsonResult = runBenchmark(
+        'JSON',
+        payload.name,
+        jsonLargeListSerialize,
+        jsonLargeListDeserialize,
+        (d) => new TextEncoder().encode(d as string).length,
+        payload.iterations
+      );
+      protobufResult = runBenchmark(
+        'Protobuf',
+        payload.name,
+        protobufLargeListSerialize,
+        protobufLargeListDeserialize,
+        (d) => (d as Uint8Array).length,
+        payload.iterations
+      );
       break;
-    
+
     default:
       // 默认使用复杂对象测试
-      capnpResult = runBenchmark("Cap'n Proto", payload.name, capnpSerialize, capnpDeserialize, (d) => (d as ArrayBuffer).byteLength, payload.iterations);
-      jsonResult = runBenchmark("JSON", payload.name, jsonSerialize, jsonDeserialize, (d) => new TextEncoder().encode(d as string).length, payload.iterations);
-      protobufResult = runBenchmark("Protobuf", payload.name, protobufSerialize, protobufDeserialize, (d) => (d as Uint8Array).length, payload.iterations);
+      capnpResult = runBenchmark(
+        "Cap'n Proto",
+        payload.name,
+        capnpSerialize,
+        capnpDeserialize,
+        (d) => (d as ArrayBuffer).byteLength,
+        payload.iterations
+      );
+      jsonResult = runBenchmark(
+        'JSON',
+        payload.name,
+        jsonSerialize,
+        jsonDeserialize,
+        (d) => new TextEncoder().encode(d as string).length,
+        payload.iterations
+      );
+      protobufResult = runBenchmark(
+        'Protobuf',
+        payload.name,
+        protobufSerialize,
+        protobufDeserialize,
+        (d) => (d as Uint8Array).length,
+        payload.iterations
+      );
   }
 
-  payloadResults.set("capnp", capnpResult);
-  payloadResults.set("json", jsonResult);
-  payloadResults.set("protobuf", protobufResult);
+  payloadResults.set('capnp', capnpResult);
+  payloadResults.set('json', jsonResult);
+  payloadResults.set('protobuf', protobufResult);
   results.set(payload.name, payloadResults);
 
   // 输出单个负载的详细结果
-  console.log(`  Cap'n Proto: ${capnpResult.opsPerSecond.toFixed(0)} ops/sec, ${capnpResult.dataSize} bytes`);
-  console.log(`  JSON:        ${jsonResult.opsPerSecond.toFixed(0)} ops/sec, ${jsonResult.dataSize} bytes`);
-  console.log(`  Protobuf:    ${protobufResult.opsPerSecond.toFixed(0)} ops/sec, ${protobufResult.dataSize} bytes`);
+  console.log(
+    `  Cap'n Proto: ${capnpResult.opsPerSecond.toFixed(0)} ops/sec, ${capnpResult.dataSize} bytes`
+  );
+  console.log(
+    `  JSON:        ${jsonResult.opsPerSecond.toFixed(0)} ops/sec, ${jsonResult.dataSize} bytes`
+  );
+  console.log(
+    `  Protobuf:    ${protobufResult.opsPerSecond.toFixed(0)} ops/sec, ${protobufResult.dataSize} bytes`
+  );
 }
 
 // ========== 生成对比表格 ==========
 
-console.log("\n\n=== 性能对比表格 ===\n");
-console.log("| Payload | Capnp ops | JSON ops | Protobuf ops | Speedup vs JSON | Speedup vs Protobuf |");
-console.log("|---------|-----------|----------|--------------|-----------------|---------------------|");
+console.log('\n\n=== 性能对比表格 ===\n');
+console.log(
+  '| Payload | Capnp ops | JSON ops | Protobuf ops | Speedup vs JSON | Speedup vs Protobuf |'
+);
+console.log(
+  '|---------|-----------|----------|--------------|-----------------|---------------------|'
+);
 
 for (const [payloadName, payloadResults] of results) {
-  const capnpOps = payloadResults.get("capnp")!.opsPerSecond;
-  const jsonOps = payloadResults.get("json")!.opsPerSecond;
-  const protobufOps = payloadResults.get("protobuf")!.opsPerSecond;
-  
+  const capnpOps = payloadResults.get('capnp')!.opsPerSecond;
+  const jsonOps = payloadResults.get('json')!.opsPerSecond;
+  const protobufOps = payloadResults.get('protobuf')!.opsPerSecond;
+
   const speedupVsJson = capnpOps / jsonOps;
   const speedupVsProtobuf = capnpOps / protobufOps;
 
@@ -559,15 +695,19 @@ for (const [payloadName, payloadResults] of results) {
 
 // ========== 数据大小对比表格 ==========
 
-console.log("\n=== 数据大小对比 ===\n");
-console.log("| Payload | Capnp bytes | JSON bytes | Protobuf bytes | JSON Ratio | Protobuf Ratio |");
-console.log("|---------|-------------|------------|----------------|------------|----------------|");
+console.log('\n=== 数据大小对比 ===\n');
+console.log(
+  '| Payload | Capnp bytes | JSON bytes | Protobuf bytes | JSON Ratio | Protobuf Ratio |'
+);
+console.log(
+  '|---------|-------------|------------|----------------|------------|----------------|'
+);
 
 for (const [payloadName, payloadResults] of results) {
-  const capnpSize = payloadResults.get("capnp")!.dataSize;
-  const jsonSize = payloadResults.get("json")!.dataSize;
-  const protobufSize = payloadResults.get("protobuf")!.dataSize;
-  
+  const capnpSize = payloadResults.get('capnp')!.dataSize;
+  const jsonSize = payloadResults.get('json')!.dataSize;
+  const protobufSize = payloadResults.get('protobuf')!.dataSize;
+
   const jsonRatio = jsonSize / capnpSize;
   const protobufRatio = protobufSize / capnpSize;
 
@@ -578,7 +718,7 @@ for (const [payloadName, payloadResults] of results) {
 
 // ========== 综合结论 ==========
 
-console.log("\n=== 综合结论 ===\n");
+console.log('\n=== 综合结论 ===\n');
 
 // 计算平均值
 let totalSpeedupVsJson = 0;
@@ -586,10 +726,10 @@ let totalSpeedupVsProtobuf = 0;
 let count = 0;
 
 for (const [, payloadResults] of results) {
-  const capnpOps = payloadResults.get("capnp")!.opsPerSecond;
-  const jsonOps = payloadResults.get("json")!.opsPerSecond;
-  const protobufOps = payloadResults.get("protobuf")!.opsPerSecond;
-  
+  const capnpOps = payloadResults.get('capnp')!.opsPerSecond;
+  const jsonOps = payloadResults.get('json')!.opsPerSecond;
+  const protobufOps = payloadResults.get('protobuf')!.opsPerSecond;
+
   totalSpeedupVsJson += capnpOps / jsonOps;
   totalSpeedupVsProtobuf += capnpOps / protobufOps;
   count++;
@@ -598,28 +738,40 @@ for (const [, payloadResults] of results) {
 const avgSpeedupVsJson = totalSpeedupVsJson / count;
 const avgSpeedupVsProtobuf = totalSpeedupVsProtobuf / count;
 
-console.log(`平均速度对比:`);
-console.log(`  Cap'n Proto vs JSON:     ${avgSpeedupVsJson > 1 ? '快' : '慢'} ${avgSpeedupVsJson.toFixed(2)}x`);
-console.log(`  Cap'n Proto vs Protobuf: ${avgSpeedupVsProtobuf > 1 ? '快' : '慢'} ${avgSpeedupVsProtobuf.toFixed(2)}x`);
+console.log('平均速度对比:');
+console.log(
+  `  Cap'n Proto vs JSON:     ${avgSpeedupVsJson > 1 ? '快' : '慢'} ${avgSpeedupVsJson.toFixed(2)}x`
+);
+console.log(
+  `  Cap'n Proto vs Protobuf: ${avgSpeedupVsProtobuf > 1 ? '快' : '慢'} ${avgSpeedupVsProtobuf.toFixed(2)}x`
+);
 
 // 找出最佳和最差场景
 const sortedByJsonSpeedup = Array.from(results.entries())
   .map(([name, res]) => ({
     name,
-    speedup: res.get("capnp")!.opsPerSecond / res.get("json")!.opsPerSecond
+    speedup: res.get('capnp')!.opsPerSecond / res.get('json')!.opsPerSecond,
   }))
   .sort((a, b) => b.speedup - a.speedup);
 
 const sortedByProtobufSpeedup = Array.from(results.entries())
   .map(([name, res]) => ({
     name,
-    speedup: res.get("capnp")!.opsPerSecond / res.get("protobuf")!.opsPerSecond
+    speedup: res.get('capnp')!.opsPerSecond / res.get('protobuf')!.opsPerSecond,
   }))
   .sort((a, b) => b.speedup - a.speedup);
 
-console.log(`\n最佳表现场景 (vs JSON): ${sortedByJsonSpeedup[0].name} (${sortedByJsonSpeedup[0].speedup.toFixed(2)}x)`);
-console.log(`最差表现场景 (vs JSON): ${sortedByJsonSpeedup[sortedByJsonSpeedup.length - 1].name} (${sortedByJsonSpeedup[sortedByJsonSpeedup.length - 1].speedup.toFixed(2)}x)`);
-console.log(`\n最佳表现场景 (vs Protobuf): ${sortedByProtobufSpeedup[0].name} (${sortedByProtobufSpeedup[0].speedup.toFixed(2)}x)`);
-console.log(`最差表现场景 (vs Protobuf): ${sortedByProtobufSpeedup[sortedByProtobufSpeedup.length - 1].name} (${sortedByProtobufSpeedup[sortedByProtobufSpeedup.length - 1].speedup.toFixed(2)}x)`);
+console.log(
+  `\n最佳表现场景 (vs JSON): ${sortedByJsonSpeedup[0].name} (${sortedByJsonSpeedup[0].speedup.toFixed(2)}x)`
+);
+console.log(
+  `最差表现场景 (vs JSON): ${sortedByJsonSpeedup[sortedByJsonSpeedup.length - 1].name} (${sortedByJsonSpeedup[sortedByJsonSpeedup.length - 1].speedup.toFixed(2)}x)`
+);
+console.log(
+  `\n最佳表现场景 (vs Protobuf): ${sortedByProtobufSpeedup[0].name} (${sortedByProtobufSpeedup[0].speedup.toFixed(2)}x)`
+);
+console.log(
+  `最差表现场景 (vs Protobuf): ${sortedByProtobufSpeedup[sortedByProtobufSpeedup.length - 1].name} (${sortedByProtobufSpeedup[sortedByProtobufSpeedup.length - 1].speedup.toFixed(2)}x)`
+);
 
-console.log("\n=== 测试完成 ===");
+console.log('\n=== 测试完成 ===');

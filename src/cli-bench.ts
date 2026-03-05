@@ -77,7 +77,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 /**
@@ -88,7 +88,7 @@ function parseSize(sizeStr: string): number {
   if (!match) {
     throw new Error(`Invalid size format: ${sizeStr}`);
   }
-  const value = parseFloat(match[1]);
+  const value = Number.parseFloat(match[1]);
   const unit = (match[2] || 'B').toUpperCase();
   const multipliers: Record<string, number> = {
     B: 1,
@@ -102,11 +102,16 @@ function parseSize(sizeStr: string): number {
 /**
  * 生成测试数据
  */
-function generateTestData(sizeBytes: number): { id: number; name: string; data: number[]; metadata: Record<string, unknown> } {
+function generateTestData(sizeBytes: number): {
+  id: number;
+  name: string;
+  data: number[];
+  metadata: Record<string, unknown>;
+} {
   const dataArraySize = Math.max(1, Math.floor((sizeBytes - 200) / 4)); // 预留空间给其他字段
   return {
     id: Date.now(),
-    name: 'Test User ' + Math.random().toString(36).substring(7),
+    name: `Test User ${Math.random().toString(36).substring(7)}`,
     data: Array.from({ length: Math.min(dataArraySize, 100000) }, (_, i) => i),
     metadata: {
       timestamp: new Date().toISOString(),
@@ -232,34 +237,34 @@ function jsonDeserialize(jsonStr: string): unknown {
 function protobufSerialize(data: ReturnType<typeof generateTestData>): Buffer {
   // 使用 BSON-like 的简单编码
   const header = Buffer.alloc(8);
-  header.writeUInt32LE((data.id & 0xFFFFFFFF) >>> 0, 0);
+  header.writeUInt32LE((data.id & 0xffffffff) >>> 0, 0);
   header.writeUInt32LE(data.data.length, 4);
-  
+
   const nameBuf = Buffer.from(data.name, 'utf-8');
   const nameLen = Buffer.alloc(4);
   nameLen.writeUInt32LE(nameBuf.length, 0);
-  
+
   const dataBuf = Buffer.from(new Int32Array(data.data).buffer);
-  
+
   return Buffer.concat([header, nameLen, nameBuf, dataBuf]);
 }
 
 function protobufDeserialize(buffer: Buffer): boolean {
   let offset = 0;
-  const id = buffer.readUInt32LE(offset);
+  const _id = buffer.readUInt32LE(offset);
   offset += 4;
   const dataLen = buffer.readUInt32LE(offset);
   offset += 4;
-  
+
   const nameLen = buffer.readUInt32LE(offset);
   offset += 4;
   offset += nameLen; // 跳过 name
-  
+
   // 读取数据
   for (let i = 0; i < Math.min(dataLen, 100); i++) {
     buffer.readInt32LE(offset + i * 4);
   }
-  
+
   return true;
 }
 
@@ -322,7 +327,7 @@ function runAllBenchmarks(
 function formatMarkdownReport(report: BenchmarkReport): string {
   const lines: string[] = [];
 
-  lines.push('# Cap\'n Proto Benchmark Report');
+  lines.push("# Cap'n Proto Benchmark Report");
   lines.push('');
   lines.push(`Generated: ${report.generatedAt}`);
   lines.push('');
@@ -347,8 +352,8 @@ function formatMarkdownReport(report: BenchmarkReport): string {
   for (const result of report.results) {
     lines.push(
       `| ${result.name.padEnd(20)} | ${formatBytes(result.dataSize).padStart(10)} | ` +
-      `${result.serializeTime.toFixed(3).padStart(14)} | ${result.deserializeTime.toFixed(3).padStart(16)} | ` +
-      `${result.dataSize.toString().padStart(9)} | ${result.opsPerSecond.toFixed(0).padStart(7)} |`
+        `${result.serializeTime.toFixed(3).padStart(14)} | ${result.deserializeTime.toFixed(3).padStart(16)} | ` +
+        `${result.dataSize.toString().padStart(9)} | ${result.opsPerSecond.toFixed(0).padStart(7)} |`
     );
   }
 
@@ -373,24 +378,30 @@ function formatMarkdownReport(report: BenchmarkReport): string {
       if (results.length > 1) {
         lines.push(`### ${size} Payload`);
         lines.push('');
-        
+
         // 找出最快的
         const fastest = results.reduce((a, b) => (a.opsPerSecond > b.opsPerSecond ? a : b));
-        lines.push(`- **Fastest**: ${fastest.name.split(' ')[0]} (${fastest.opsPerSecond.toFixed(0)} ops/sec)`);
-        
+        lines.push(
+          `- **Fastest**: ${fastest.name.split(' ')[0]} (${fastest.opsPerSecond.toFixed(0)} ops/sec)`
+        );
+
         // 找出最小的
         const smallest = results.reduce((a, b) => (a.dataSize < b.dataSize ? a : b));
-        lines.push(`- **Smallest**: ${smallest.name.split(' ')[0]} (${formatBytes(smallest.dataSize)})`);
-        
+        lines.push(
+          `- **Smallest**: ${smallest.name.split(' ')[0]} (${formatBytes(smallest.dataSize)})`
+        );
+
         // 计算相对性能
-        const capnpResult = results.find(r => r.name.includes("Cap'n Proto"));
+        const capnpResult = results.find((r) => r.name.includes("Cap'n Proto"));
         if (capnpResult) {
           for (const result of results) {
             if (result !== capnpResult) {
               const format = result.name.split(' ')[0];
               const speedup = capnpResult.opsPerSecond / result.opsPerSecond;
               const sizeDiff = ((capnpResult.dataSize - result.dataSize) / result.dataSize) * 100;
-              lines.push(`- vs ${format}: ${speedup > 1 ? '**' + speedup.toFixed(2) + 'x faster**' : (1/speedup).toFixed(2) + 'x slower'}, data size ${sizeDiff > 0 ? '+' : ''}${sizeDiff.toFixed(1)}%`);
+              lines.push(
+                `- vs ${format}: ${speedup > 1 ? `**${speedup.toFixed(2)}x faster**` : `${(1 / speedup).toFixed(2)}x slower`}, data size ${sizeDiff > 0 ? '+' : ''}${sizeDiff.toFixed(1)}%`
+              );
             }
           }
         }
@@ -401,17 +412,19 @@ function formatMarkdownReport(report: BenchmarkReport): string {
 
   lines.push('## Conclusion');
   lines.push('');
-  
-  const capnpResults = report.results.filter(r => r.name.includes("Cap'n Proto"));
+
+  const capnpResults = report.results.filter((r) => r.name.includes("Cap'n Proto"));
   if (capnpResults.length > 0) {
     const avgOps = capnpResults.reduce((sum, r) => sum + r.opsPerSecond, 0) / capnpResults.length;
-    lines.push(`Cap'n Proto achieved an average throughput of **${avgOps.toFixed(0)} ops/sec** across all tested payload sizes.`);
+    lines.push(
+      `Cap'n Proto achieved an average throughput of **${avgOps.toFixed(0)} ops/sec** across all tested payload sizes.`
+    );
     lines.push('');
-    
+
     if (report.comparisons.length > 1) {
       lines.push('Based on the benchmark results:');
       lines.push('');
-      lines.push('- Cap\'n Proto offers competitive serialization performance');
+      lines.push("- Cap'n Proto offers competitive serialization performance");
       lines.push('- Zero-copy architecture provides advantages for large payloads');
       lines.push('- Compact binary format reduces network overhead');
     }
@@ -419,7 +432,7 @@ function formatMarkdownReport(report: BenchmarkReport): string {
 
   lines.push('');
   lines.push('---');
-  lines.push('*Generated by Cap\'n Proto Benchmark CLI v' + CLI_VERSION + '*');
+  lines.push(`*Generated by Cap'n Proto Benchmark CLI v${CLI_VERSION}*`);
 
   return lines.join('\n');
 }
@@ -430,11 +443,13 @@ function formatMarkdownReport(report: BenchmarkReport): string {
 function formatCsvReport(report: BenchmarkReport): string {
   const lines: string[] = [];
   lines.push('Format,Payload Size,Serialize (μs),Deserialize (μs),Data Size (bytes),Ops/Sec');
-  
+
   for (const result of report.results) {
-    lines.push(`${result.name},${result.dataSize},${result.serializeTime},${result.deserializeTime},${result.dataSize},${result.opsPerSecond}`);
+    lines.push(
+      `${result.name},${result.dataSize},${result.serializeTime},${result.deserializeTime},${result.dataSize},${result.opsPerSecond}`
+    );
   }
-  
+
   return lines.join('\n');
 }
 
@@ -445,7 +460,7 @@ function formatTerminalReport(report: BenchmarkReport): string {
   const lines: string[] = [];
 
   lines.push('='.repeat(70));
-  lines.push('CAP\'N PROTO BENCHMARK REPORT');
+  lines.push("CAP'N PROTO BENCHMARK REPORT");
   lines.push('='.repeat(70));
   lines.push('');
 
@@ -469,8 +484,8 @@ function formatTerminalReport(report: BenchmarkReport): string {
   for (const result of report.results) {
     const format = result.name.padEnd(22);
     const size = formatBytes(result.dataSize).padStart(10);
-    const ser = (result.serializeTime.toFixed(2) + ' μs').padStart(12);
-    const deser = (result.deserializeTime.toFixed(2) + ' μs').padStart(12);
+    const ser = `${result.serializeTime.toFixed(2)} μs`.padStart(12);
+    const deser = `${result.deserializeTime.toFixed(2)} μs`.padStart(12);
     const ops = result.opsPerSecond.toFixed(0).padStart(12);
     lines.push(`${format} ${size} ${ser} ${deser} ${ops}`);
   }
@@ -496,15 +511,17 @@ function formatTerminalReport(report: BenchmarkReport): string {
     for (const [size, results] of groupedBySize) {
       if (results.length > 1) {
         lines.push(`  ${size} Payload:`);
-        
-        const capnpResult = results.find(r => r.name.includes("Cap'n Proto"));
+
+        const capnpResult = results.find((r) => r.name.includes("Cap'n Proto"));
         if (capnpResult) {
           for (const result of results) {
             if (result !== capnpResult) {
               const format = result.name.split(' ')[0];
               const speedup = capnpResult.opsPerSecond / result.opsPerSecond;
               const icon = speedup > 1 ? '✅' : '⚠️';
-              lines.push(`    ${icon} vs ${format}: ${speedup.toFixed(2)}x ${speedup > 1 ? 'faster' : 'slower'}`);
+              lines.push(
+                `    ${icon} vs ${format}: ${speedup.toFixed(2)}x ${speedup > 1 ? 'faster' : 'slower'}`
+              );
             }
           }
         }
@@ -514,7 +531,7 @@ function formatTerminalReport(report: BenchmarkReport): string {
   }
 
   lines.push('Conclusion:');
-  const capnpResults = report.results.filter(r => r.name.includes("Cap'n Proto"));
+  const capnpResults = report.results.filter((r) => r.name.includes("Cap'n Proto"));
   if (capnpResults.length > 0) {
     const avgOps = capnpResults.reduce((sum, r) => sum + r.opsPerSecond, 0) / capnpResults.length;
     lines.push(`  Cap'n Proto average: ${avgOps.toFixed(0)} ops/sec`);
@@ -571,7 +588,7 @@ function parseArgs(args: string[]) {
         console.error('Error: --sizes requires a value');
         process.exit(1);
       }
-      options.sizes = sizesStr.split(',').map(s => s.trim());
+      options.sizes = sizesStr.split(',').map((s) => s.trim());
     } else if (arg === '--vs-json') {
       options.vsJson = true;
     } else if (arg === '--vs-protobuf') {
@@ -645,7 +662,6 @@ export async function run(args: string[]): Promise<void> {
     case 'markdown':
       output = formatMarkdownReport(report);
       break;
-    case 'terminal':
     default:
       output = formatTerminalReport(report);
       break;

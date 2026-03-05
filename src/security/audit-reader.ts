@@ -5,28 +5,28 @@
 
 import { MessageReader, StructReader } from '../core/message-reader.js';
 import {
-  PointerTag,
   ElementSize,
-  decodePointer,
-  type StructPointer,
-  type ListPointer,
   type FarPointer,
+  type ListPointer,
   type Pointer,
+  PointerTag,
+  type StructPointer,
+  decodePointer,
 } from '../core/pointer.js';
-import { Segment, WORD_SIZE } from '../core/segment.js';
+import { type Segment, WORD_SIZE } from '../core/segment.js';
 import {
-  type AuditReport,
+  type AuditContext,
   type AuditIssue,
   type AuditOptions,
+  type AuditReport,
+  DEFAULT_AUDIT_OPTIONS,
+  type FarPointerChain,
+  IssueType,
   type PointerLocation,
   type PointerStats,
-  type SegmentStats,
-  type FarPointerChain,
-  type AuditContext,
   type ResolvedPointerInfo,
+  type SegmentStats,
   Severity,
-  IssueType,
-  DEFAULT_AUDIT_OPTIONS,
 } from './audit-types.js';
 
 /**
@@ -51,7 +51,7 @@ export class AuditReader {
   private message: MessageReader;
   private segments: Segment[];
   private options: AuditOptions;
-  
+
   // 审计状态
   private issues: AuditIssue[] = [];
   private pointerStats: PointerStats;
@@ -65,10 +65,10 @@ export class AuditReader {
   constructor(buffer: ArrayBuffer | Uint8Array, options: Partial<AuditOptions> = {}) {
     this.message = new MessageReader(buffer);
     this.options = { ...DEFAULT_AUDIT_OPTIONS, ...options };
-    
+
     // 提取 segments（通过反射访问私有属性）
     this.segments = (this.message as unknown as { segments: Segment[] }).segments || [];
-    
+
     // 初始化统计
     this.pointerStats = {
       total: 0,
@@ -86,28 +86,28 @@ export class AuditReader {
    */
   audit(): AuditReport {
     const startTime = Date.now();
-    
+
     // 重置状态
     this.resetState();
-    
+
     // 收集段统计
     if (this.options.collectSegmentStats) {
       this.collectSegmentStatistics();
     }
-    
+
     // 如果消息为空，直接返回
     if (this.segments.length === 0) {
       return this.generateReport(startTime);
     }
-    
+
     // 扫描所有段中的所有指针
     this.scanAllPointers();
-    
+
     // 检测 Far Pointer 循环
     if (this.options.detectFarPointerCycles) {
       this.detectFarPointerCycles();
     }
-    
+
     return this.generateReport(startTime);
   }
 
@@ -117,18 +117,18 @@ export class AuditReader {
   quickCheck(): Pick<AuditReport, 'passed' | 'issues' | 'issueCounts'> {
     const startTime = Date.now();
     this.resetState();
-    
+
     // 只检查关键问题
     this.options.includeInfoIssues = false;
     this.options.maxNestingDepth = 50; // 降低阈值
-    
+
     if (this.segments.length > 0) {
       this.scanAllPointers();
       if (this.options.detectFarPointerCycles) {
         this.detectFarPointerCycles();
       }
     }
-    
+
     const report = this.generateReport(startTime);
     return {
       passed: report.passed,
@@ -192,7 +192,7 @@ export class AuditReader {
       visited: new Set(),
       farPointerVisited: new Map(),
     };
-    
+
     // 只扫描根指针，然后递归扫描从根可达的所有指针
     const firstSegment = this.segments[0];
     if (firstSegment && firstSegment.wordCount > 0) {
@@ -215,14 +215,14 @@ export class AuditReader {
   ): void {
     const segment = this.segments[segmentIndex];
     if (!segment) return;
-    
+
     if (wordOffset < 0 || wordOffset >= segment.wordCount) return;
-    
+
     // 更新最大检测深度
     if (context.depth > this.maxDetectedDepth) {
       this.maxDetectedDepth = context.depth;
     }
-    
+
     // 检查嵌套深度
     if (context.depth > this.options.maxNestingDepth) {
       this.addIssue({
@@ -236,26 +236,26 @@ export class AuditReader {
       });
       return;
     }
-    
+
     const location = createLocation(segmentIndex, wordOffset);
     const locationKeyStr = locationKey(location);
-    
+
     // 如果已经访问过，跳过（防止循环）
     if (this.visitedPositions.has(locationKeyStr)) {
       return;
     }
-    
+
     // 解析指针
     const ptrValue = segment.getWord(wordOffset);
-    
+
     // 如果不是指针位置（如 struct 的数据部分），直接返回
     if (!isPointerLocation) {
       return;
     }
-    
+
     // 记录已访问
     this.visitedPositions.add(locationKeyStr);
-    
+
     // 空指针
     if (ptrValue === 0n) {
       if (this.options.countNullPointers) {
@@ -264,20 +264,20 @@ export class AuditReader {
       }
       return;
     }
-    
+
     // 解码指针
     const ptr = decodePointer(ptrValue);
-    
+
     // 更新指针统计
     this.updatePointerStats(ptr);
-    
+
     // 创建新的上下文
     const newContext: AuditContext = {
       ...context,
       depth: context.depth + 1,
       chain: [...context.chain, location],
     };
-    
+
     // 根据指针类型处理
     switch (ptr.tag) {
       case PointerTag.STRUCT:
@@ -306,9 +306,9 @@ export class AuditReader {
   ): void {
     const targetOffset = wordOffset + 1 + ptr.offset;
     const segment = this.segments[segmentIndex];
-    
+
     if (!segment) return;
-    
+
     // 检查结构大小是否有效
     if (ptr.dataWords < 0 || ptr.pointerCount < 0) {
       this.addIssue({
@@ -322,7 +322,7 @@ export class AuditReader {
       });
       return;
     }
-    
+
     // 检查目标位置是否在段内
     const structEnd = targetOffset + ptr.dataWords + ptr.pointerCount;
     if (targetOffset < 0 || structEnd > segment.wordCount) {
@@ -333,11 +333,16 @@ export class AuditReader {
         location: createLocation(segmentIndex, wordOffset),
         nestingDepth: context.depth,
         pointerChain: [...context.chain],
-        context: { targetOffset, dataWords: ptr.dataWords, pointerCount: ptr.pointerCount, segmentWords: segment.wordCount },
+        context: {
+          targetOffset,
+          dataWords: ptr.dataWords,
+          pointerCount: ptr.pointerCount,
+          segmentWords: segment.wordCount,
+        },
       });
       return;
     }
-    
+
     // 扫描结构中的指针部分
     for (let i = 0; i < ptr.pointerCount; i++) {
       const ptrOffset = targetOffset + ptr.dataWords + i;
@@ -358,9 +363,9 @@ export class AuditReader {
   ): void {
     const targetOffset = wordOffset + 1 + ptr.offset;
     const segment = this.segments[segmentIndex];
-    
+
     if (!segment) return;
-    
+
     // 检查列表大小
     if (ptr.elementCount < 0) {
       this.addIssue({
@@ -374,7 +379,7 @@ export class AuditReader {
       });
       return;
     }
-    
+
     // 计算列表占用空间
     let listWords = 0;
     switch (ptr.elementSize) {
@@ -405,7 +410,7 @@ export class AuditReader {
           const dataWords = Number((tagWord >> BigInt(32)) & BigInt(0xffff));
           const pointerCount = Number((tagWord >> BigInt(48)) & BigInt(0xffff));
           listWords = 1 + elementCount * (dataWords + pointerCount);
-          
+
           // 扫描 inline composite 中的指针
           for (let i = 0; i < elementCount; i++) {
             const elemOffset = targetOffset + 1 + i * (dataWords + pointerCount);
@@ -419,7 +424,7 @@ export class AuditReader {
         }
         break;
     }
-    
+
     // 检查边界
     const listEnd = targetOffset + listWords;
     if (targetOffset < 0 || listEnd > segment.wordCount) {
@@ -434,7 +439,7 @@ export class AuditReader {
       });
       return;
     }
-    
+
     // 扫描指针列表中的元素
     if (ptr.elementSize === ElementSize.POINTER) {
       for (let i = 0; i < ptr.elementCount; i++) {
@@ -457,7 +462,7 @@ export class AuditReader {
   ): void {
     const location = createLocation(segmentIndex, wordOffset);
     const locationKeyStr = locationKey(location);
-    
+
     // 检查目标段是否存在
     if (ptr.targetSegment < 0 || ptr.targetSegment >= this.segments.length) {
       this.addIssue({
@@ -471,9 +476,9 @@ export class AuditReader {
       });
       return;
     }
-    
+
     const targetSegment = this.segments[ptr.targetSegment];
-    
+
     // 检查目标偏移
     if (ptr.targetOffset < 0 || ptr.targetOffset >= targetSegment.wordCount) {
       this.addIssue({
@@ -483,30 +488,34 @@ export class AuditReader {
         location,
         nestingDepth: context.depth,
         pointerChain: [...context.chain],
-        context: { targetSegment: ptr.targetSegment, targetOffset: ptr.targetOffset, segmentWords: targetSegment.wordCount },
+        context: {
+          targetSegment: ptr.targetSegment,
+          targetOffset: ptr.targetOffset,
+          segmentWords: targetSegment.wordCount,
+        },
       });
       return;
     }
-    
+
     // 记录 Far Pointer 图
     const targetKey = `${ptr.targetSegment}:${ptr.targetOffset}`;
     if (!this.farPointerGraph.has(locationKeyStr)) {
       this.farPointerGraph.set(locationKeyStr, []);
     }
     this.farPointerGraph.get(locationKeyStr)!.push(targetKey);
-    
+
     // 更新段引用计数
     if (this.segmentStats[ptr.targetSegment]) {
       this.segmentStats[ptr.targetSegment].referenceCount++;
     }
-    
+
     // 双重 Far Pointer
     if (ptr.doubleFar) {
       this.pointerStats.doubleFar++;
-      
+
       // 解析 landing pad
       const landingPadPtr = decodePointer(targetSegment.getWord(ptr.targetOffset));
-      
+
       if (landingPadPtr.tag !== PointerTag.FAR) {
         this.addIssue({
           type: IssueType.INVALID_DOUBLE_FAR,
@@ -519,9 +528,9 @@ export class AuditReader {
         });
         return;
       }
-      
+
       const innerFarPtr = landingPadPtr as FarPointer;
-      
+
       // 检查内层 Far Pointer
       if (innerFarPtr.targetSegment < 0 || innerFarPtr.targetSegment >= this.segments.length) {
         this.addIssue({
@@ -535,7 +544,7 @@ export class AuditReader {
         });
         return;
       }
-      
+
       // 递归扫描目标
       this.scanPointerAt(innerFarPtr.targetSegment, innerFarPtr.targetOffset, context);
     } else {
@@ -572,7 +581,7 @@ export class AuditReader {
    */
   private updatePointerStats(ptr: Pointer): void {
     this.pointerStats.total++;
-    
+
     switch (ptr.tag) {
       case PointerTag.STRUCT:
         this.pointerStats.struct++;
@@ -595,16 +604,16 @@ export class AuditReader {
   private detectFarPointerCycles(): void {
     const visited = new Set<string>();
     const recursionStack = new Set<string>();
-    
+
     const dfs = (node: string, path: PointerLocation[]): boolean => {
       visited.add(node);
       recursionStack.add(node);
-      
+
       const [segIdx, wordOff] = node.split(':').map(Number);
       path.push(createLocation(segIdx, wordOff));
-      
+
       const neighbors = this.farPointerGraph.get(node) || [];
-      
+
       for (const neighbor of neighbors) {
         if (!visited.has(neighbor)) {
           if (dfs(neighbor, path)) {
@@ -614,16 +623,16 @@ export class AuditReader {
           // 发现循环
           const [nSegIdx, nWordOff] = neighbor.split(':').map(Number);
           const cycleStart = createLocation(nSegIdx, nWordOff);
-          
+
           const chain: FarPointerChain = {
             id: `cycle-${this.cycleChains.length}`,
             locations: [...path, cycleStart],
             hasCycle: true,
             cycleStart,
           };
-          
+
           this.cycleChains.push(chain);
-          
+
           // 添加问题
           this.addIssue({
             type: IssueType.FAR_POINTER_CYCLE,
@@ -634,23 +643,23 @@ export class AuditReader {
             pointerChain: path,
             context: { cycleStart: neighbor },
           });
-          
+
           return true;
         }
       }
-      
+
       path.pop();
       recursionStack.delete(node);
       return false;
     };
-    
+
     // 遍历所有节点
     for (const node of this.farPointerGraph.keys()) {
       if (!visited.has(node)) {
         dfs(node, []);
       }
     }
-    
+
     this.farPointerChains = [...this.cycleChains];
   }
 
@@ -666,18 +675,18 @@ export class AuditReader {
    */
   private generateReport(startTime: number): AuditReport {
     const duration = Date.now() - startTime;
-    
+
     // 统计问题数量
     const issueCounts = {
-      info: this.issues.filter(i => i.severity === Severity.INFO).length,
-      warning: this.issues.filter(i => i.severity === Severity.WARNING).length,
-      error: this.issues.filter(i => i.severity === Severity.ERROR).length,
-      critical: this.issues.filter(i => i.severity === Severity.CRITICAL).length,
+      info: this.issues.filter((i) => i.severity === Severity.INFO).length,
+      warning: this.issues.filter((i) => i.severity === Severity.WARNING).length,
+      error: this.issues.filter((i) => i.severity === Severity.ERROR).length,
+      critical: this.issues.filter((i) => i.severity === Severity.CRITICAL).length,
     };
-    
+
     // 计算总字数
     const totalWords = this.segments.reduce((sum, seg) => sum + seg.wordCount, 0);
-    
+
     return {
       passed: issueCounts.error === 0 && issueCounts.critical === 0,
       issues: this.issues,

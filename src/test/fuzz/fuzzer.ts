@@ -4,14 +4,14 @@
  */
 
 import { MessageReader } from '../../core/message-reader.js';
-import { AuditReader } from '../security/audit-reader.js';
 import {
-  encodeStructPointer,
-  encodeListPointer,
-  encodeFarPointer,
-  PointerTag,
   ElementSize,
+  PointerTag,
+  encodeFarPointer,
+  encodeListPointer,
+  encodeStructPointer,
 } from '../../core/pointer.js';
+import { AuditReader } from '../security/audit-reader.js';
 
 /**
  * 变异策略类型
@@ -32,10 +32,24 @@ export enum MutationStrategy {
  * 有趣的值（常用于触发边界条件）
  */
 const INTERESTING_VALUES = [
-  0x00, 0x01, 0x7f, 0x80, 0xff,
-  0x0000, 0x0001, 0x7fff, 0x8000, 0xffff,
-  0x00000000, 0x00000001, 0x7fffffff, 0x80000000, 0xffffffff,
-  0x40, 0x41, 0x3f, // Around max segment count
+  0x00,
+  0x01,
+  0x7f,
+  0x80,
+  0xff,
+  0x0000,
+  0x0001,
+  0x7fff,
+  0x8000,
+  0xffff,
+  0x00000000,
+  0x00000001,
+  0x7fffffff,
+  0x80000000,
+  0xffffffff,
+  0x40,
+  0x41,
+  0x3f, // Around max segment count
 ];
 
 /**
@@ -461,7 +475,8 @@ export class CapnpFuzzer {
       case 3: // 设置为零
         view.setBigUint64(ptrOffset * 8, 0n, true);
         break;
-      case 4: // 设置为 far pointer
+      case 4: {
+        // 设置为 far pointer
         const farPtr = encodeFarPointer(
           this.rng.nextInt(0, 100),
           this.rng.nextInt(0, 100),
@@ -469,6 +484,7 @@ export class CapnpFuzzer {
         );
         view.setBigUint64(ptrOffset * 8, farPtr, true);
         break;
+      }
     }
 
     return input;
@@ -572,7 +588,7 @@ export class CapnpFuzzer {
       // 尝试获取根（可能抛出）
       try {
         reader.getRoot(0, 0);
-      } catch (e) {
+      } catch (_e) {
         // 预期行为，不一定是崩溃
       }
     } catch (error) {
@@ -645,7 +661,7 @@ export async function runContinuousFuzzing(
   options?: Omit<FuzzerConfig, 'maxIterations'> & { maxFindings?: number }
 ): Promise<FuzzResult[]> {
   const findings: FuzzResult[] = [];
-  let iteration = 0;
+  let _iteration = 0;
 
   const fuzzer = new CapnpFuzzer({
     ...options,
@@ -669,10 +685,10 @@ export async function runContinuousFuzzing(
 
       // Run batch of iterations
       for (let i = 0; i < 100; i++) {
-        iteration++;
-        const seed = fuzzer['generateSeed']();
-        const { output: mutated, strategy } = fuzzer['mutate'](seed);
-        const result = fuzzer['testInput'](mutated, strategy);
+        _iteration++;
+        const seed = fuzzer.generateSeed();
+        const { output: mutated, strategy } = fuzzer.mutate(seed);
+        const result = fuzzer.testInput(mutated, strategy);
 
         if (result.crash || (result.auditResult && !result.auditResult.valid)) {
           findings.push(result);

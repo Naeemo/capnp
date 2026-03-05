@@ -4,7 +4,12 @@
  */
 
 import { MessageReader } from '../../core/message-reader.js';
-import { decodePointer, PointerTag, type StructPointer, type ListPointer } from '../../core/pointer.js';
+import {
+  type ListPointer,
+  PointerTag,
+  type StructPointer,
+  decodePointer,
+} from '../../core/pointer.js';
 import type { Segment } from '../../core/segment.js';
 import { DEFAULT_SECURITY_OPTIONS, type SecurityOptions } from './malformed-messages.js';
 
@@ -184,10 +189,10 @@ export class AuditReader {
     offset = (offset + 7) & ~7;
 
     // 检查段数据是否完整
-    let totalWords = 0;
+    let _totalWords = 0;
     for (let i = 0; i < segmentCount; i++) {
       const size = segmentSizes[i];
-      totalWords += size;
+      _totalWords += size;
       const endOffset = offset + size * 8;
 
       if (endOffset > uint8Array.byteLength) {
@@ -224,7 +229,10 @@ export class AuditReader {
       this.analyzePointer(segments, 0, 0, 0);
     }
 
-    return this.buildResult(this.issues.filter((i) => i.severity === Severity.ERROR || i.severity === Severity.CRITICAL).length === 0);
+    return this.buildResult(
+      this.issues.filter((i) => i.severity === Severity.ERROR || i.severity === Severity.CRITICAL)
+        .length === 0
+    );
   }
 
   /**
@@ -297,8 +305,7 @@ export class AuditReader {
 
     // 检查负偏移
     if (ptr.tag === PointerTag.STRUCT || ptr.tag === PointerTag.LIST) {
-      const signedOffset =
-        ptr.offset >= 0x20000000 ? ptr.offset - 0x40000000 : ptr.offset;
+      const signedOffset = ptr.offset >= 0x20000000 ? ptr.offset - 0x40000000 : ptr.offset;
 
       if (signedOffset < 0) {
         this.addIssue(
@@ -327,7 +334,10 @@ export class AuditReader {
         const targetOffset = wordOffset + 1 + structPtr.offset;
 
         // 检查目标是否在段内
-        if (targetOffset < 0 || targetOffset + structPtr.dataWords + structPtr.pointerCount > segment.wordCount) {
+        if (
+          targetOffset < 0 ||
+          targetOffset + structPtr.dataWords + structPtr.pointerCount > segment.wordCount
+        ) {
           this.addIssue(
             SecurityIssueType.OFFSET_OUT_OF_BOUNDS,
             Severity.ERROR,
@@ -352,7 +362,7 @@ export class AuditReader {
       }
 
       case PointerTag.LIST: {
-        const listPtr = ptr as ListPointer;
+        const _listPtr = ptr as ListPointer;
         // 基本检查
         break;
       }
@@ -369,7 +379,7 @@ export class AuditReader {
         }
 
         // 检查 far pointer 目标段
-        const targetSegment = (Number(ptrValue >> BigInt(32)) & 0xffffffff);
+        const targetSegment = Number(ptrValue >> BigInt(32)) & 0xffffffff;
         if (targetSegment >= segments.length) {
           this.addIssue(
             SecurityIssueType.INVALID_FAR_POINTER,
@@ -382,9 +392,9 @@ export class AuditReader {
         }
 
         // 检查 double-far
-        const isDoubleFar = (Number(ptrValue >> BigInt(2)) & 1) === 1;
+        const _isDoubleFar = (Number(ptrValue >> BigInt(2)) & 1) === 1;
         const targetOffset = Number((ptrValue >> BigInt(3)) & BigInt(0x1fffffff));
-        
+
         // 递归分析 landing pad（单 far 和 double far 都需要）
         this.analyzePointer(segments, targetSegment, targetOffset, depth + 1);
         break;
