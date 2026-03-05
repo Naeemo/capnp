@@ -18,6 +18,16 @@ function createMockTransport(): RpcTransport {
     close: vi.fn(),
     onClose: undefined,
     onError: undefined,
+    getCompressionState: vi.fn().mockReturnValue({
+      enabled: false,
+      algorithm: 'none',
+      bytesSent: 0,
+      bytesReceived: 0,
+      uncompressedBytesSent: 0,
+      uncompressedBytesReceived: 0,
+      messagesCompressed: 0,
+      messagesDecompressed: 0,
+    }),
   };
 }
 

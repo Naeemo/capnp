@@ -6,7 +6,7 @@
 
 import { deserializeRpcMessage, serializeRpcMessage } from './message-serializer.js';
 import type { RpcMessage } from './rpc-types.js';
-import type { RpcTransport, WebSocketTransportOptions } from './transport.js';
+import type { RpcTransport, WebSocketTransportOptions, CompressionState } from './transport.js';
 
 // Message framing: length-prefixed binary messages
 // Format: [4 bytes: message length (little-endian)] [N bytes: message data]
@@ -49,6 +49,19 @@ export class WebSocketTransport implements RpcTransport {
 
   get connected(): boolean {
     return this._connected;
+  }
+
+  getCompressionState(): CompressionState {
+    return {
+      enabled: false,
+      algorithm: 'none',
+      bytesSent: 0,
+      bytesReceived: 0,
+      uncompressedBytesSent: 0,
+      uncompressedBytesReceived: 0,
+      messagesCompressed: 0,
+      messagesDecompressed: 0,
+    };
   }
 
   private connect(url: string): void {

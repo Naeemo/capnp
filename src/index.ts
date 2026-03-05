@@ -35,3 +35,18 @@ export type {
 
 // RPC (Phase 1: Level 0)
 export * from './rpc/index.js';
+
+// Compression (LZ4 transport layer optimization)
+export {
+  type CompressionConfig,
+  type CompressionStats,
+  compress,
+  uncompress,
+  tryDecompress,
+  isCompressionFrame,
+  parseFrameHeader,
+  createCompressionConfig,
+  createCompressionStats,
+  FrameFlags,
+  DEFAULT_COMPRESSION_CONFIG,
+} from './compression/index.js';

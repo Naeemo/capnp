@@ -17,7 +17,12 @@
       "import": "./dist/compat/index.js"
     }
   },
-  "files": ["dist", "README.md", "README.zh.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
   "bin": {
     "capnp": "./dist/cli.js"
   },
@@ -35,9 +40,17 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
-  "keywords": ["capnp", "capnproto", "serialization", "typescript"],
+  "keywords": [
+    "capnp",
+    "capnproto",
+    "serialization",
+    "typescript"
+  ],
   "author": "Naeemo <naeemo@qq.com>",
-  "contributors": ["Naeemo <naeemo@qq.com>", "Kimi"],
+  "contributors": [
+    "Naeemo <naeemo@qq.com>",
+    "Kimi"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -52,6 +65,7 @@
     "@types/node": "^22.19.13",
     "@types/ws": "^8.5.14",
     "@vitest/coverage-v8": "3.2.4",
+    "lz4js": "^0.2.0",
     "protobufjs": "^7.4.0",
     "rolldown": "1.0.0-rc.6",
     "tsx": "^4.21.0",
@@ -69,5 +83,8 @@
     "overrides": {
       "esbuild": ">=0.25.0"
     }
+  },
+  "dependencies": {
+    "lz4": "^0.6.5"
   }
 }

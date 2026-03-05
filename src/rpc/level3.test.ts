@@ -29,6 +29,19 @@ class MockTransport implements RpcTransport {
   onClose?: (reason?: Error) => void;
   onError?: (error: Error) => void;
 
+  getCompressionState() {
+    return {
+      enabled: false,
+      algorithm: 'none',
+      bytesSent: 0,
+      bytesReceived: 0,
+      uncompressedBytesSent: 0,
+      uncompressedBytesReceived: 0,
+      messagesCompressed: 0,
+      messagesDecompressed: 0,
+    };
+  }
+
   async send(message: RpcMessage): Promise<void> {
     this.sentMessages.push(message);
   }

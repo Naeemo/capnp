@@ -8,7 +8,7 @@
 import * as net from 'node:net';
 import { deserializeRpcMessage, serializeRpcMessage } from './message-serializer.js';
 import type { RpcMessage } from './rpc-types.js';
-import type { RpcTransport } from './transport.js';
+import type { RpcTransport, CompressionState } from './transport.js';
 
 export interface EzRpcTransportOptions {
   connectTimeoutMs?: number;
@@ -51,6 +51,19 @@ export class EzRpcTransport implements RpcTransport {
 
   get connected(): boolean {
     return this._connected && this.socket !== null && !this.socket.destroyed;
+  }
+
+  getCompressionState(): CompressionState {
+    return {
+      enabled: false,
+      algorithm: 'none',
+      bytesSent: 0,
+      bytesReceived: 0,
+      uncompressedBytesSent: 0,
+      uncompressedBytesReceived: 0,
+      messagesCompressed: 0,
+      messagesDecompressed: 0,
+    };
   }
 
   private doConnect(): Promise<void> {

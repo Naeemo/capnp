@@ -74,7 +74,7 @@ export type {
 } from './rpc-types.js';
 
 // Transport
-export type { RpcTransport, WebSocketTransportOptions } from './transport.js';
+export type { RpcTransport, WebSocketTransportOptions, TcpTransportOptions, CompressionOptions, CompressionState } from './transport.js';
 export { WebSocketTransport } from './websocket-transport.js';
 export { TcpTransport } from './tcp-transport.js';
 export { EzRpcTransport } from './ezrpc-transport.js';
@@ -331,3 +331,9 @@ export {
   CapnpWebSocketProxy,
   type ProxyOptions,
 } from '../proxy/websocket-proxy.js';
+
+// Compression types (re-exported from main)
+export type {
+  CompressionConfig,
+  CompressionStats,
+} from '../compression/index.js';
