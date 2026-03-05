@@ -327,7 +327,7 @@ function protobufTextSerialize(): Uint8Array {
 }
 
 function protobufTextDeserialize(data: Uint8Array): void {
-  const decoded = TextStruct.decode(data);
+  const decoded = TextStruct.decode(data) as any;
   void decoded.id;
   void decoded.text;
 }
