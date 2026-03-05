@@ -8,7 +8,7 @@
 import * as net from 'node:net';
 import { deserializeRpcMessage, serializeRpcMessage } from './message-serializer.js';
 import type { RpcMessage } from './rpc-types.js';
-import type { RpcTransport, CompressionState } from './transport.js';
+import type { CompressionState, RpcTransport } from './transport.js';
 
 export interface EzRpcTransportOptions {
   connectTimeoutMs?: number;

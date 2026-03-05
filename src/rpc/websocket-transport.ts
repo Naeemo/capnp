@@ -6,7 +6,7 @@
 
 import { deserializeRpcMessage, serializeRpcMessage } from './message-serializer.js';
 import type { RpcMessage } from './rpc-types.js';
-import type { RpcTransport, WebSocketTransportOptions, CompressionState } from './transport.js';
+import type { CompressionState, RpcTransport, WebSocketTransportOptions } from './transport.js';
 
 // Message framing: length-prefixed binary messages
 // Format: [4 bytes: message length (little-endian)] [N bytes: message data]

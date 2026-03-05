@@ -7,10 +7,10 @@
  * - Small messages (< threshold) -> no compression
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
 import * as net from 'node:net';
-import { TcpTransport } from './tcp-transport.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import type { RpcMessage } from './rpc-types.js';
+import { TcpTransport } from './tcp-transport.js';
 
 // Test server helper
 function createTestServer(port: number, supportsLz4: boolean): Promise<net.Server> {
@@ -93,7 +93,7 @@ describe('TcpTransport Compression Integration', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Create a large message (larger than 256 bytes threshold)
-      const largeContent = new Uint8Array(1000).fill(0x42);
+      const _largeContent = new Uint8Array(1000).fill(0x42);
       const message: RpcMessage = {
         type: 'bootstrap',
         bootstrap: { questionId: 1 },
@@ -131,7 +131,7 @@ describe('TcpTransport Compression Integration', () => {
 
       // Send multiple large messages with repetitive data (highly compressible)
       const largeContent = new Uint8Array(5000).fill(0x42);
-      
+
       for (let i = 0; i < 5; i++) {
         const message: RpcMessage = {
           type: 'call',
@@ -156,7 +156,8 @@ describe('TcpTransport Compression Integration', () => {
 
       const finalState = client.getCompressionState();
       const compressedBytes = finalState.bytesSent - initialState.bytesSent;
-      const uncompressedBytes = finalState.uncompressedBytesSent - initialState.uncompressedBytesSent;
+      const uncompressedBytes =
+        finalState.uncompressedBytesSent - initialState.uncompressedBytesSent;
 
       // With highly compressible data, compressed size should be much smaller
       expect(compressedBytes).toBeLessThan(uncompressedBytes * 0.5);
@@ -207,10 +208,10 @@ describe('TcpTransport Compression Integration', () => {
       // Wait for capability negotiation
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const initialState = client.getCompressionState();
+      const _initialState = client.getCompressionState();
 
       // Send a large message
-      const largeContent = new Uint8Array(1000).fill(0x42);
+      const _largeContent = new Uint8Array(1000).fill(0x42);
       const message: RpcMessage = {
         type: 'bootstrap',
         bootstrap: { questionId: 1 },
@@ -221,7 +222,7 @@ describe('TcpTransport Compression Integration', () => {
       expect(received).not.toBeNull();
 
       const finalState = client.getCompressionState();
-      
+
       // With compression disabled, bytes sent should equal uncompressed bytes
       expect(finalState.bytesSent).toBe(finalState.uncompressedBytesSent);
       expect(finalState.messagesCompressed).toBe(0);
@@ -252,7 +253,7 @@ describe('TcpTransport Compression Integration', () => {
       // Wait for capability negotiation
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const initialState = client.getCompressionState();
+      const _initialState = client.getCompressionState();
 
       // Send small messages (below 256 byte threshold)
       for (let i = 0; i < 5; i++) {
@@ -265,7 +266,7 @@ describe('TcpTransport Compression Integration', () => {
       }
 
       const finalState = client.getCompressionState();
-      
+
       // Small messages should not be compressed
       expect(finalState.messagesCompressed).toBe(0);
 
@@ -324,7 +325,7 @@ describe('TcpTransport Compression Integration', () => {
       // Wait for capability negotiation
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const initialState = client.getCompressionState();
+      const _initialState = client.getCompressionState();
 
       // Send mix of large (compressed) and small (not compressed) messages
       for (let i = 0; i < 3; i++) {

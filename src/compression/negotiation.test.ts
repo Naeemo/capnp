@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CompressionAlgorithm,
+  type TransportCapabilities,
   createDefaultCapabilities,
   createLZ4OnlyCapabilities,
   createNoCompressionCapabilities,
@@ -13,7 +14,6 @@ import {
   encodeCapabilities,
   negotiateCompression,
   validateCapabilities,
-  type TransportCapabilities,
 } from './negotiation.js';
 
 describe('Negotiation - Basic Negotiation', () => {
@@ -212,10 +212,7 @@ describe('Negotiation - Encoding/Decoding', () => {
 
   it('should maintain algorithm order after encoding/decoding', () => {
     const original: TransportCapabilities = {
-      compressionAlgorithms: [
-        CompressionAlgorithm.LZ4,
-        CompressionAlgorithm.NONE,
-      ],
+      compressionAlgorithms: [CompressionAlgorithm.LZ4, CompressionAlgorithm.NONE],
     };
 
     const encoded = encodeCapabilities(original);
@@ -386,9 +383,9 @@ describe('Negotiation - Edge Cases', () => {
 
   it('should handle identical capabilities', () => {
     const caps = createDefaultCapabilities();
-    
+
     const result = negotiateCompression(caps, caps);
-    
+
     expect(result.success).toBe(true);
     // LZ4 has higher priority than NONE
     expect(result.selectedAlgorithm).toBe(CompressionAlgorithm.LZ4);

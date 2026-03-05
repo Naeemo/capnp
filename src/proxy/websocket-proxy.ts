@@ -4,7 +4,7 @@
  * Allows browsers to connect to native Cap'n Proto services (C++, etc.)
  * via WebSocket. Handles the protocol bridging between WebSocket (browser)
  * and raw TCP (Cap'n Proto services).
- * 
+ *
  * Features:
  * - Independent compression configuration for WebSocket and TCP sides
  * - Automatic compression/decompression bridging
@@ -19,13 +19,13 @@ import {
   type CompressionConfig,
   type CompressionStats,
   compress,
-  uncompress,
-  tryDecompress,
-  isCompressionFrame,
-  createCompressionStats,
   createCompressionConfig,
+  createCompressionStats,
   hasFrameMagic,
+  isCompressionFrame,
   parseFrameHeader,
+  tryDecompress,
+  uncompress,
 } from '../compression/index.js';
 
 /**
@@ -100,11 +100,11 @@ class ProxyConnection extends EventEmitter {
     super();
     this.ws = ws;
     this.options = options;
-    
+
     // Initialize compression configs with defaults
     this.wsCompressionConfig = createCompressionConfig(options.compression?.ws);
     this.tcpCompressionConfig = createCompressionConfig(options.compression?.tcp);
-    
+
     this.stats = {
       wsMessagesIn: 0,
       wsMessagesOut: 0,
@@ -149,7 +149,9 @@ class ProxyConnection extends EventEmitter {
 
     this.tcpSocket.on('connect', () => {
       this.log('Connected to target TCP service');
-      this.log(`Compression - WS: ${this.wsCompressionConfig.enabled ? 'enabled' : 'disabled'}, TCP: ${this.tcpCompressionConfig.enabled ? 'enabled' : 'disabled'}`);
+      this.log(
+        `Compression - WS: ${this.wsCompressionConfig.enabled ? 'enabled' : 'disabled'}, TCP: ${this.tcpCompressionConfig.enabled ? 'enabled' : 'disabled'}`
+      );
       this.emit('connected');
     });
 
@@ -184,19 +186,19 @@ class ProxyConnection extends EventEmitter {
     if (this.closed) return;
 
     // Handle both single Buffer and Buffer[]
-    let buffer = Buffer.isBuffer(data)
+    const buffer = Buffer.isBuffer(data)
       ? data
       : Array.isArray(data)
         ? Buffer.concat(data)
         : Buffer.from(data);
 
     const maxSize = this.options.maxMessageSize ?? 16 * 1024 * 1024;
-    
+
     // Check uncompressed size
     const uint8Data = bufferToUint8Array(buffer);
     const frameInfo = parseFrameHeader(uint8Data);
     const uncompressedSize = frameInfo ? frameInfo.length : buffer.length;
-    
+
     if (uncompressedSize > maxSize) {
       this.log(`Message too large: ${uncompressedSize} bytes (max: ${maxSize})`);
       this.close();
@@ -204,7 +206,7 @@ class ProxyConnection extends EventEmitter {
     }
 
     this.stats.wsMessagesIn++;
-    
+
     // Step 1: Decompress if the message is compressed (from WS side)
     let decompressedData: Uint8Array;
     if (hasFrameMagic(uint8Data)) {
@@ -240,7 +242,9 @@ class ProxyConnection extends EventEmitter {
     if (this.tcpSocket?.writable) {
       const bufferToSend = uint8ArrayToBuffer(dataToSend);
       this.tcpSocket.write(bufferToSend);
-      this.log(`Forwarded ${dataToSend.length} bytes to TCP (original: ${decompressedData.length})`);
+      this.log(
+        `Forwarded ${dataToSend.length} bytes to TCP (original: ${decompressedData.length})`
+      );
     }
   }
 
@@ -291,7 +295,9 @@ class ProxyConnection extends EventEmitter {
     if (this.ws.readyState === WebSocket.OPEN) {
       // WebSocket can send Uint8Array directly
       this.ws.send(dataToSend);
-      this.log(`Forwarded ${dataToSend.length} bytes to WebSocket (original: ${decompressedData.length})`);
+      this.log(
+        `Forwarded ${dataToSend.length} bytes to WebSocket (original: ${decompressedData.length})`
+      );
     }
   }
 
@@ -484,9 +490,13 @@ Examples:
   console.log(`  WebSocket: ws://localhost:${wsPort}`);
   console.log(`  Target:    ${targetHost}:${targetPort}`);
   if (wsCompression || tcpCompression) {
-    console.log(`  Compression:`);
-    console.log(`    WebSocket: ${wsCompression ? 'enabled' : 'disabled'} (threshold: ${compressionThreshold})`);
-    console.log(`    TCP:       ${tcpCompression ? 'enabled' : 'disabled'} (threshold: ${compressionThreshold})`);
+    console.log('  Compression:');
+    console.log(
+      `    WebSocket: ${wsCompression ? 'enabled' : 'disabled'} (threshold: ${compressionThreshold})`
+    );
+    console.log(
+      `    TCP:       ${tcpCompression ? 'enabled' : 'disabled'} (threshold: ${compressionThreshold})`
+    );
   }
 
   proxy.on('connection', () => {

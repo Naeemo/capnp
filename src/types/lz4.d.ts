@@ -9,10 +9,13 @@ declare module 'lz4' {
    * @param options - Compression options
    * @returns Compressed buffer
    */
-  export function encode(data: Buffer, options?: {
-    blockChecksum?: boolean;
-    blockMaxSize?: number;
-  }): Buffer;
+  export function encode(
+    data: Buffer,
+    options?: {
+      blockChecksum?: boolean;
+      blockMaxSize?: number;
+    }
+  ): Buffer;
 
   /**
    * Decode (decompress) data using LZ4
@@ -20,7 +23,10 @@ declare module 'lz4' {
    * @param options - Decompression options
    * @returns Decompressed buffer
    */
-  export function decode(data: Buffer, options?: {
-    blockChecksum?: boolean;
-  }): Buffer;
+  export function decode(
+    data: Buffer,
+    options?: {
+      blockChecksum?: boolean;
+    }
+  ): Buffer;
 }

@@ -26,19 +26,9 @@ interface CapabilityNegotiation {
   version: number;
 }
 
-/** Compression frame header */
-interface CompressionFrame {
-  /** Original uncompressed size */
-  originalSize: number;
-  /** Compressed size (0 if not compressed) */
-  compressedSize: number;
-  /** Compression algorithm: 0=none, 1=lz4 */
-  algorithm: number;
-}
-
 // Frame constants
-const FRAME_MAGIC = 0x4C5A3443; // 'LZ4C' in hex
-const ALGORITHM_NONE = 0;
+const FRAME_MAGIC = 0x4c5a3443; // 'LZ4C' in hex
+const _ALGORITHM_NONE = 0;
 const ALGORITHM_LZ4 = 1;
 const CAPABILITY_VERSION = 1;
 const DEFAULT_COMPRESSION_THRESHOLD = 256;
@@ -48,7 +38,7 @@ const DEFAULT_COMPRESSION_THRESHOLD = 256;
  *
  * Uses length-prefixed binary message framing compatible with Cap'n Proto C++ implementation.
  * Format: [4 bytes: message length (little-endian)] [N bytes: message data]
- * 
+ *
  * With compression support:
  * - Connection establishment includes capability negotiation
  * - Messages larger than threshold are automatically compressed
@@ -91,7 +81,8 @@ export class TcpTransport implements RpcTransport {
     };
 
     // Local LZ4 support
-    this.localSupportsLz4 = this.compressionConfig.enabled && this.compressionConfig.algorithm === 'lz4';
+    this.localSupportsLz4 =
+      this.compressionConfig.enabled && this.compressionConfig.algorithm === 'lz4';
 
     // Initialize compression state
     this.compressionState = {
@@ -142,7 +133,7 @@ export class TcpTransport implements RpcTransport {
       this.socket.on('connect', async () => {
         clearTimeout(timeout);
         this._connected = true;
-        
+
         // Perform capability negotiation
         try {
           await this.performCapabilityNegotiation();
@@ -230,13 +221,13 @@ export class TcpTransport implements RpcTransport {
       // Server: wait for client's capabilities
       const clientCaps = await this.readCapabilityNegotiation();
       this.remoteSupportsLz4 = clientCaps.supportsLz4;
-      
+
       // Send our capabilities
       await this.sendCapabilityNegotiation();
     } else {
       // Client: send our capabilities first
       await this.sendCapabilityNegotiation();
-      
+
       // Wait for server's capabilities
       const serverCaps = await this.readCapabilityNegotiation();
       this.remoteSupportsLz4 = serverCaps.supportsLz4;
@@ -284,7 +275,7 @@ export class TcpTransport implements RpcTransport {
       const checkBuffer = () => {
         if (this.pendingBuffer.length < 4) {
           // Wait for more data
-          const originalHandler = this.socket!.listenerCount('data') > 0;
+          const _originalHandler = this.socket!.listenerCount('data') > 0;
           const dataHandler = () => {
             this.socket!.off('data', dataHandler);
             checkBuffer();
@@ -360,7 +351,7 @@ export class TcpTransport implements RpcTransport {
         }
 
         const headerOffset = 4;
-        const originalSize = this.pendingBuffer.readUInt32LE(headerOffset + 4);
+        const _originalSize = this.pendingBuffer.readUInt32LE(headerOffset + 4);
         const compressedSize = this.pendingBuffer.readUInt32LE(headerOffset + 8);
         const algorithm = this.pendingBuffer.readUInt32LE(headerOffset + 12);
 
@@ -429,18 +420,19 @@ export class TcpTransport implements RpcTransport {
     }
 
     const data = serializeRpcMessage(message);
-    
+
     // Decide whether to compress
-    const shouldCompress = this.compressionEnabled && data.length >= this.compressionConfig.thresholdBytes;
+    const shouldCompress =
+      this.compressionEnabled && data.length >= this.compressionConfig.thresholdBytes;
 
     let frame: Buffer;
 
     if (shouldCompress) {
       // Compress the data
-      const compressed = lz4.encode(Buffer.from(data), { 
-        blockMaxSize: this.compressionConfig.level 
+      const compressed = lz4.encode(Buffer.from(data), {
+        blockMaxSize: this.compressionConfig.level,
       });
-      
+
       // Build compressed frame: [4 bytes: length] [4 bytes: magic] [4 bytes: original] [4 bytes: compressed] [4 bytes: algo] [N bytes: compressed data]
       const frameLength = 16 + compressed.length;
       frame = Buffer.allocUnsafe(4 + frameLength);

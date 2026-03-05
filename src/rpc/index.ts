@@ -74,7 +74,13 @@ export type {
 } from './rpc-types.js';
 
 // Transport
-export type { RpcTransport, WebSocketTransportOptions, TcpTransportOptions, CompressionOptions, CompressionState } from './transport.js';
+export type {
+  RpcTransport,
+  WebSocketTransportOptions,
+  TcpTransportOptions,
+  CompressionOptions,
+  CompressionState,
+} from './transport.js';
 export { WebSocketTransport } from './websocket-transport.js';
 export { TcpTransport } from './tcp-transport.js';
 export { EzRpcTransport } from './ezrpc-transport.js';
