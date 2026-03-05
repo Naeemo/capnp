@@ -51,6 +51,7 @@
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.19.13",
     "@types/ws": "^8.5.14",
+    "protobufjs": "^7.4.0",
     "rolldown": "1.0.0-rc.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
