@@ -43,6 +43,6 @@ export default defineConfig([
       },
     ],
     platform: 'node',
-    external: ['node:fs', 'node:path', 'node:child_process', 'node:os', 'node:util'],
+    external: ['node:fs', 'node:path', 'node:child_process', 'node:os', 'node:util', 'lz4'],
   },
 ]);
