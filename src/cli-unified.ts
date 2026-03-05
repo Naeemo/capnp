@@ -37,6 +37,7 @@ Commands:
   json      Convert between Cap'n Proto binary and JSON
   compat    Check schema compatibility between versions
   audit     Security audit message files
+  bench     Run performance benchmarks
 
 Options:
   -h, --help     Show this help
@@ -47,6 +48,7 @@ Examples:
   capnp json to-json -i data.bin -s schema.json
   capnp compat old.json new.json
   capnp audit message.bin
+  capnp bench --sizes 1KB,10KB,100KB --vs-json
 
 Run 'capnp <command> --help' for more information on a command.
 `);
@@ -79,6 +81,9 @@ async function main() {
     case 'audit':
       await import('./cli-audit.js').then((m) => m.run(args));
       break;
+    case 'bench':
+      await import('./cli-bench.js').then((m) => m.run(args));
+      break;
     case 'help':
       if (positionals[1]) {
         // Show help for specific command
@@ -95,6 +100,9 @@ async function main() {
             break;
           case 'audit':
             await import('./cli-audit.js').then((m) => m.run(args));
+            break;
+          case 'bench':
+            await import('./cli-bench.js').then((m) => m.run(args));
             break;
           default:
             console.error(`Unknown command: ${positionals[1]}`);
