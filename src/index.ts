@@ -20,6 +20,7 @@ export {
   decodePointer,
   encodeStructPointer,
   encodeListPointer,
+  encodeFarPointer,
   PointerTag,
   ElementSize,
 } from './core/pointer.js';
