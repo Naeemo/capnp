@@ -24,7 +24,7 @@ const { values, positionals } = parseArgs({
   strict: false,
 });
 
-const VERSION = '0.9.1';
+const VERSION = '0.9.2';
 
 function printMainUsage() {
   console.log(`

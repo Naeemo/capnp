@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.9.2] - 2026-03-05
+
+### Added
+- **LZ4 Compression**: Transport layer compression support
+  - `src/compression/` module with frame encoding/decoding
+  - Capability negotiation protocol for compression algorithm selection
+  - TcpTransport integration with automatic compression for large messages
+  - WebSocket Proxy with independent compression config for both sides
+  - Support for mixed environments (Node.js ↔ Browser ↔ Native C++)
+  - Automatic fallback to uncompressed when peer doesn't support LZ4
+  - Configurable compression threshold (default 1024 bytes)
+  - Full test coverage for all compression scenarios
+
+### Changed
+- Updated dependencies (glob 10.4.5 → 10.5.0, security fix)
+- Core module test coverage improved to 88.14%
+
+[0.9.2]: https://github.com/Naeemo/capnp/releases/tag/v0.9.2
+
 ## [0.9.1] - 2026-03-05
 
 ### Added
