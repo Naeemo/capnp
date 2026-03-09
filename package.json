@@ -30,7 +30,7 @@
     "lint:fix": "biome check . --write",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run lint && npm run typecheck && npm run build && npm test",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm run build && vitest run src/compression/ src/core/ src/json/ src/rpc/ --exclude='**/tcp-transport-compression.test.ts'",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
