@@ -141,11 +141,12 @@ export function isCompressionFrame(data: Uint8Array | Buffer): boolean {
 /**
  * Try to decompress, return original if not compressed or decompression fails
  * Works with both Buffer and Uint8Array
+ * Assumes data has LZ4 frame header (created by compressFrame)
  */
 export function tryDecompress(data: Uint8Array | Buffer): Uint8Array {
   const uint8Data =
     data instanceof Buffer ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength) : data;
-  const result = uncompress(uint8Data);
+  const result = decompressFrame(uint8Data, uncompress);
   return result ?? uint8Data;
 }
 

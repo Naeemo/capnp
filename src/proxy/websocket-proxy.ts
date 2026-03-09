@@ -21,6 +21,7 @@ import {
   compress,
   createCompressionConfig,
   createCompressionStats,
+  decompressFrame,
   hasFrameMagic,
   isCompressionFrame,
   parseFrameHeader,
@@ -210,7 +211,7 @@ class ProxyConnection extends EventEmitter {
     // Step 1: Decompress if the message is compressed (from WS side)
     let decompressedData: Uint8Array;
     if (hasFrameMagic(uint8Data)) {
-      const decompressed = uncompress(uint8Data);
+      const decompressed = decompressFrame(uint8Data, uncompress);
       if (decompressed !== null) {
         decompressedData = decompressed;
         this.log(`Decompressed WS message: ${buffer.length} -> ${decompressedData.length} bytes`);
@@ -227,8 +228,6 @@ class ProxyConnection extends EventEmitter {
     if (this.tcpCompressionConfig.enabled) {
       const compressed = compress(decompressedData, {
         threshold: this.tcpCompressionConfig.threshold,
-        level: this.tcpCompressionConfig.level,
-        highCompression: this.tcpCompressionConfig.highCompression,
       });
       if (compressed !== null) {
         dataToSend = compressed;
@@ -263,7 +262,7 @@ class ProxyConnection extends EventEmitter {
     const uint8Data = bufferToUint8Array(data);
     let decompressedData: Uint8Array;
     if (hasFrameMagic(uint8Data)) {
-      const decompressed = uncompress(uint8Data);
+      const decompressed = decompressFrame(uint8Data, uncompress);
       if (decompressed !== null) {
         decompressedData = decompressed;
         this.log(`Decompressed TCP message: ${data.length} -> ${decompressedData.length} bytes`);
@@ -280,8 +279,6 @@ class ProxyConnection extends EventEmitter {
     if (this.wsCompressionConfig.enabled) {
       const compressed = compress(decompressedData, {
         threshold: this.wsCompressionConfig.threshold,
-        level: this.wsCompressionConfig.level,
-        highCompression: this.wsCompressionConfig.highCompression,
       });
       if (compressed !== null) {
         dataToSend = compressed;

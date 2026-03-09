@@ -261,14 +261,14 @@ describe('LZ4 Module', () => {
       const compressed = compress(original, { threshold: 1024 });
 
       if (compressed) {
-        const result = uncompressWithFallback(compressed);
+        const result = uncompressWithFallback(compressed, original.length);
         expect(result).toEqual(original);
       }
     });
 
     it('should return original if decompression fails', () => {
       const invalid = new Uint8Array([1, 2, 3, 4, 5]);
-      const result = uncompressWithFallback(invalid);
+      const result = uncompressWithFallback(invalid, 100);
       expect(result).toEqual(invalid);
     });
   });

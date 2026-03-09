@@ -351,7 +351,7 @@ export class TcpTransport implements RpcTransport {
         }
 
         const headerOffset = 4;
-        const _originalSize = this.pendingBuffer.readUInt32LE(headerOffset + 4);
+        const originalSize = this.pendingBuffer.readUInt32LE(headerOffset + 4);
         const compressedSize = this.pendingBuffer.readUInt32LE(headerOffset + 8);
         const algorithm = this.pendingBuffer.readUInt32LE(headerOffset + 12);
 
@@ -370,7 +370,7 @@ export class TcpTransport implements RpcTransport {
           let messageData: Uint8Array;
           if (algorithm === ALGORITHM_LZ4) {
             // Use our lz4 module - need original size for decompress
-            const decompressed = decompress(compressedData, originalLength);
+            const decompressed = decompress(compressedData, originalSize);
             if (!decompressed) {
               throw new Error('LZ4 decompression failed');
             }

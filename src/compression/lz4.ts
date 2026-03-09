@@ -16,6 +16,8 @@ export interface CompressionOptions {
   threshold?: number;
   /** Compression acceleration 1-65535 (default: 1, fastest) */
   acceleration?: number;
+  /** Compression level 1-16 (default: 0, used for API compatibility) */
+  level?: number;
 }
 
 /**
@@ -24,6 +26,7 @@ export interface CompressionOptions {
 export const DEFAULT_COMPRESSION_OPTIONS: Required<CompressionOptions> = {
   threshold: 1024,
   acceleration: 1,
+  level: 0,
 };
 
 /**
@@ -43,17 +46,17 @@ export function compress(data: Uint8Array, options: CompressionOptions = {}): Ui
   try {
     // Convert Uint8Array to Array for lz4js
     const inputArray = Array.from(data);
-    
+
     // Compress using lz4js
     const compressed = lz4Compress(inputArray);
-    
+
     // Only use compressed data if it's actually smaller
     if (compressed.length >= data.length) {
       return null;
     }
 
     return new Uint8Array(compressed);
-  } catch (error) {
+  } catch (_error) {
     // Compression failed, return null to indicate no compression
     return null;
   }
@@ -69,12 +72,12 @@ export function decompress(data: Uint8Array, originalSize: number): Uint8Array |
   try {
     // Convert Uint8Array to Array for lz4js
     const inputArray = Array.from(data);
-    
+
     // Decompress using lz4js
     const decompressed = lz4Decompress(inputArray, originalSize);
-    
+
     return new Uint8Array(decompressed);
-  } catch (error) {
+  } catch (_error) {
     // Decompression failed
     return null;
   }
@@ -94,11 +97,11 @@ export const uncompress = decompress;
 export function isLikelyCompressed(data: Uint8Array): boolean {
   // Heuristic: compressed data is usually smaller and doesn't look like valid Cap'n Proto
   if (data.length < 8) return false;
-  
+
   // Check if it doesn't look like a Cap'n Proto message
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   const firstWord = view.getUint32(0, true);
-  
+
   // Cap'n Proto messages typically have reasonable segment counts
   // If the first word looks like a very large number, it's probably compressed
   return firstWord > 0x100000;
@@ -119,7 +122,10 @@ export interface CompressionResult {
  * @param options - Compression options
  * @returns Compression result with metadata
  */
-export function compressWithFallback(data: Uint8Array, options: CompressionOptions = {}): CompressionResult {
+export function compressWithFallback(
+  data: Uint8Array,
+  options: CompressionOptions = {}
+): CompressionResult {
   const compressed = compress(data, options);
   return {
     data: compressed ?? data,
