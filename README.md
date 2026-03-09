@@ -19,7 +19,7 @@ A pure TypeScript implementation of Cap'n Proto, featuring zero-copy deserializa
 ## Installation
 
 ```bash
-npm install @naeemo/capnp
+pnpm add @naeemo/capnp
 ```
 
 ## Quick Start

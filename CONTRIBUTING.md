@@ -15,7 +15,7 @@ Thank you for your interest in contributing! This project is developed by **Naee
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests (`npm test`)
+4. Run tests (`pnpm test`)
 5. Commit with clear messages
 6. Push to your fork
 7. Open a Pull Request
@@ -28,19 +28,19 @@ git clone https://github.com/YOUR_USERNAME/capnp-ts.git
 cd capnp-ts
 
 # Install dependencies
-npm install
+pnpm install
 
 # Run tests
-npm test
+pnpm test
 
 # Build
-npm run build
+pnpm run build
 ```
 
 ### Code Style
 
 - Follow existing TypeScript conventions
-- Run `npm run lint` before committing
+- Run `pnpm run lint` before committing
 - Add tests for new features
 - Update documentation as needed
 

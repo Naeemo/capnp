@@ -18,7 +18,7 @@
 ## 安装
 
 ```bash
-npm install @naeemo/capnp
+pnpm add @naeemo/capnp
 ```
 
 ## 快速开始

@@ -15,7 +15,7 @@
 1. Fork 仓库
 2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
 3. 进行更改
-4. 运行测试 (`npm test`)
+4. 运行测试 (`pnpm test`)
 5. 提交清晰的 commit 信息
 6. 推送到你的 fork
 7. 发起 Pull Request
@@ -28,19 +28,19 @@ git clone https://github.com/YOUR_USERNAME/capnp-ts.git
 cd capnp-ts
 
 # 安装依赖
-npm install
+pnpm install
 
 # 运行测试
-npm test
+pnpm test
 
 # 构建
-npm run build
+pnpm run build
 ```
 
 ### 代码风格
 
 - 遵循现有 TypeScript 规范
-- 提交前运行 `npm run lint`
+- 提交前运行 `pnpm run lint`
 - 为新功能添加测试
 - 按需更新文档
 
