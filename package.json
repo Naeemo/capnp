@@ -1,6 +1,6 @@
 {
   "name": "@naeemo/capnp",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Pure TypeScript Cap'n Proto implementation with RPC support",
   "type": "module",
   "main": "./dist/index.cjs",

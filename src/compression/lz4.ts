@@ -81,6 +81,11 @@ export function decompress(data: Uint8Array, originalSize: number): Uint8Array |
 }
 
 /**
+ * Alias for decompress - same function, different name for API compatibility
+ */
+export const uncompress = decompress;
+
+/**
  * Check if data is likely LZ4 compressed
  * (LZ4 doesn't have a magic number, so this is a heuristic)
  * @param data - Data to check
@@ -97,4 +102,39 @@ export function isLikelyCompressed(data: Uint8Array): boolean {
   // Cap'n Proto messages typically have reasonable segment counts
   // If the first word looks like a very large number, it's probably compressed
   return firstWord > 0x100000;
+}
+
+/**
+ * Compression result with metadata
+ */
+export interface CompressionResult {
+  data: Uint8Array;
+  compressed: boolean;
+  originalSize: number;
+}
+
+/**
+ * Compress with fallback - returns compressed data or original if compression fails
+ * @param data - Data to compress
+ * @param options - Compression options
+ * @returns Compression result with metadata
+ */
+export function compressWithFallback(data: Uint8Array, options: CompressionOptions = {}): CompressionResult {
+  const compressed = compress(data, options);
+  return {
+    data: compressed ?? data,
+    compressed: compressed !== null,
+    originalSize: data.length,
+  };
+}
+
+/**
+ * Uncompress with fallback - returns decompressed data or original if decompression fails
+ * @param data - Data to decompress
+ * @param originalSize - Original uncompressed size
+ * @returns Decompressed data or original data
+ */
+export function uncompressWithFallback(data: Uint8Array, originalSize: number): Uint8Array {
+  const decompressed = decompress(data, originalSize);
+  return decompressed ?? data;
 }

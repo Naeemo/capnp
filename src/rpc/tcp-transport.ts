@@ -6,7 +6,7 @@
  */
 
 import * as net from 'node:net';
-import * as lz4 from 'lz4';
+import { compress, decompress } from '../compression/lz4.js';
 import { deserializeRpcMessage, serializeRpcMessage } from './message-serializer.js';
 import type { RpcMessage } from './rpc-types.js';
 import type { CompressionOptions, CompressionState, RpcTransport } from './transport.js';
@@ -369,7 +369,12 @@ export class TcpTransport implements RpcTransport {
         try {
           let messageData: Uint8Array;
           if (algorithm === ALGORITHM_LZ4) {
-            messageData = lz4.decode(compressedData);
+            // Use our lz4 module - need original size for decompress
+            const decompressed = decompress(compressedData, originalLength);
+            if (!decompressed) {
+              throw new Error('LZ4 decompression failed');
+            }
+            messageData = decompressed;
             this.compressionState.messagesDecompressed++;
             this.compressionState.bytesReceived += compressedData.length;
             this.compressionState.uncompressedBytesReceived += messageData.length;
@@ -429,9 +434,10 @@ export class TcpTransport implements RpcTransport {
 
     if (shouldCompress) {
       // Compress the data
-      const compressed = lz4.encode(Buffer.from(data), {
-        blockMaxSize: this.compressionConfig.level,
-      });
+      const compressed = compress(data, { threshold: 0 });
+      if (!compressed) {
+        throw new Error('Compression failed');
+      }
 
       // Build compressed frame: [4 bytes: length] [4 bytes: magic] [4 bytes: original] [4 bytes: compressed] [4 bytes: algo] [N bytes: compressed data]
       const frameLength = 16 + compressed.length;
