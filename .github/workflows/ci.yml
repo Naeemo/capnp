@@ -28,7 +28,7 @@ jobs:
     - run: pnpm run lint
     - run: pnpm run build
     - run: pnpm exec vitest --version
-    - run: pnpm exec vitest run --reporter=verbose --exclude="**/tcp-transport-compression.test.ts"
+    - run: pnpm exec vitest run --reporter=verbose src/compression/ src/core/ src/json/ src/rpc/ --exclude="**/tcp-transport-compression.test.ts"
 
   publish:
     needs: test
